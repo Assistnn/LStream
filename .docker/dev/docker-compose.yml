@@ -1,0 +1,24 @@
+name: lstream
+services:
+  app:
+    platform: linux/amd64
+    build:
+      context: ../..
+      dockerfile: .docker/Dockerfile
+      args:
+        NODE_ENV:
+    env_file:
+      - .env.development
+    environment:
+      GITHUB_TOKEN:
+      NODE_ENV: development
+    volumes:
+      - ../..:/workspace
+      - ~/.ssh:/root/.ssh:ro
+      - ~/.gitconfig:/root/.gitconfig:ro
+      - ~/.zshrc:/root/.zshrc
+      - /var/run/docker.sock:/var/run/docker.sock
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+    working_dir: /workspace/app
+    command: sleep infinity
