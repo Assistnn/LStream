@@ -11,7 +11,7 @@ export const LoginScreen = () => {
   const [password, setPassword] = useState('')
   return (
     <View style={styles.screenContainer}>
-      <Text style={styles.title}>ログイン</Text>
+      <Text>ログイン</Text>
       <TextInput
         style={styles.input}
         value={email}

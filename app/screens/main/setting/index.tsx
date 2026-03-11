@@ -1,73 +1,461 @@
 import { useNavigation } from '@react-navigation/native'
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native'
+import {
+  Bell,
+  Check,
+  ChevronRight,
+  Clock,
+  Code,
+  Eye,
+  FileText,
+  Gauge,
+  HelpCircle,
+  History,
+  Info,
+  Palette,
+  Repeat,
+  Settings as SettingsIcon,
+  Trash2,
+  Wifi,
+} from 'lucide-react-native'
+import { useEffect, useState } from 'react'
+import { Alert, Linking, Modal, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
+import { PageTitle } from '../../../components/ui/PageTitle'
 import type { ThemeMode } from '../../../hooks/ThemeContext'
 import { useTheme } from '../../../hooks/ThemeContext'
+import packageJson from '../../../package.json'
+import { StorageRepository } from '../../../repositories/storage'
+
+const ICON_SIZE = 20
+const ICON_BG_SIZE = 32
+
+type SettingItem =
+  | {
+      icon: React.ComponentType<{ color: string; size: number }>
+      label: string
+      isToggle: true
+      toggleValue: boolean
+      onToggle: (value: boolean) => void
+    }
+  | {
+      icon: React.ComponentType<{ color: string; size: number }>
+      label: string
+      isToggle?: false
+      value?: string
+      onPress?: () => void
+    }
 
 export const SettingsTabScreen = () => {
-  const { themeMode, styles, setThemeMode } = useTheme()
+  const insets = useSafeAreaInsets()
   const navigation = useNavigation()
+  const { themeMode, styles, colors, spacing, setThemeMode } = useTheme()
+
+  const [showThemeMenu, setShowThemeMenu] = useState(false)
+  const [showNextEpisode, setShowNextEpisode] = useState(true)
+  const [showHistoryRetentionMenu, setShowHistoryRetentionMenu] = useState(false)
+  const [historyRetentionDays, setHistoryRetentionDays] = useState(30)
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false)
+  const [mobileDataEnabled, setMobileDataEnabled] = useState(false)
+
+  useEffect(() => {
+    const loadSettings = async () => {
+      const settings = await StorageRepository.getAllSettings()
+      setShowNextEpisode(settings.showNextEpisode)
+      setHistoryRetentionDays(settings.historyRetentionDays)
+      setNotificationsEnabled(settings.notificationsEnabled)
+      setMobileDataEnabled(settings.mobileDataEnabled)
+    }
+    void loadSettings()
+  }, [])
+
+  const toggleNextEpisode = async (value: boolean) => {
+    setShowNextEpisode(value)
+    await StorageRepository.setShowNextEpisode(value)
+  }
+
+  const toggleNotifications = async (value: boolean) => {
+    setNotificationsEnabled(value)
+    await StorageRepository.setNotificationsEnabled(value)
+  }
+
+  const toggleMobileData = async (value: boolean) => {
+    setMobileDataEnabled(value)
+    await StorageRepository.setMobileDataEnabled(value)
+  }
+
+  const updateHistoryRetention = async (days: number) => {
+    setHistoryRetentionDays(days)
+    setShowHistoryRetentionMenu(false)
+    await StorageRepository.setHistoryRetentionDays(days)
+  }
+
+  const clearCache = () => {
+    Alert.alert('キャッシュを削除', 'キャッシュを削除してもよろしいですか?', [
+      { text: 'キャンセル', style: 'cancel' },
+      {
+        text: '実行',
+        style: 'destructive',
+        onPress: () => {
+          Alert.alert('完了', 'キャッシュを削除しました')
+        },
+      },
+    ])
+  }
+
+  const openUrl = async (url: string) => {
+    try {
+      const supported = await Linking.canOpenURL(url)
+      if (supported) {
+        await Linking.openURL(url)
+      } else {
+        Alert.alert('エラー', 'このURLを開くことができません')
+      }
+    } catch (error) {
+      console.error('Failed to open URL:', error)
+      Alert.alert('エラー', 'URLを開く際にエラーが発生しました')
+    }
+  }
+
+  const themeOptions: Array<{ value: ThemeMode; label: string }> = [
+    { value: 'light', label: 'ライトモード' },
+    { value: 'dark', label: 'ダークモード' },
+    { value: 'system', label: 'システムに合わせる' },
+  ]
+
+  const historyRetentionOptions = [
+    { value: 30, label: '30日' },
+    { value: 45, label: '45日' },
+    { value: 60, label: '60日' },
+    { value: 75, label: '75日' },
+    { value: 90, label: '90日' },
+  ]
+
+  const getThemeLabel = () => {
+    return themeOptions.find((opt) => opt.value === themeMode)?.label || 'システムに合わせる'
+  }
+
+  const settingsGroups: Array<{ title: string; items: SettingItem[] }> = [
+    {
+      title: 'カラー・テーマ',
+      items: [
+        {
+          icon: Palette,
+          label: 'テーマ',
+          value: getThemeLabel(),
+          onPress: () => setShowThemeMenu(true),
+        },
+      ],
+    },
+    {
+      title: '表示設定',
+      items: [
+        {
+          icon: Eye,
+          label: '次のエピソードを表示',
+          isToggle: true,
+          toggleValue: showNextEpisode,
+          onToggle: toggleNextEpisode,
+        },
+        {
+          icon: Bell,
+          label: '通知を有効にする',
+          isToggle: true,
+          toggleValue: notificationsEnabled,
+          onToggle: toggleNotifications,
+        },
+        {
+          icon: Wifi,
+          label: 'モバイルデータを使用する',
+          isToggle: true,
+          toggleValue: mobileDataEnabled,
+          onToggle: toggleMobileData,
+        },
+      ],
+    },
+    {
+      title: '再生設定',
+      items: [
+        {
+          icon: Gauge,
+          label: 'デフォルト再生速度',
+          value: '1.0x',
+        },
+        {
+          icon: Repeat,
+          label: 'デフォルトループ回数',
+          value: '1回',
+        },
+        {
+          icon: Clock,
+          label: 'デフォルトタイマー',
+          value: 'なし',
+        },
+      ],
+    },
+    {
+      title: '履歴',
+      items: [
+        {
+          icon: History,
+          label: '履歴の保持期間',
+          value: `${historyRetentionDays}日`,
+          onPress: () => setShowHistoryRetentionMenu(true),
+        },
+        {
+          icon: Trash2,
+          label: 'キャッシュを削除',
+          onPress: clearCache,
+        },
+      ],
+    },
+    {
+      title: 'サポート',
+      items: [
+        {
+          icon: HelpCircle,
+          label: 'ヘルプ',
+          onPress: () => openUrl('https://www.google.com'),
+        },
+        {
+          icon: FileText,
+          label: '利用規約',
+          onPress: () => openUrl('https://yahoo.co.jp'),
+        },
+        {
+          icon: Info,
+          label: 'アプリ情報',
+          value: `v${packageJson.version}`,
+        },
+      ],
+    },
+  ]
+
+  // 開発環境でのみデバッグセクションを追加
+  if (__DEV__) {
+    settingsGroups.push({
+      title: '開発者向け',
+      items: [
+        {
+          icon: Code,
+          label: 'UI Components',
+          onPress: () => navigation.navigate('DebugUI' as never),
+        },
+      ],
+    })
+  }
+
   return (
-    <View style={styles.screenContainer}>
-      <Text style={styles.tabContentText}>テーマを選択</Text>
-      <View style={localStyles.list}>
-        {[
-          { mode: 'light' as ThemeMode, label: 'ライトモード' },
-          { mode: 'dark' as ThemeMode, label: 'ダークモード' },
-          { mode: 'system' as ThemeMode, label: 'システムに合わせる' },
-        ].map((opt) => {
-          const isActive = themeMode === opt.mode
-          return (
-            <TouchableOpacity
-              key={opt.mode}
-              style={[localStyles.item, isActive && localStyles.itemActive]}
-              onPress={() => setThemeMode(opt.mode)}
+    <View style={[styles.screenContainer, { paddingTop: insets.top }]}>
+      <ScrollView style={styles.scrollContainer} contentContainerStyle={styles.scrollContentContainer}>
+        <PageTitle icon={SettingsIcon} title='Settings' />
+        {settingsGroups.map((group, groupIndex) => (
+          <View key={groupIndex} style={{ marginBottom: spacing['3xl'] }}>
+            <Text
+              style={[
+                styles.textBody,
+                {
+                  marginBottom: spacing.md,
+                  paddingHorizontal: spacing.lg,
+                  textTransform: 'uppercase',
+                  letterSpacing: 0.5,
+                  fontWeight: '600',
+                  color: colors.textSecondary,
+                },
+              ]}
             >
-              <Text style={[localStyles.itemLabel, isActive && localStyles.itemLabelActive]}>{opt.label}</Text>
-              {isActive ? <Text style={localStyles.check}>✓</Text> : null}
-            </TouchableOpacity>
-          )
-        })}
-      </View>
-      <TouchableOpacity
-        style={[styles.button, { marginTop: 24 }]}
-        onPress={() => navigation.navigate('SettingsChild' as never)}
+              {group.title}
+            </Text>
+            <View
+              style={{
+                backgroundColor: colors.card,
+                borderTopWidth: 1,
+                borderBottomWidth: 1,
+                borderColor: colors.border,
+              }}
+            >
+              {group.items.map((item, itemIndex) => {
+                const Icon = item.icon
+                const isLast = itemIndex === group.items.length - 1
+
+                if (item.isToggle) {
+                  return (
+                    <View
+                      key={itemIndex}
+                      style={[
+                        localStyles.settingItem,
+                        { borderBottomWidth: isLast ? 0 : 1, borderBottomColor: colors.border },
+                      ]}
+                    >
+                      <View style={[localStyles.iconBg, { backgroundColor: colors.muted }]}>
+                        <Icon color={colors.text} size={ICON_SIZE} />
+                      </View>
+                      <Text style={[styles.textBody, { flex: 1 }]}>{item.label}</Text>
+                      <Switch
+                        value={item.toggleValue}
+                        onValueChange={item.onToggle}
+                        trackColor={{ false: colors.muted, true: colors.primary }}
+                        thumbColor='#FFFFFF'
+                      />
+                    </View>
+                  )
+                }
+
+                return (
+                  <TouchableOpacity
+                    key={itemIndex}
+                    style={[
+                      localStyles.settingItem,
+                      { borderBottomWidth: isLast ? 0 : 1, borderBottomColor: colors.border },
+                    ]}
+                    onPress={item.onPress}
+                    disabled={!item.onPress}
+                  >
+                    <View style={[localStyles.iconBg, { backgroundColor: colors.muted }]}>
+                      <Icon color={colors.text} size={ICON_SIZE} />
+                    </View>
+                    <Text style={[styles.textBody, { flex: 1 }]}>{item.label}</Text>
+                    {item.value && <Text style={styles.textCaption}>{item.value}</Text>}
+                    {item.onPress && <ChevronRight color={colors.textSecondary} size={20} />}
+                  </TouchableOpacity>
+                )
+              })}
+            </View>
+          </View>
+        ))}
+
+        <View style={{ alignItems: 'center', paddingHorizontal: spacing.lg }}>
+          <Text style={[styles.textCaption, { fontSize: 10 }]}>Learning Player App</Text>
+          <Text style={[styles.textCaption, { fontSize: 10, marginTop: spacing.xs }]}>© 2026 All rights reserved</Text>
+        </View>
+      </ScrollView>
+
+      <Modal visible={showThemeMenu} transparent animationType='fade' onRequestClose={() => setShowThemeMenu(false)}>
+        <TouchableOpacity style={localStyles.modalOverlay} activeOpacity={1} onPress={() => setShowThemeMenu(false)}>
+          <View style={[localStyles.modalContent, { backgroundColor: colors.card }]}>
+            <View style={[localStyles.modalHeader, { borderBottomColor: colors.border }]}>
+              <Text style={[{ marginBottom: 0 }]}>テーマを選択</Text>
+            </View>
+            <View style={{ padding: spacing.sm }}>
+              {themeOptions.map((option) => {
+                const isActive = themeMode === option.value
+                return (
+                  <TouchableOpacity
+                    key={option.value}
+                    style={[localStyles.modalItem, isActive && { backgroundColor: colors.accent }]}
+                    onPress={() => {
+                      setThemeMode(option.value)
+                      setShowThemeMenu(false)
+                    }}
+                  >
+                    <Text style={styles.textBody}>{option.label}</Text>
+                    {isActive && <Check color={colors.primary} size={20} />}
+                  </TouchableOpacity>
+                )
+              })}
+            </View>
+            <View style={[localStyles.modalFooter, { borderTopColor: colors.border }]}>
+              <TouchableOpacity style={localStyles.cancelButton} onPress={() => setShowThemeMenu(false)}>
+                <Text style={styles.textCaption}>キャンセル</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      <Modal
+        visible={showHistoryRetentionMenu}
+        transparent
+        animationType='fade'
+        onRequestClose={() => setShowHistoryRetentionMenu(false)}
       >
-        <Text style={styles.buttonText}>child へ</Text>
-      </TouchableOpacity>
+        <TouchableOpacity
+          style={localStyles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowHistoryRetentionMenu(false)}
+        >
+          <View style={[localStyles.modalContent, { backgroundColor: colors.card }]}>
+            <View style={[localStyles.modalHeader, { borderBottomColor: colors.border }]}>
+              <Text style={[{ marginBottom: 0 }]}>履歴の保持期間を選択</Text>
+            </View>
+            <View style={{ padding: spacing.sm }}>
+              {historyRetentionOptions.map((option) => {
+                const isActive = historyRetentionDays === option.value
+                return (
+                  <TouchableOpacity
+                    key={option.value}
+                    style={[localStyles.modalItem, isActive && { backgroundColor: colors.accent }]}
+                    onPress={() => updateHistoryRetention(option.value)}
+                  >
+                    <Text style={styles.textBody}>{option.label}</Text>
+                    {isActive && <Check color={colors.primary} size={20} />}
+                  </TouchableOpacity>
+                )
+              })}
+            </View>
+            <View style={[localStyles.modalFooter, { borderTopColor: colors.border }]}>
+              <TouchableOpacity style={localStyles.cancelButton} onPress={() => setShowHistoryRetentionMenu(false)}>
+                <Text style={styles.textCaption}>キャンセル</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </View>
   )
 }
 
 const localStyles = StyleSheet.create({
-  list: {
-    marginTop: 16,
-    borderRadius: 12,
-    overflow: 'hidden',
+  settingItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: '5%',
+    gap: 16,
   },
-  item: {
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    backgroundColor: '#222831',
+  iconBg: {
+    width: ICON_BG_SIZE,
+    height: ICON_BG_SIZE,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  modalContent: {
+    width: '100%',
+    maxWidth: 400,
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  modalHeader: {
+    padding: 24,
+    borderBottomWidth: 1,
+  },
+  modalItem: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#3a3f47',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    marginVertical: 2,
   },
-  itemActive: {
-    backgroundColor: '#283649',
+  modalFooter: {
+    padding: 16,
+    borderTopWidth: 1,
   },
-  itemLabel: {
-    fontSize: 16,
-    color: '#e0e0e0',
-  },
-  itemLabelActive: {
-    fontWeight: '600',
-    color: '#ffffff',
-  },
-  check: {
-    fontSize: 16,
-    color: '#4da3ff',
+  cancelButton: {
+    paddingVertical: 8,
+    alignItems: 'center',
   },
 })

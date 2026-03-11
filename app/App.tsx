@@ -1,9 +1,10 @@
 import { NavigationContainer } from '@react-navigation/native'
 import { useContext } from 'react'
 import { StatusBar, View } from 'react-native'
-import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context'
+import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { enableScreens } from 'react-native-screens'
 
+import { ApiErrorProvider } from './hooks/api/ApiErrorContext'
 import { AuthProvider, useAuth } from './hooks/AuthContext'
 import { ThemeContext, ThemeProvider } from './hooks/ThemeContext'
 import { LoginScreen } from './screens/login'
@@ -15,28 +16,26 @@ enableScreens()
 export default () => (
   <ThemeProvider>
     <SafeAreaProvider>
-      <AuthProvider>
-        <AppContent />
-      </AuthProvider>
+      <ApiErrorProvider>
+        <AuthProvider>
+          <AppContent />
+        </AuthProvider>
+      </ApiErrorProvider>
     </SafeAreaProvider>
   </ThemeProvider>
 )
 
 const AppContent = () => {
   const { styles, statusBarStyle } = useContext(ThemeContext)!
-  const safeAreaInsets = useSafeAreaInsets()
   const { status } = useAuth()
   return (
     <>
       <StatusBar barStyle={statusBarStyle} />
       <View
-        style={[
-          {
-            flex: 1,
-            paddingTop: safeAreaInsets.top,
-            backgroundColor: styles.screenContainer.backgroundColor,
-          },
-        ]}
+        style={{
+          flex: 1,
+          backgroundColor: styles.screenContainer.backgroundColor,
+        }}
       >
         <NavigationContainer>
           {status === 'loading' && <SplashScreen />}

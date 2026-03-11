@@ -6,7 +6,7 @@ export const SplashScreen = () => {
   const { styles } = useTheme()
   return (
     <View style={styles.screenContainer}>
-      <Text style={styles.title}>スプラッシュ</Text>
+      <Text>スプラッシュ</Text>
     </View>
   )
 }
