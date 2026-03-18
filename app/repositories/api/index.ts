@@ -1,15 +1,20 @@
+import { API_METHOD_CONFIG } from './apiConfig'
 import { ApiMockRepository } from './ApiMockRepository'
 import { ApiRepository } from './ApiRepository'
 import type { IApiRepository } from './IApiRepository'
 
 class RepositoryFactory {
-  private static apiRepository: IApiRepository
+  private static realRepository = new ApiRepository()
+  private static mockRepository = new ApiMockRepository()
 
-  static getApiRepository() {
-    if (!this.apiRepository) {
-      this.apiRepository = __DEV__ ? new ApiMockRepository() : new ApiRepository()
-    }
-    return this.apiRepository
+  static getApiRepository(): IApiRepository {
+    return new Proxy({} as IApiRepository, {
+      get: (_, prop: keyof IApiRepository) => {
+        const mode = API_METHOD_CONFIG[prop]
+        const repo = mode === 'mock' ? this.mockRepository : this.realRepository
+        return repo[prop].bind(repo)
+      },
+    })
   }
 }
 

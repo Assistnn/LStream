@@ -127,9 +127,16 @@ class ApiClient {
         let errorMessage = `HTTP Error: ${response.status}`
         try {
           const errorData = await response.json()
+
+          if (errorData.result !== undefined) {
+            throw new ApiResponseException(errorData.result, errorData.title, errorData.message)
+          }
+
           errorMessage = errorData.message || errorData.error || errorMessage
-        } catch {
-          // ignore
+        } catch (error) {
+          if (error instanceof ApiResponseException) {
+            throw error
+          }
         }
 
         throw new ApiException({

@@ -1,4 +1,11 @@
-import { useApiQuery } from '../hooks/api/useApiQuery'
-import { apiRepository } from '../repositories/api'
+import { useState } from 'react'
 
-export const useGetNewArrivals = () => useApiQuery(() => apiRepository.getNewArrivals())
+import type { EpisodeSummary } from '../repositories/api/IApiRepository'
+
+export const useGetNewArrivals = () => {
+  const [data] = useState<EpisodeSummary[] | null>([])
+  const [loading] = useState(false)
+  const refetch = async () => {}
+
+  return { data, loading, refetch }
+}

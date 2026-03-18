@@ -2,20 +2,12 @@ import { Play } from 'lucide-react-native'
 import { Image, Text, TouchableOpacity, View } from 'react-native'
 
 import { useTheme } from '../../hooks/ThemeContext'
-import type { SeriesItemWithItemId } from '../../repositories/api/IApiRepository'
+import type { PlaybackHistoryItem } from '../../repositories/api/IApiRepository'
 
-// TODO: APIレスポンス調整中。UIもまだ適当
-export const HistoryListItem = ({
-  item,
-  isTop,
-}: {
-  item: SeriesItemWithItemId & { playedAt: Date }
-  isTop: boolean
-}) => {
-  const { colors, spacing, typography, borderRadius } = useTheme()
+export const HistoryListItem = ({ item, isTop }: { item: PlaybackHistoryItem; isTop: boolean }) => {
+  const { colors, spacing, styles, borderRadius } = useTheme()
 
-  const progressPercent = (item.num_comp / item.num_total) * 100
-  const playedDate = new Date(item.playedAt)
+  const playedDate = new Date(item.date)
   const dateStr = `${playedDate.getMonth() + 1}/${playedDate.getDate()}`
 
   return (
@@ -51,41 +43,26 @@ export const HistoryListItem = ({
         </View>
       </View>
       <View style={{ flex: 1, minWidth: 0 }}>
-        <Text
-          style={{
-            fontSize: typography.fontSize.lg,
-            fontWeight: typography.fontWeight.bold,
-            color: colors.text,
-            marginBottom: spacing.xs,
-          }}
-          numberOfLines={1}
-        >
-          {item.title}
+        <Text style={[styles.titleLarge, { marginBottom: spacing.xs }]} numberOfLines={1}>
+          {item.title_series}
         </Text>
-        <Text
-          style={{
-            fontSize: typography.fontSize.base,
-            color: colors.textSecondary,
-            marginBottom: spacing.xs,
-          }}
-          numberOfLines={1}
-        >
-          {item.title} • {dateStr}
+        <Text style={[styles.bodyText, { marginBottom: spacing.xs }]} numberOfLines={1}>
+          {item.title_media} • {dateStr}
         </Text>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
           <View style={{ flex: 1, height: 4, backgroundColor: colors.muted, borderRadius: borderRadius.full }}>
             <View
-              style={{
-                height: 4,
-                backgroundColor: colors.primary,
-                borderRadius: borderRadius.full,
-                width: `${progressPercent}%`,
-              }}
+              style={[
+                {
+                  height: 4,
+                  backgroundColor: colors.primary,
+                  borderRadius: borderRadius.full,
+                },
+                { width: `${item.progress}%` },
+              ]}
             />
           </View>
-          <Text style={{ fontSize: typography.fontSize.sm, color: colors.textSecondary }}>
-            {Math.round(progressPercent)}%
-          </Text>
+          <Text style={styles.bodySmall}>{Math.round(item.progress)}%</Text>
         </View>
       </View>
     </TouchableOpacity>

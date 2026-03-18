@@ -18,7 +18,11 @@ const { width: screenWidth } = Dimensions.get('window')
 export const HomeTabScreen = ({
   navigation,
 }: {
-  navigation: NativeStackNavigationProp<{ HomeRoot: undefined; NewArrivals: undefined }>
+  navigation: NativeStackNavigationProp<{
+    HomeRoot: undefined
+    NewArrivals: undefined
+    SeriesDetail: { seriesId: number }
+  }>
 }) => {
   const insets = useSafeAreaInsets()
   const { styles, colors, spacing } = useTheme()
@@ -50,10 +54,10 @@ export const HomeTabScreen = ({
                 justifyContent: 'center',
               }}
             >
-              <Text style={{ color: colors.primaryForeground, fontWeight: 'bold' }}>社</Text>
+              <Text style={styles.textBold}>社</Text>
             </TouchableOpacity>
           </View>
-          <Text style={styles.textBody}>
+          <Text style={styles.bodyText}>
             {new Date().toLocaleDateString('ja-JP', {
               year: 'numeric',
               month: 'long',
@@ -81,19 +85,33 @@ export const HomeTabScreen = ({
                   horizontal
                   showsHorizontalScrollIndicator={false}
                   contentContainerStyle={{
-                    paddingHorizontal: spacing.lg,
+                    paddingLeft: spacing.lg,
+                    paddingRight: spacing.lg,
                     gap: spacing.md,
                   }}
-                  snapToInterval={screenWidth * 0.85 + spacing.lg}
+                  snapToInterval={screenWidth * 0.85 + spacing.md}
                   decelerationRate='fast'
+                  snapToOffsets={[
+                    0,
+                    ...data.recommends
+                      .slice(1)
+                      .map(
+                        (_, index) =>
+                          spacing.lg + (screenWidth * 0.85 + spacing.md) * (index + 1) - screenWidth * 0.075,
+                      ),
+                  ]}
                 >
                   {data.recommends.map((series) => (
-                    <RecommendCard key={series.series_id} series={series} onPress={() => {}} />
+                    <RecommendCard
+                      key={series.series_id}
+                      series={series}
+                      onPress={() => navigation.navigate('SeriesDetail', { seriesId: series.series_id })}
+                    />
                   ))}
                 </ScrollView>
               </View>
             )}
-            {/* 前回の続き: TODO: ContinueCardの見た目。新着と見た目はほぼ一緒か */}
+            {/* 前回の続き */}
             {data.recents.length > 0 && (
               <View style={{ flexDirection: 'column', gap: spacing.sm }}>
                 <SectionHeader title='前回の続き' />
@@ -106,7 +124,11 @@ export const HomeTabScreen = ({
                   }}
                 >
                   {data.recents.map((item) => (
-                    <RecentCard key={item.series_id} item={item} onPress={() => {}} />
+                    <RecentCard
+                      key={item.series_id}
+                      item={item}
+                      onPress={() => navigation.navigate('SeriesDetail', { seriesId: item.series_id })}
+                    />
                   ))}
                 </ScrollView>
               </View>
@@ -129,7 +151,7 @@ export const HomeTabScreen = ({
                   }}
                 >
                   {data.news.map((item) => (
-                    <NewsCard key={item.id} episode={item} onPress={() => {}} />
+                    <NewsCard key={item.item_id} news={item} onPress={() => {}} />
                   ))}
                 </ScrollView>
               </View>
@@ -142,7 +164,7 @@ export const HomeTabScreen = ({
                 const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000)
                 const groupedHistory = data.histories.slice(0, 10).reduce(
                   (acc, item) => {
-                    const playedDate = new Date(new Date(item.playedAt).setHours(0, 0, 0, 0))
+                    const playedDate = new Date(new Date(item.date).setHours(0, 0, 0, 0))
                     let label: string
                     if (playedDate.getTime() === today.getTime()) {
                       label = '今日'
@@ -166,7 +188,7 @@ export const HomeTabScreen = ({
                       action='すべてを表示 ＞'
                       onActionPress={() => navigation.getParent()?.navigate('History' as never)}
                     />
-                    <View>
+                    <View style={{ paddingBottom: spacing.lg }}>
                       {Object.entries(groupedHistory).map(([dateLabel, items], groupIndex) => (
                         <View key={dateLabel}>
                           <View
@@ -175,7 +197,7 @@ export const HomeTabScreen = ({
                               padding: spacing.lg,
                             }}
                           >
-                            <Text style={styles.textContentTitleSmall}>{dateLabel}</Text>
+                            <Text style={styles.titleLarge}>{dateLabel}</Text>
                           </View>
                           {items.map((item, index) => (
                             <HistoryListItem key={item.series_id} item={item} isTop={index === 0} />

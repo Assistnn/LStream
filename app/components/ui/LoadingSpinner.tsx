@@ -15,7 +15,7 @@ export const LoadingSpinner = ({ size = 'large', text }: { size?: 'small' | 'lar
       ]}
     >
       <ActivityIndicator size={size} color={colors.primaryLight} />
-      {text && <Text style={[styles.textBody, { marginTop: spacing.md, color: colors.textSecondary }]}>{text}</Text>}
+      {text && <Text style={[styles.bodyText, { marginTop: spacing.md, color: colors.textSecondary }]}>{text}</Text>}
     </View>
   )
 }

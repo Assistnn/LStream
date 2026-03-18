@@ -1,8 +1,8 @@
 import type { StyleProp, ViewStyle } from 'react-native'
 import { Text, View } from 'react-native'
 
-import { ProgressBar } from '../../../../components/ui/ProgressBar'
-import { colors, useTheme } from '../../../../hooks/ThemeContext'
+import { colors, useTheme } from '../../hooks/ThemeContext'
+import { ProgressBar } from './ProgressBar'
 
 export const SeriesProgessBar = ({
   variant = 'light',
@@ -15,8 +15,9 @@ export const SeriesProgessBar = ({
   num_total: number
   style?: StyleProp<ViewStyle>
 }) => {
-  const { spacing, borderRadius, typography } = useTheme()
+  const { spacing, borderRadius, styles } = useTheme()
   const progressPercent = (num_comp / num_total) * 100
+  const textColor = variant === 'light' ? colors.light.textSecondary : colors.dark.textSecondary
   return (
     <View
       style={{
@@ -38,24 +39,10 @@ export const SeriesProgessBar = ({
           alignItems: 'center',
         }}
       >
-        <Text
-          style={{
-            fontSize: typography.fontSize.sm,
-            fontWeight: typography.fontWeight.semibold,
-            color: variant === 'light' ? colors.light.textSecondary : colors.dark.textSecondary,
-          }}
-        >
+        <Text style={[styles.bodySmall, { color: textColor }]}>
           {num_comp}/{num_total} 完了
         </Text>
-        <Text
-          style={{
-            fontSize: typography.fontSize.sm,
-            fontWeight: typography.fontWeight.semibold,
-            color: variant === 'light' ? colors.light.textSecondary : colors.dark.textSecondary,
-          }}
-        >
-          {Math.round(progressPercent)}%
-        </Text>
+        <Text style={[styles.bodySmall, { color: textColor }]}>{Math.round(progressPercent)}%</Text>
       </View>
       <ProgressBar progress={progressPercent} height={4} />
     </View>

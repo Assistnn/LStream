@@ -1,6 +1,6 @@
 import { Search } from 'lucide-react-native'
 import { useState } from 'react'
-import { StyleSheet, TextInput, type TextInputProps, View } from 'react-native'
+import { TextInput, type TextInputProps, View } from 'react-native'
 
 import { useTheme } from '../../../../hooks/ThemeContext'
 
@@ -13,12 +13,37 @@ export const SearchBar = ({ onSearch, ...props }: SearchBarProps) => {
   const [isFocused, setIsFocused] = useState(false)
 
   return (
-    <View style={[styles.input, localStyles.container, isFocused && styles.inputFocused]}>
-      <View style={localStyles.iconContainer}>
+    <View
+      style={[
+        styles.input,
+        isFocused && styles.inputFocused,
+        {
+          position: 'relative',
+          paddingHorizontal: 0,
+          paddingVertical: 0,
+        },
+      ]}
+    >
+      <View
+        style={{
+          position: 'absolute',
+          left: 12,
+          top: '50%',
+          transform: [{ translateY: -10 }],
+          zIndex: 1,
+        }}
+      >
         <Search color={colors.textTertiary} size={20} />
       </View>
       <TextInput
-        style={[localStyles.textInput, { color: colors.inputForeground }]}
+        style={[
+          styles.inputText,
+          {
+            paddingLeft: 40,
+            paddingRight: 16,
+            paddingVertical: 12,
+          },
+        ]}
         placeholder='検索...'
         placeholderTextColor={colors.textTertiary}
         onChangeText={onSearch}
@@ -29,24 +54,3 @@ export const SearchBar = ({ onSearch, ...props }: SearchBarProps) => {
     </View>
   )
 }
-
-const localStyles = StyleSheet.create({
-  container: {
-    position: 'relative',
-    paddingHorizontal: 0,
-    paddingVertical: 0,
-  },
-  iconContainer: {
-    position: 'absolute',
-    left: 12,
-    top: '50%',
-    transform: [{ translateY: -10 }],
-    zIndex: 1,
-  },
-  textInput: {
-    fontSize: 14,
-    paddingLeft: 40,
-    paddingRight: 16,
-    paddingVertical: 12,
-  },
-})

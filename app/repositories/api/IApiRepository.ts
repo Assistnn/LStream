@@ -1,121 +1,197 @@
-export type LoginCredentials = {
-  email: string
-  password: string
+export interface IApiRepository {
+  isAuthenticated(): Promise<boolean>
+  refreshToken(): Promise<boolean>
+  login(credentials: LoginParams): Promise<AuthResponse>
+  logout(): Promise<void>
+  getSettings(): Promise<SettingsResponse>
+  getHome(): Promise<HomeResponse>
+  getSeries(seriesId: number): Promise<SeriesResponse>
+  getLibraries(params: LibrariesParams): Promise<LibrariesResponse>
+  getFavorites(): Promise<FavoritesResponse>
+  updateFavorite(params: FavoriteParams): Promise<ApiResult>
+  getHistories(): Promise<HistoriesResponse>
+  updatePlayProgress(params: PlayProgressParams): Promise<ApiResult>
+  updatePlayEnd(params: PlayEndParams): Promise<ApiResult>
 }
 
-export type AuthResponse = {
+export interface ApiResult {
+  result: number
+}
+
+/* =========================
+ * 認証
+ * ========================= */
+
+export type LoginParams = {
+  friend_id: string
+  friend_pw: string
+  tenant_code: string
+  device_token: string
+  device_uuid: string
+}
+
+export type AuthResponse = ApiResult & {
   token: string
-  refreshToken: string
-  user: {
-    id: string
-    email: string
-    name?: string
-  }
-}
-export type HomeData = {
-  recommends: SeriesItem[]
-  recents: SeriesItemWithItemId[]
-  news: Array<{
-    id: string
-    title: string
-    img: string
-    duration: number
-    category: string
-    type: 'episode' | 'series'
-    itemType: 'audio' | 'video'
-  }>
-  histories: Array<
-    SeriesItemWithItemId & {
-      playedAt: Date
-    }
-  >
 }
 
-export type Series = {
+export type SettingsResponse = ApiResult & {
+  header_light: string
+  header_dark: string
+  categories: {
+    category_id: number
+    name: string
+  }[]
+}
+
+/* =========================
+ * 共通ドメイン
+ * ========================= */
+
+export interface SeriesSummary {
   series_id: number
+  img: string
+  num_total: number
+  num_comp: number
+  category: string
+  title: string
+}
+
+export interface SeriesSummaryDetail extends SeriesSummary {
+  description: string
+  duration: number
+}
+
+export interface SeriesPlaybackSummary extends SeriesSummary {
+  item_id: number
+  progress: number
+}
+
+export interface EpisodeSummary {
+  series_id: number
+  item_id: number
+  img: string
+  num_times: number
+  category: string
+  title: string
+  description: string
+  duration: number
+}
+
+export interface PlaybackHistoryItem {
+  series_id: number
+  item_id: number
+  url: string
+  img: string
+  title_series: string
+  title_media: string
+  duration: number
+  progress: number
+  date: string
+}
+
+export interface MediaContent {
+  episode_id: number
+  type_media: 0 | 1 | 2
+  url: string
+  img: string
+  title: string
+  duration: number
+  progress: number
+}
+
+export interface SeriesEpisode extends MediaContent {
+  units: MediaContent[]
+}
+
+/* =========================
+ * ホーム
+ * ========================= */
+
+export interface HomeNewsItem {
+  series_id: number
+  item_id: number
   img: string
   num_total: number
   category: string
   title: string
 }
 
-export type SeriesItem = Series & {
-  num_comp: number
-  description: string
-  duration: number
+export interface HomeResponse extends ApiResult {
+  recommends: SeriesSummaryDetail[]
+  recents: SeriesPlaybackSummary[]
+  news: HomeNewsItem[]
+  histories: PlaybackHistoryItem[]
 }
 
-export type SeriesItemWithItemId = SeriesItem & {
+/* =========================
+ * シリーズ
+ * ========================= */
+
+export interface SeriesResponse extends ApiResult, SeriesSummaryDetail {
+  type_media: 0 | 1 | 2
+  url: string
+  progress: number
+  episodes: SeriesEpisode[]
+}
+
+/* =========================
+ * ライブラリ
+ * ========================= */
+
+export type LibrariesParams = {
+  type: number
+  order: number
+  asc: number
+  category?: number
+  keyword?: string
+}
+
+export interface LibraryItem extends SeriesSummaryDetail {
+  num_times: number
+  is_favorite: boolean
+}
+
+export interface LibrariesResponse extends ApiResult {
+  libraries: LibraryItem[]
+}
+
+/* =========================
+ * お気に入り
+ * ========================= */
+
+export interface FavoriteSeriesItem extends SeriesSummaryDetail {
+  num_times: number
+}
+
+export interface FavoritesResponse extends ApiResult {
+  series: FavoriteSeriesItem[]
+  episodes: EpisodeSummary[]
+}
+
+export type FavoriteParams = {
+  series_id: number
   item_id: number
 }
 
-export type SeriesDetail = SeriesItem & {
-  type_media: number
-  url: string
-  episodes: Episode[]
+/* =========================
+ * 履歴
+ * ========================= */
+
+export interface HistoriesResponse extends ApiResult {
+  histories: PlaybackHistoryItem[]
 }
 
-export type Episode = {
-  episode_id: number
-  type_media: number
-  url: string
-  img: string
-  title: string
-  duration: number
-  units: Unit[]
-}
+/* =========================
+ * 再生
+ * ========================= */
 
-export type Unit = {
-  episode_id: number
-  type_media: number
-  url: string
-  img: string
-  title: string
-  duration: number
-}
-
-export type HistoryItem = {
-  id: string
-  thumbnail: string
-  title: string
-  seriesTitle: string
+export type PlayProgressParams = {
+  series_id: number
+  item_id: number
   progress: number
-  duration: number
-  playedAt: string
 }
 
-export type LibraryItem =
-  | {
-      itemType: 'series'
-      id: string
-      title: string
-      thumbnail?: string
-      category: string
-      totalEpisodes: number
-      completedEpisodes: number
-      type: 'audio' | 'video'
-    }
-  | {
-      itemType: 'episode'
-      id: string
-      title: string
-      thumbnail?: string
-      category: string
-      duration: number
-      progress?: number
-      type: 'audio' | 'video'
-    }
-
-export interface IApiRepository {
-  isAuthenticated(): Promise<boolean>
-  refreshToken(): Promise<boolean>
-  getMe(): Promise<AuthResponse['user']>
-  login(credentials: LoginCredentials): Promise<AuthResponse>
-  logout(): Promise<void>
-  getHomeData(): Promise<HomeData>
-  getNewArrivals(): Promise<Episode[]>
-  getFavoriteSeries(): Promise<SeriesDetail[]>
-  getFavoriteEpisodes(): Promise<Episode[]>
-  getHistory(): Promise<HistoryItem[]>
-  getLibrary(): Promise<LibraryItem[]>
+export type PlayEndParams = {
+  series_id: number
+  item_id: number
 }

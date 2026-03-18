@@ -3,6 +3,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack'
 import { Clock, Heart, Home, Library, ListMusic, Settings } from 'lucide-react-native'
 
 import { useTheme } from '../../hooks/ThemeContext'
+import { SeriesDetailScreen } from '../common/series/detail'
 import { FavoritesTabScreen } from './favorites'
 import { HistoryTabScreen } from './history'
 import { HomeTabScreen } from './home'
@@ -11,8 +12,6 @@ import { LibraryTabScreen } from './library'
 import { PlaylistTabScreen } from './playlist'
 import { PlaylistChildScreen } from './playlist/child'
 import { SettingsTabScreen } from './setting'
-import { SettingsChildScreen } from './setting/child'
-import { DebugUIScreen } from './setting/debug/ui-components'
 
 const Tab = createBottomTabNavigator<{
   Home: undefined
@@ -23,7 +22,11 @@ const Tab = createBottomTabNavigator<{
   Settings: undefined
 }>()
 
-const HomeStack = createNativeStackNavigator()
+const HomeStack = createNativeStackNavigator<{
+  HomeRoot: undefined
+  NewArrivals: undefined
+  SeriesDetail: { seriesId: number }
+}>()
 const LibraryStack = createNativeStackNavigator()
 const FavoritesStack = createNativeStackNavigator()
 const PlaylistStack = createNativeStackNavigator()
@@ -50,7 +53,21 @@ const HomeStackScreen = () => {
           presentation: 'card',
           headerShadowVisible: false,
           headerStyle: {
-            backgroundColor: colors.background,
+            backgroundColor: colors.navBar,
+          },
+          headerTintColor: colors.text,
+        })}
+      />
+      <HomeStack.Screen
+        name='SeriesDetail'
+        component={SeriesDetailScreen}
+        options={() => ({
+          title: '',
+          headerShown: true,
+          presentation: 'card',
+          headerShadowVisible: false,
+          headerStyle: {
+            backgroundColor: colors.navBar,
           },
           headerTintColor: colors.text,
         })}
@@ -88,29 +105,11 @@ const HistoryStackScreen = () => (
   </HistoryStack.Navigator>
 )
 
-const SettingsStackScreen = () => {
-  const { colors } = useTheme()
-  return (
-    <SettingsStack.Navigator screenOptions={{ headerShown: false, presentation: 'card', animation: 'default' }}>
-      <SettingsStack.Screen name='SettingsRoot' component={SettingsTabScreen} options={{ title: '設定' }} />
-      <SettingsStack.Screen name='SettingsChild' component={SettingsChildScreen} options={{ title: '設定 child' }} />
-      <SettingsStack.Screen
-        name='DebugUI'
-        component={DebugUIScreen}
-        options={() => ({
-          title: 'UI Components',
-          headerShown: true,
-          presentation: 'card',
-          headerShadowVisible: false,
-          headerStyle: {
-            backgroundColor: colors.background,
-          },
-          headerTintColor: colors.text,
-        })}
-      />
-    </SettingsStack.Navigator>
-  )
-}
+const SettingsStackScreen = () => (
+  <SettingsStack.Navigator screenOptions={{ headerShown: false, presentation: 'card', animation: 'default' }}>
+    <SettingsStack.Screen name='SettingsRoot' component={SettingsTabScreen} options={{ title: '設定' }} />
+  </SettingsStack.Navigator>
+)
 
 export const MainScreen = () => {
   const { styles, colors } = useTheme()

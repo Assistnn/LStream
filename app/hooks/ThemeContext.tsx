@@ -12,6 +12,7 @@ export const colors = {
     foreground: '#030213',
 
     // Surface colors
+    navBar: '#FFFFFF',
     card: '#FFFFFF',
     cardForeground: '#030213',
 
@@ -23,7 +24,8 @@ export const colors = {
     secondaryForeground: '#030213',
     muted: '#ECECF0',
     mutedForeground: '#717182',
-    accent: '#8B5CF6',
+    accent: '#C084FC',
+    accentBackground: 'rgba(88, 28, 135, 0.3)',
     accentForeground: '#030213',
     destructive: '#DC2626', // Red-600
     destructiveForeground: '#FFFFFF',
@@ -56,6 +58,7 @@ export const colors = {
     foreground: '#F9FAFB',
 
     // Surface colors
+    navBar: '#1F2937',
     card: '#1F2937', // Gray-800
     cardForeground: '#F9FAFB',
 
@@ -67,7 +70,8 @@ export const colors = {
     secondaryForeground: '#F9FAFB',
     muted: '#374151',
     mutedForeground: '#B4B4BA',
-    accent: '#8B5CF6',
+    accent: '#C084FC',
+    accentBackground: 'rgba(88, 28, 135, 0.3)',
     accentForeground: '#F9FAFB',
     destructive: '#EF4444', // Red-500
     destructiveForeground: '#FFFFFF',
@@ -108,6 +112,7 @@ const typography = {
     '3xl': 24,
     '4xl': 28,
     '5xl': 40,
+    '6xl': 64,
   },
   fontWeight: {
     normal: '400' as const,
@@ -154,6 +159,8 @@ const borderRadius = {
   lg: 10,
   xl: 12,
   '2xl': 16,
+  '3xl': 20,
+  '4xl': 24,
   full: 9999,
 }
 
@@ -183,103 +190,127 @@ export const lightStyles = StyleSheet.create({
   },
 
   // - Typography
-  // ページ自体のタイトル
-  textTitle: {
+  // Title系（text色 - 見出し・強調したいテキスト）
+  text3xl: {
     fontSize: typography.fontSize['3xl'],
     fontWeight: typography.fontWeight.bold,
     color: colors.light.text,
   },
-  // セクション・区切りのタイトル
-  textSubtitle: {
+  text2xl: {
     fontSize: typography.fontSize['2xl'],
     fontWeight: typography.fontWeight.bold,
     color: colors.light.text,
   },
-  // カードの中とかコンテンツのタイトル
-  textContentTitle: {
+  textXl: {
     fontSize: typography.fontSize.xl,
     fontWeight: typography.fontWeight.bold,
     color: colors.light.text,
   },
-  textContentTitleSmall: {
+  titleLarge: {
+    fontSize: typography.fontSize.lg,
+    fontWeight: typography.fontWeight.bold,
+    color: colors.light.text,
+  },
+  titleMedium: {
+    fontSize: typography.fontSize.lg,
+    fontWeight: typography.fontWeight.medium,
+    color: colors.light.text,
+  },
+  titleLabel: {
+    fontSize: typography.fontSize.xs,
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.light.text,
+  },
+
+  // General系（text色 - 一般テキスト）
+  textDefault: {
+    fontSize: typography.fontSize.base,
+    fontWeight: typography.fontWeight.normal,
+    color: colors.light.text,
+  },
+  textBold: {
     fontSize: typography.fontSize.base,
     fontWeight: typography.fontWeight.bold,
     color: colors.light.text,
   },
-  textBody: {
+
+  // Body系（textSecondary色 - 本文・補足情報・メタ情報）
+  bodyText: {
     fontSize: typography.fontSize.base,
     fontWeight: typography.fontWeight.normal,
     color: colors.light.textSecondary,
   },
-  textCaption: {
-    fontSize: typography.fontSize.xs,
+  bodySmall: {
+    fontSize: typography.fontSize.sm,
     fontWeight: typography.fontWeight.normal,
     color: colors.light.textSecondary,
   },
-  textAccent: {
+  bodyTiny: {
+    fontSize: typography.fontSize.xs,
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.light.textSecondary,
+  },
+
+  // Link系（primary色 - アクション可能）
+  linkText: {
     fontSize: typography.fontSize.base,
     fontWeight: typography.fontWeight.normal,
     color: colors.light.primary,
   },
 
-  // ----------- この下未整理
-
   // - Buttons
   button: {
-    backgroundColor: colors.light.primary,
-    paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.md,
-    borderRadius: borderRadius.lg,
+    backgroundColor: '#111827',
+    paddingVertical: spacing.lg,
+    borderRadius: borderRadius.full,
     alignItems: 'center',
     justifyContent: 'center',
   },
   buttonText: {
-    color: colors.light.primaryForeground,
-    fontSize: typography.fontSize.base,
+    color: '#FFFFFF',
+    fontSize: typography.fontSize.lg,
     fontWeight: typography.fontWeight.semibold,
   },
   buttonSecondary: {
-    backgroundColor: colors.light.secondary,
-    paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.md,
-    borderRadius: borderRadius.lg,
+    backgroundColor: '#F3F4F6',
+    paddingVertical: spacing.lg,
+    borderRadius: borderRadius.full,
     alignItems: 'center',
     justifyContent: 'center',
   },
   buttonSecondaryText: {
-    color: colors.light.secondaryForeground,
-    fontSize: typography.fontSize.base,
+    color: '#111827',
+    fontSize: typography.fontSize.lg,
     fontWeight: typography.fontWeight.semibold,
   },
-  buttonOutline: {
-    backgroundColor: 'transparent',
-    paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.md,
-    borderRadius: borderRadius.lg,
-    borderWidth: 1,
-    borderColor: colors.light.border,
+  buttonTertiary: {
+    backgroundColor: colors.light.card,
+    paddingVertical: spacing.lg,
+    borderRadius: borderRadius.full,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  buttonOutlineText: {
-    color: colors.light.text,
-    fontSize: typography.fontSize.base,
+  buttonTertiaryText: {
+    color: colors.light.cardForeground,
+    fontSize: typography.fontSize.lg,
     fontWeight: typography.fontWeight.semibold,
   },
 
   // - Inputs
   input: {
-    backgroundColor: colors.light.input,
-    borderRadius: borderRadius.lg,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
-    fontSize: typography.fontSize.base,
-    color: colors.light.inputForeground,
+    backgroundColor: colors.light.input,
+    borderRadius: borderRadius.lg,
     borderWidth: 1,
     borderColor: colors.light.border,
   },
   inputFocused: {
-    borderColor: colors.light.ring,
+    borderColor: colors.light.primary,
+  },
+  inputText: {
+    fontSize: typography.fontSize.base,
+    color: colors.light.inputForeground,
   },
 
   // -Tab Bar
@@ -289,7 +320,7 @@ export const lightStyles = StyleSheet.create({
     borderTopColor: colors.light.border,
     paddingTop: spacing.xs,
     paddingBottom: spacing.sm,
-    backgroundColor: colors.light.card,
+    backgroundColor: colors.light.navBar,
   },
   tabLabel: {
     fontSize: typography.fontSize.xs,
@@ -318,79 +349,100 @@ export const darkStyles = StyleSheet.create({
   },
 
   // - Typography
-  textTitle: {
-    ...lightStyles.textTitle,
+  text3xl: {
+    ...lightStyles.text3xl,
     color: colors.dark.text,
   },
-  textSubtitle: {
-    ...lightStyles.textSubtitle,
+  text2xl: {
+    ...lightStyles.text2xl,
     color: colors.dark.text,
   },
-  textContentTitle: {
-    ...lightStyles.textContentTitle,
+  textXl: {
+    ...lightStyles.textXl,
     color: colors.dark.text,
   },
-  textContentTitleSmall: {
-    ...lightStyles.textContentTitleSmall,
+  titleLarge: {
+    ...lightStyles.titleLarge,
     color: colors.dark.text,
   },
-  textBody: {
-    ...lightStyles.textBody,
+  titleMedium: {
+    ...lightStyles.titleMedium,
+    color: colors.dark.text,
+  },
+  titleLabel: {
+    ...lightStyles.titleLabel,
+    color: colors.dark.text,
+  },
+  textDefault: {
+    ...lightStyles.textDefault,
+    color: colors.dark.text,
+  },
+  textBold: {
+    ...lightStyles.textBold,
+    color: colors.dark.text,
+  },
+  bodyText: {
+    ...lightStyles.bodyText,
     color: colors.dark.textSecondary,
   },
-  textCaption: {
-    ...lightStyles.textCaption,
+  bodySmall: {
+    ...lightStyles.bodySmall,
     color: colors.dark.textSecondary,
   },
-  textAccent: {
-    ...lightStyles.textAccent,
+  bodyTiny: {
+    ...lightStyles.bodyTiny,
+    color: colors.dark.textSecondary,
+  },
+  linkText: {
+    ...lightStyles.linkText,
     color: colors.dark.primary,
   },
-
-  // ----------- この下未整理
 
   // - Buttons
   button: {
     ...lightStyles.button,
-    backgroundColor: colors.dark.primary,
+    backgroundColor: '#FFFFFF',
   },
   buttonText: {
     ...lightStyles.buttonText,
-    color: colors.dark.primaryForeground,
+    color: '#111827',
   },
   buttonSecondary: {
     ...lightStyles.buttonSecondary,
-    backgroundColor: colors.dark.secondary,
+    backgroundColor: '#1F2937',
   },
   buttonSecondaryText: {
     ...lightStyles.buttonSecondaryText,
-    color: colors.dark.secondaryForeground,
+    color: '#FFFFFF',
   },
-  buttonOutline: {
-    ...lightStyles.buttonOutline,
-    borderColor: colors.dark.border,
+  buttonTertiary: {
+    ...lightStyles.buttonTertiary,
+    backgroundColor: colors.dark.card,
   },
-  buttonOutlineText: {
-    ...lightStyles.buttonOutlineText,
-    color: colors.dark.text,
+  buttonTertiaryText: {
+    ...lightStyles.buttonTertiaryText,
+    color: colors.dark.cardForeground,
   },
 
   // - Inputs
   input: {
     ...lightStyles.input,
     backgroundColor: colors.dark.input,
-    color: colors.dark.inputForeground,
     borderColor: colors.dark.border,
   },
   inputFocused: {
-    borderColor: colors.dark.primary,
+    ...lightStyles.inputFocused,
+  },
+  inputText: {
+    ...lightStyles.inputText,
+    color: colors.dark.inputForeground,
   },
 
   // - Tab Bar
   tabBar: {
     ...lightStyles.tabBar,
     borderTopColor: colors.dark.border,
-    backgroundColor: colors.dark.card,
+    backgroundColor: colors.dark.navBar,
   },
   tabLabelActive: {
     ...lightStyles.tabLabelActive,

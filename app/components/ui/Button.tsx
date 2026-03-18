@@ -1,4 +1,5 @@
-import { ActivityIndicator, Text, TouchableOpacity, type TouchableOpacityProps } from 'react-native'
+import { cloneElement, isValidElement, type ReactElement, type ReactNode } from 'react'
+import { ActivityIndicator, Text, TouchableOpacity, type TouchableOpacityProps, View } from 'react-native'
 
 import { useTheme } from '../../hooks/ThemeContext'
 
@@ -6,36 +7,30 @@ export const Button = ({
   variant = 'primary',
   size = 'medium',
   loading,
+  icon,
+  fillIcon = false,
   children,
   ...props
 }: TouchableOpacityProps & {
-  variant?: 'primary' | 'secondary' | 'outline'
+  variant?: 'primary' | 'secondary' | 'tertiary'
   size?: 'small' | 'medium' | 'large'
   loading?: boolean
+  icon?: ReactNode
+  fillIcon?: boolean
   children: string
 }) => {
-  const { styles, colors, spacing } = useTheme()
+  const { styles, spacing } = useTheme()
 
-  const getButtonStyle = () => {
-    switch (variant) {
-      case 'secondary':
-        return styles.buttonSecondary
-      case 'outline':
-        return styles.buttonOutline
-      default:
-        return styles.button
-    }
+  const containerStyles = {
+    primary: styles.button,
+    secondary: styles.buttonSecondary,
+    tertiary: styles.buttonTertiary,
   }
 
-  const getTextStyle = () => {
-    switch (variant) {
-      case 'secondary':
-        return styles.buttonSecondaryText
-      case 'outline':
-        return styles.buttonOutlineText
-      default:
-        return styles.buttonText
-    }
+  const textStyles = {
+    primary: styles.buttonText,
+    secondary: styles.buttonSecondaryText,
+    tertiary: styles.buttonTertiaryText,
   }
 
   const getSizeStyle = () => {
@@ -49,16 +44,33 @@ export const Button = ({
     }
   }
 
+  const textColor = textStyles[variant].color
+
+  const renderIcon = () => {
+    if (!icon) return null
+    if (isValidElement(icon)) {
+      const iconProps: { color: string; fill?: string } = { color: textColor }
+      if (fillIcon) {
+        iconProps.fill = textColor
+      }
+      return cloneElement(icon as ReactElement<{ color?: string; fill?: string }>, iconProps)
+    }
+    return icon
+  }
+
   return (
     <TouchableOpacity
-      style={[getButtonStyle(), getSizeStyle(), props.disabled && { opacity: 0.5 }]}
+      style={[containerStyles[variant], { width: '100%' }, getSizeStyle(), props.disabled && { opacity: 0.5 }]}
       disabled={loading || props.disabled}
       {...props}
     >
       {loading ? (
-        <ActivityIndicator color={variant === 'primary' ? colors.primaryForeground : colors.text} />
+        <ActivityIndicator color={textColor} />
       ) : (
-        <Text style={getTextStyle()}>{children}</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+          {renderIcon()}
+          <Text style={textStyles[variant]}>{children}</Text>
+        </View>
       )}
     </TouchableOpacity>
   )

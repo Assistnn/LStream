@@ -3,16 +3,8 @@ import { Text, View } from 'react-native'
 
 import { colors, useTheme } from '../../hooks/ThemeContext'
 
-export const Label = ({
-  type,
-  text,
-  style,
-}: {
-  type: 'large' | 'small'
-  text: string
-  style?: StyleProp<ViewStyle>
-}) => {
-  const { spacing, typography } = useTheme()
+export const Label = ({ text, style }: { text: string; style?: StyleProp<ViewStyle> }) => {
+  const { spacing, styles } = useTheme()
   return (
     <View
       style={[
@@ -26,12 +18,13 @@ export const Label = ({
       ]}
     >
       <Text
-        style={{
-          color: colors.light.primaryForeground,
-          fontSize: type === 'large' ? typography.fontSize.sm : typography.fontSize.xs,
-          fontWeight: typography.fontWeight.bold,
-          letterSpacing: 0.5,
-        }}
+        style={[
+          styles.titleLabel,
+          {
+            color: colors.light.primaryForeground,
+            letterSpacing: 0.5,
+          },
+        ]}
       >
         {text}
       </Text>

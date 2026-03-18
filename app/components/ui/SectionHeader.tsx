@@ -11,7 +11,7 @@ export const SectionHeader = ({
   action?: string
   onActionPress?: () => void
 }) => {
-  const { styles, colors, typography, spacing } = useTheme()
+  const { styles, spacing } = useTheme()
   return (
     <View
       style={{
@@ -19,20 +19,13 @@ export const SectionHeader = ({
         justifyContent: 'space-between',
         alignItems: 'center',
         paddingHorizontal: spacing.lg,
+        paddingVertical: spacing.sm,
       }}
     >
-      <Text style={styles.textSubtitle}>{title}</Text>
+      <Text style={styles.text2xl}>{title}</Text>
       {action && onActionPress && (
         <TouchableOpacity onPress={onActionPress}>
-          <Text
-            style={{
-              fontSize: typography.fontSize.base,
-              fontWeight: typography.fontWeight.medium,
-              color: colors.primary,
-            }}
-          >
-            {action}
-          </Text>
+          <Text style={styles.linkText}>{action}</Text>
         </TouchableOpacity>
       )}
     </View>

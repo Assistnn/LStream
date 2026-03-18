@@ -1,10 +1,10 @@
-import { Clock } from 'lucide-react-native'
+import { Clock, Download } from 'lucide-react-native'
 import { useState } from 'react'
 import { FlatList, ScrollView, Text, TouchableOpacity, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { EpisodeListItem } from '../../../components/listitem/EpisodeListItem'
-// import { HistoryListItem } from '../../../components/listitem/HistoryListItem'
+import { HistoryListItem } from '../../../components/listitem/HistoryListItem'
 import { EmptyState } from '../../../components/ui/EmptyState'
 import { LoadingSpinner } from '../../../components/ui/LoadingSpinner'
 import { PageTitle } from '../../../components/ui/PageTitle'
@@ -15,7 +15,7 @@ import { useGetHistory } from '../../../usecases/useGetHistory'
 
 export const HistoryTabScreen = () => {
   const insets = useSafeAreaInsets()
-  const { styles, colors, spacing, typography, borderRadius } = useTheme()
+  const { styles, colors, spacing, borderRadius } = useTheme()
   const [activeTab, setActiveTab] = useState<'history' | 'download'>('history')
   const { data: history, loading: historyLoading, refetch: refetchHistory } = useGetHistory()
   const { episodes, loading: episodesLoading, refetch: refetchEpisodes } = useGetFavorites()
@@ -31,7 +31,7 @@ export const HistoryTabScreen = () => {
 
     return items.reduce(
       (acc, item) => {
-        const playedDate = new Date(item.playedAt)
+        const playedDate = new Date(item.date)
         playedDate.setHours(0, 0, 0, 0)
 
         let label: string
@@ -75,7 +75,6 @@ export const HistoryTabScreen = () => {
             gap: spacing.sm,
             marginHorizontal: spacing.lg,
             paddingHorizontal: spacing.xs,
-            paddingVertical: spacing.xs,
             backgroundColor: colors.card,
             borderRadius: borderRadius.md,
           }}
@@ -90,15 +89,7 @@ export const HistoryTabScreen = () => {
             }}
             onPress={() => setActiveTab('history')}
           >
-            <Text
-              style={{
-                fontSize: typography.fontSize.base,
-                color: colors.text,
-                fontWeight: typography.fontWeight.bold,
-              }}
-            >
-              再生履歴
-            </Text>
+            <Text style={styles.textBold}>再生履歴</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -111,15 +102,7 @@ export const HistoryTabScreen = () => {
             }}
             onPress={() => setActiveTab('download')}
           >
-            <Text
-              style={{
-                fontSize: typography.fontSize.base,
-                color: colors.text,
-                fontWeight: typography.fontWeight.bold,
-              }}
-            >
-              ダウンロード
-            </Text>
+            <Text style={styles.textBold}>ダウンロード</Text>
           </TouchableOpacity>
         </View>
 
@@ -129,7 +112,7 @@ export const HistoryTabScreen = () => {
           <LoadingSpinner />
         ) : activeTab === 'history' ? (
           !history || history.length === 0 ? (
-            <EmptyState icon='📭' title='再生履歴がありません' description='コンテンツを再生すると履歴が表示されます' />
+            <EmptyState icon={Clock} title='再生履歴がありません' description='コンテンツを再生すると履歴が表示されます' />
           ) : (
             <View>
               {Object.entries(groupHistoryByDate(history)).map(([dateLabel, items]) => (
@@ -141,43 +124,34 @@ export const HistoryTabScreen = () => {
                       paddingHorizontal: spacing.xl,
                     }}
                   >
-                    <Text
-                      style={{
-                        fontSize: typography.fontSize.xl,
-                        fontWeight: typography.fontWeight.semibold,
-                        color: colors.text,
-                      }}
-                    >
-                      {dateLabel}
-                    </Text>
+                    <Text style={styles.textXl}>{dateLabel}</Text>
                   </View>
-                  {JSON.stringify(items)}
-                  {/* {items.map((historyItem, index) => (
-                    <HistoryListItem key={historyItem.id} item={historyItem} isTop={index === 0} />
-                  ))} */}
+                  {items.map((historyItem, index) => (
+                    <HistoryListItem
+                      key={`${historyItem.series_id}-${historyItem.item_id}-${historyItem.date}`}
+                      item={historyItem}
+                      isTop={index === 0}
+                    />
+                  ))}
                 </View>
               ))}
             </View>
           )
         ) : !episodes || episodes.length === 0 ? (
-          <EmptyState
-            icon='📥'
-            title='ダウンロードしたエピソードがありません'
-            description='エピソードをダウンロードしてみましょう'
-          />
+          <EmptyState icon={Download} title='ダウンロードしたエピソードがありません' description='エピソードをダウンロードしてみましょう' />
         ) : (
           <FlatList
             data={episodes}
-            keyExtractor={(item) => String(item.episode_id)}
+            keyExtractor={(item) => `${item.series_id}-${item.item_id}`}
             scrollEnabled={false}
             renderItem={({ item }) => (
               <EpisodeListItem
                 episode={item}
-                onPress={() => console.log('Episode pressed:', item.episode_id)}
+                onPress={() => console.log('Episode pressed:', item.item_id)}
                 menuItems={[
-                  { label: 'プレイリストに追加', onPress: () => console.log('Add to playlist:', item.episode_id) },
-                  { label: '再生キューに追加', onPress: () => console.log('Add to queue:', item.episode_id) },
-                  { label: 'ダウンロード', onPress: () => console.log('Download:', item.episode_id) },
+                  { label: 'プレイリストに追加', onPress: () => console.log('Add to playlist:', item.item_id) },
+                  { label: '再生キューに追加', onPress: () => console.log('Add to queue:', item.item_id) },
+                  { label: 'ダウンロード', onPress: () => console.log('Download:', item.item_id) },
                 ]}
               />
             )}

@@ -35,7 +35,7 @@ export const PageTitle = ({
         ]}
       >
         {Icon && <Icon color={colors.text} size={32} />}
-        <Text style={[styles.textTitle]}>{title}</Text>
+        <Text style={[styles.text3xl]}>{title}</Text>
       </View>
       {children}
     </View>

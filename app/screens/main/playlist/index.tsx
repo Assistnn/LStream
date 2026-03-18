@@ -12,7 +12,7 @@ export const PlaylistTabScreen = () => {
     <View style={[styles.screenContainer, { paddingTop: insets.top }]}>
       <Text>プレイリスト画面</Text>
       <TouchableOpacity style={styles.button} onPress={() => navigation.navigate('PlaylistChild' as never)}>
-        <Text style={styles.buttonText}>child へ</Text>
+        <Text style={styles.button}>child へ</Text>
       </TouchableOpacity>
     </View>
   )

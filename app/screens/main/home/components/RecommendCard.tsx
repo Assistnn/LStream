@@ -1,12 +1,12 @@
 import { Dimensions, Image, Text, TouchableOpacity, View } from 'react-native'
 
+import { SeriesProgessBar } from '../../../../components/ui/SeriesProgessBar'
 import { useTheme } from '../../../../hooks/ThemeContext'
-import type { SeriesItem } from '../../../../repositories/api/IApiRepository'
-import { SeriesProgessBar } from './SeriesProgessBar'
+import type { SeriesSummaryDetail } from '../../../../repositories/api/IApiRepository'
 
 const { width: screenWidth } = Dimensions.get('window')
 
-export const RecommendCard = ({ series, onPress }: { series: SeriesItem; onPress?: () => void }) => {
+export const RecommendCard = ({ series, onPress }: { series: SeriesSummaryDetail; onPress?: () => void }) => {
   const { styles, spacing } = useTheme()
   return (
     <TouchableOpacity style={[styles.card, { width: screenWidth * 0.85 }]} onPress={onPress}>
@@ -26,18 +26,18 @@ export const RecommendCard = ({ series, onPress }: { series: SeriesItem; onPress
       </View>
 
       <View style={{ padding: spacing.md, flexDirection: 'column', gap: spacing.sm }}>
-        <Text style={styles.textAccent}>{series.category}</Text>
-        <Text style={styles.textContentTitle} numberOfLines={2}>
+        <Text style={styles.linkText}>{series.category}</Text>
+        <Text style={styles.textXl} numberOfLines={2}>
           {series.title}
         </Text>
         {series.description && (
-          <Text style={styles.textBody} numberOfLines={2}>
+          <Text style={styles.bodyText} numberOfLines={2}>
             {series.description}
           </Text>
         )}
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Text style={styles.textCaption}>{series.num_total}メディア</Text>
-          <Text style={styles.textCaption}>
+          <Text style={styles.bodySmall}>{series.num_total}メディア</Text>
+          <Text style={styles.bodySmall}>
             合計{' '}
             {(() => {
               const hours = Math.floor(series.duration / 3600)

@@ -1,3 +1,4 @@
+import type { ViewStyle } from 'react-native'
 import { Modal, Pressable, Text, TouchableOpacity, View } from 'react-native'
 
 import { useTheme } from '../../hooks/ThemeContext'
@@ -15,16 +16,21 @@ export const ContextMenu = ({
   items,
   position = 'right',
   anchorY,
+  anchorRight,
 }: {
   visible: boolean
   onClose: () => void
   items: ContextMenuItem[]
   position?: 'left' | 'center' | 'right'
   anchorY?: number
+  anchorRight?: number
 }) => {
-  const { colors, spacing, typography, borderRadius } = useTheme()
+  const { colors, spacing, styles, typography, borderRadius } = useTheme()
 
-  const getPositionStyle = () => {
+  const getPositionStyle = (): ViewStyle => {
+    if (anchorRight !== undefined) {
+      return { right: anchorRight }
+    }
     switch (position) {
       case 'left':
         return { left: spacing.md }
@@ -74,11 +80,13 @@ export const ContextMenu = ({
             >
               {item.icon && <View>{item.icon}</View>}
               <Text
-                style={{
-                  fontSize: typography.fontSize.base,
-                  color: item.isSelected ? colors.primary : colors.text,
-                  fontWeight: item.isSelected ? typography.fontWeight.semibold : typography.fontWeight.normal,
-                }}
+                style={[
+                  styles.textDefault,
+                  {
+                    color: item.isSelected ? colors.primary : colors.text,
+                    fontWeight: item.isSelected ? typography.fontWeight.semibold : typography.fontWeight.normal,
+                  },
+                ]}
               >
                 {item.label}
               </Text>

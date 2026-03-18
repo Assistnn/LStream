@@ -3,17 +3,18 @@ import { useState } from 'react'
 import { FlatList, ScrollView, Text, TouchableOpacity, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
-import { EpisodeListItem } from '../../../components/listitem/EpisodeListItem'
 import { EmptyState } from '../../../components/ui/EmptyState'
 import { LoadingSpinner } from '../../../components/ui/LoadingSpinner'
 import { PageTitle } from '../../../components/ui/PageTitle'
 import { ThemedRefreshControl } from '../../../components/ui/ThemedRefreshControl'
 import { useTheme } from '../../../hooks/ThemeContext'
 import { useGetFavorites } from '../../../usecases/useGetFavorites'
+import { FavoriteEpisodeListItem } from './components/FavoriteEpisodeListItem'
+import { FavoriteSeriesListItem } from './components/FavoriteSeriesListItem'
 
 export const FavoritesTabScreen = () => {
   const insets = useSafeAreaInsets()
-  const { styles, colors, spacing, typography, borderRadius } = useTheme()
+  const { styles, colors, spacing, borderRadius } = useTheme()
   const [activeTab, setActiveTab] = useState<'series' | 'episode'>('series')
   const { series, episodes, loading, refetch } = useGetFavorites()
   return (
@@ -52,15 +53,7 @@ export const FavoritesTabScreen = () => {
                 }}
                 onPress={() => setActiveTab('series')}
               >
-                <Text
-                  style={{
-                    fontSize: typography.fontSize.base,
-                    color: colors.text,
-                    fontWeight: typography.fontWeight.bold,
-                  }}
-                >
-                  シリーズ ({series?.length ?? 0})
-                </Text>
+                <Text style={styles.textBold}>シリーズ ({series?.length ?? 0})</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -73,47 +66,50 @@ export const FavoritesTabScreen = () => {
                 }}
                 onPress={() => setActiveTab('episode')}
               >
-                <Text
-                  style={{
-                    fontSize: typography.fontSize.base,
-                    color: colors.text,
-                    fontWeight: typography.fontWeight.bold,
-                  }}
-                >
-                  エピソード ({episodes?.length ?? 0})
-                </Text>
+                <Text style={styles.textBold}>エピソード ({episodes?.length ?? 0})</Text>
               </TouchableOpacity>
             </View>
 
             {/* Content */}
-            <View style={{ height: 0.5, backgroundColor: colors.border, marginTop: spacing['2xl'] }} />
             {activeTab === 'series' ? (
-              <View style={{ padding: spacing.lg }}>
-                <Text style={{ color: colors.textSecondary }}>シリーズのお気に入りがここに表示されます</Text>
-              </View>
+              !series || series.length === 0 ? (
+                <View style={{ padding: spacing.lg, marginTop: spacing.xl }}>
+                  <EmptyState
+                    icon={Heart}
+                    title='お気に入りのシリーズがありません'
+                    description='シリーズをお気に入りに追加してみましょう'
+                  />
+                </View>
+              ) : (
+                <FlatList
+                  style={{ marginTop: spacing.xl }}
+                  data={series}
+                  keyExtractor={(item) => item.series_id.toString()}
+                  scrollEnabled={false}
+                  renderItem={({ item }) => (
+                    <FavoriteSeriesListItem
+                      item={item}
+                      onPress={() => console.log('Series pressed:', item.series_id)}
+                    />
+                  )}
+                />
+              )
             ) : !episodes || episodes.length === 0 ? (
-              <View style={{ padding: spacing.lg }}>
+              <View style={{ padding: spacing.lg, marginTop: spacing.xl }}>
                 <EmptyState
-                  icon='💜'
+                  icon={Heart}
                   title='お気に入りのエピソードがありません'
                   description='エピソードをお気に入りに追加してみましょう'
                 />
               </View>
             ) : (
               <FlatList
+                style={{ marginTop: spacing.xl }}
                 data={episodes}
-                keyExtractor={(item) => String(item.episode_id)}
+                keyExtractor={(item) => `${item.series_id}-${item.item_id}`}
                 scrollEnabled={false}
                 renderItem={({ item }) => (
-                  <EpisodeListItem
-                    episode={item}
-                    onPress={() => console.log('Episode pressed:', item.episode_id)}
-                    menuItems={[
-                      { label: 'プレイリストに追加', onPress: () => console.log('Add to playlist:', item.episode_id) },
-                      { label: '再生キューに追加', onPress: () => console.log('Add to queue:', item.episode_id) },
-                      { label: 'ダウンロード', onPress: () => console.log('Download:', item.episode_id) },
-                    ]}
-                  />
+                  <FavoriteEpisodeListItem item={item} onPress={() => console.log('Episode pressed:', item.item_id)} />
                 )}
               />
             )}

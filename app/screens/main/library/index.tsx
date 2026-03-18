@@ -1,21 +1,51 @@
-import { ArrowDownUp, Grid3x3, Library as LibraryIcon, List, Search, SlidersHorizontal } from 'lucide-react-native'
-import { useState } from 'react'
+import {
+  ArrowDown,
+  ArrowUp,
+  Grid3x3,
+  Library as LibraryIcon,
+  List,
+  Search,
+  SlidersHorizontal,
+} from 'lucide-react-native'
+import { useMemo, useState } from 'react'
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { ContextMenu } from '../../../components/ui/ContextMenu'
-import { EmptyState } from '../../../components/ui/EmptyState'
 import { LoadingSpinner } from '../../../components/ui/LoadingSpinner'
 import { PageTitle } from '../../../components/ui/PageTitle'
 import { ThemedRefreshControl } from '../../../components/ui/ThemedRefreshControl'
 import { useTheme } from '../../../hooks/ThemeContext'
 import { useGetLibrary } from '../../../usecases/useGetLibrary'
+import { LibraryCard } from './components/LibraryCard'
+import { LibraryListItem } from './components/LibraryListItem'
 import { SearchBar } from './components/SearchBar'
+
+const TYPE_MAP = {
+  すべて: 1,
+  音声: 2,
+  動画: 3,
+  お気に入り: 4,
+} as const
+
+const CATEGORY_MAP = {
+  すべて: undefined,
+  履歴: 1,
+  英語: 2,
+  ビジネス: 3,
+  自己肯定感: 4,
+  セールス練習: 5,
+} as const
+
+const SORT_MAP = {
+  登録順: 1,
+  再生数順: 2,
+  タイトル順: 3,
+} as const
 
 export const LibraryTabScreen = () => {
   const insets = useSafeAreaInsets()
   const { styles, colors, spacing, borderRadius, typography } = useTheme()
-  const { data, loading, refetch } = useGetLibrary()
 
   const [showSearch, setShowSearch] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
@@ -25,6 +55,27 @@ export const LibraryTabScreen = () => {
   const [showSortMenu, setShowSortMenu] = useState(false)
   const [sortMenuAnchorY, setSortMenuAnchorY] = useState<number | undefined>(undefined)
   const [sortOption, setSortOption] = useState('登録順')
+  const [sortAsc, setSortAsc] = useState(false)
+  const [isManualRefreshing, setIsManualRefreshing] = useState(false)
+
+  const params = useMemo(
+    () => ({
+      type: TYPE_MAP[selectedType as keyof typeof TYPE_MAP],
+      order: SORT_MAP[sortOption as keyof typeof SORT_MAP],
+      asc: sortAsc ? 1 : 0,
+      category: CATEGORY_MAP[selectedCategory as keyof typeof CATEGORY_MAP],
+      keyword: searchQuery || undefined,
+    }),
+    [selectedType, selectedCategory, sortOption, sortAsc, searchQuery],
+  )
+
+  const { data, loading, refetch } = useGetLibrary(params)
+
+  const handleManualRefresh = async () => {
+    setIsManualRefreshing(true)
+    await refetch()
+    setIsManualRefreshing(false)
+  }
 
   const typeFilters = ['すべて', '音声', '動画', 'お気に入り']
   const categoryFilters = ['すべて', '履歴', '英語', 'ビジネス', '自己肯定感', 'セールス練習']
@@ -52,7 +103,9 @@ export const LibraryTabScreen = () => {
       <ScrollView
         style={styles.scrollContainer}
         contentContainerStyle={styles.scrollContentContainer}
-        refreshControl={<ThemedRefreshControl refreshing={data !== null && loading} onRefresh={refetch} />}
+        refreshControl={
+          <ThemedRefreshControl refreshing={isManualRefreshing && loading} onRefresh={handleManualRefresh} />
+        }
       >
         <PageTitle icon={LibraryIcon} title='ライブラリ'>
           <TouchableOpacity
@@ -72,7 +125,7 @@ export const LibraryTabScreen = () => {
 
         {/* Search Bar */}
         {showSearch && (
-          <View style={{ paddingHorizontal: spacing.lg, marginBottom: spacing.lg }}>
+          <View style={{ paddingHorizontal: spacing.lg, marginBottom: spacing.md }}>
             <SearchBar value={searchQuery} onSearch={setSearchQuery} autoFocus />
           </View>
         )}
@@ -84,7 +137,7 @@ export const LibraryTabScreen = () => {
           contentContainerStyle={{
             paddingHorizontal: spacing.lg,
             gap: spacing.sm,
-            marginBottom: spacing.md,
+            marginBottom: spacing.xs,
           }}
         >
           {typeFilters.map((filter) => (
@@ -99,11 +152,13 @@ export const LibraryTabScreen = () => {
               onPress={() => setSelectedType(filter)}
             >
               <Text
-                style={{
-                  fontSize: typography.fontSize.base,
-                  color: selectedType === filter ? colors.background : colors.text,
-                  fontWeight: selectedType === filter ? typography.fontWeight.semibold : typography.fontWeight.normal,
-                }}
+                style={[
+                  styles.textBold,
+                  {
+                    color: selectedType === filter ? colors.background : colors.text,
+                    fontWeight: selectedType === filter ? typography.fontWeight.semibold : typography.fontWeight.normal,
+                  },
+                ]}
               >
                 {filter}
               </Text>
@@ -118,7 +173,7 @@ export const LibraryTabScreen = () => {
           contentContainerStyle={{
             paddingHorizontal: spacing.lg,
             gap: spacing.sm,
-            marginBottom: spacing['2xl'],
+            marginBottom: spacing.xs,
           }}
         >
           {categoryFilters.map((filter) => (
@@ -135,12 +190,14 @@ export const LibraryTabScreen = () => {
               onPress={() => setSelectedCategory(filter)}
             >
               <Text
-                style={{
-                  fontSize: typography.fontSize.sm,
-                  color: selectedCategory === filter ? colors.background : colors.text,
-                  fontWeight:
-                    selectedCategory === filter ? typography.fontWeight.semibold : typography.fontWeight.normal,
-                }}
+                style={[
+                  styles.bodySmall,
+                  {
+                    color: selectedCategory === filter ? colors.background : colors.text,
+                    fontWeight:
+                      selectedCategory === filter ? typography.fontWeight.semibold : typography.fontWeight.normal,
+                  },
+                ]}
               >
                 {filter}
               </Text>
@@ -154,7 +211,7 @@ export const LibraryTabScreen = () => {
             flexDirection: 'row',
             justifyContent: 'space-between',
             paddingHorizontal: spacing.lg,
-            marginBottom: spacing.lg,
+            marginBottom: spacing.xs,
           }}
         >
           {/* Left: View Mode Toggle */}
@@ -216,8 +273,13 @@ export const LibraryTabScreen = () => {
                 alignItems: 'center',
                 justifyContent: 'center',
               }}
+              onPress={() => setSortAsc(!sortAsc)}
             >
-              <ArrowDownUp size={20} color={colors.textSecondary} />
+              {sortAsc ? (
+                <ArrowUp size={20} color={colors.textSecondary} />
+              ) : (
+                <ArrowDown size={20} color={colors.textSecondary} />
+              )}
             </TouchableOpacity>
           </View>
         </View>
@@ -231,18 +293,55 @@ export const LibraryTabScreen = () => {
           anchorY={sortMenuAnchorY}
         />
 
-        {/* Content placeholder */}
+        {/* Content */}
         {loading && data === null ? (
           <LoadingSpinner />
         ) : !data || data.length === 0 ? (
-          <EmptyState icon='📚' title='ライブラリが空です' description='コンテンツを追加してみましょう' />
-        ) : (
-          <View style={{ paddingHorizontal: spacing.lg }}>
-            <Text style={styles.textBody}>ライブラリの内容がここに表示されます</Text>
-            <Text style={[styles.textCaption, { marginTop: spacing.md }]}>
-              {data.length}件のアイテム（シリーズ: {data.filter((item) => item.itemType === 'series').length}
-              件、エピソード: {data.filter((item) => item.itemType === 'episode').length}件）
+          <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: spacing.xl * 3 }}>
+            <View
+              style={{
+                width: 80,
+                height: 80,
+                borderRadius: 40,
+                backgroundColor: colors.muted,
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: spacing.xl,
+              }}
+            >
+              <Search size={32} color={colors.textSecondary} />
+            </View>
+            <Text style={[styles.titleLarge, { color: colors.text, marginBottom: spacing.xs }]}>
+              コンテンツが見つかりません
             </Text>
+            <Text style={[styles.bodyText, { color: colors.textSecondary }]}>別の検索条件をお試しください</Text>
+          </View>
+        ) : viewMode === 'grid' ? (
+          <View
+            style={{
+              paddingHorizontal: spacing.lg,
+              flexDirection: 'row',
+              flexWrap: 'wrap',
+              justifyContent: 'space-between',
+            }}
+          >
+            {data.map((item) => (
+              <View
+                key={item.series_id}
+                style={{
+                  width: '48%',
+                  marginBottom: spacing.md,
+                }}
+              >
+                <LibraryCard item={item} onPress={() => {}} />
+              </View>
+            ))}
+          </View>
+        ) : (
+          <View style={{ gap: spacing.md, paddingHorizontal: spacing.lg }}>
+            {data.map((item) => (
+              <LibraryListItem key={item.series_id} item={item} onPress={() => {}} />
+            ))}
           </View>
         )}
       </ScrollView>

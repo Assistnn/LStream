@@ -1,10 +1,8 @@
-import { useNavigation } from '@react-navigation/native'
 import {
   Bell,
   Check,
   ChevronRight,
   Clock,
-  Code,
   Eye,
   FileText,
   Gauge,
@@ -48,7 +46,6 @@ type SettingItem =
 
 export const SettingsTabScreen = () => {
   const insets = useSafeAreaInsets()
-  const navigation = useNavigation()
   const { themeMode, styles, colors, spacing, setThemeMode } = useTheme()
 
   const [showThemeMenu, setShowThemeMenu] = useState(false)
@@ -231,20 +228,6 @@ export const SettingsTabScreen = () => {
     },
   ]
 
-  // 開発環境でのみデバッグセクションを追加
-  if (__DEV__) {
-    settingsGroups.push({
-      title: '開発者向け',
-      items: [
-        {
-          icon: Code,
-          label: 'UI Components',
-          onPress: () => navigation.navigate('DebugUI' as never),
-        },
-      ],
-    })
-  }
-
   return (
     <View style={[styles.screenContainer, { paddingTop: insets.top }]}>
       <ScrollView style={styles.scrollContainer} contentContainerStyle={styles.scrollContentContainer}>
@@ -253,14 +236,12 @@ export const SettingsTabScreen = () => {
           <View key={groupIndex} style={{ marginBottom: spacing['3xl'] }}>
             <Text
               style={[
-                styles.textBody,
+                styles.textDefault,
                 {
                   marginBottom: spacing.md,
                   paddingHorizontal: spacing.lg,
                   textTransform: 'uppercase',
                   letterSpacing: 0.5,
-                  fontWeight: '600',
-                  color: colors.textSecondary,
                 },
               ]}
             >
@@ -290,7 +271,7 @@ export const SettingsTabScreen = () => {
                       <View style={[localStyles.iconBg, { backgroundColor: colors.muted }]}>
                         <Icon color={colors.text} size={ICON_SIZE} />
                       </View>
-                      <Text style={[styles.textBody, { flex: 1 }]}>{item.label}</Text>
+                      <Text style={[styles.textDefault, { flex: 1 }]}>{item.label}</Text>
                       <Switch
                         value={item.toggleValue}
                         onValueChange={item.onToggle}
@@ -314,8 +295,8 @@ export const SettingsTabScreen = () => {
                     <View style={[localStyles.iconBg, { backgroundColor: colors.muted }]}>
                       <Icon color={colors.text} size={ICON_SIZE} />
                     </View>
-                    <Text style={[styles.textBody, { flex: 1 }]}>{item.label}</Text>
-                    {item.value && <Text style={styles.textCaption}>{item.value}</Text>}
+                    <Text style={[styles.textDefault, { flex: 1 }]}>{item.label}</Text>
+                    {item.value && <Text style={styles.bodySmall}>{item.value}</Text>}
                     {item.onPress && <ChevronRight color={colors.textSecondary} size={20} />}
                   </TouchableOpacity>
                 )
@@ -325,8 +306,8 @@ export const SettingsTabScreen = () => {
         ))}
 
         <View style={{ alignItems: 'center', paddingHorizontal: spacing.lg }}>
-          <Text style={[styles.textCaption, { fontSize: 10 }]}>Learning Player App</Text>
-          <Text style={[styles.textCaption, { fontSize: 10, marginTop: spacing.xs }]}>© 2026 All rights reserved</Text>
+          <Text style={styles.bodySmall}>Learning Player App</Text>
+          <Text style={[styles.bodySmall, { marginTop: spacing.xs }]}>© 2026 All rights reserved</Text>
         </View>
       </ScrollView>
 
@@ -334,7 +315,7 @@ export const SettingsTabScreen = () => {
         <TouchableOpacity style={localStyles.modalOverlay} activeOpacity={1} onPress={() => setShowThemeMenu(false)}>
           <View style={[localStyles.modalContent, { backgroundColor: colors.card }]}>
             <View style={[localStyles.modalHeader, { borderBottomColor: colors.border }]}>
-              <Text style={[{ marginBottom: 0 }]}>テーマを選択</Text>
+              <Text style={[styles.titleLarge, { marginBottom: 0 }]}>テーマを選択</Text>
             </View>
             <View style={{ padding: spacing.sm }}>
               {themeOptions.map((option) => {
@@ -342,21 +323,21 @@ export const SettingsTabScreen = () => {
                 return (
                   <TouchableOpacity
                     key={option.value}
-                    style={[localStyles.modalItem, isActive && { backgroundColor: colors.accent }]}
+                    style={[localStyles.modalItem, isActive && { backgroundColor: colors.primary }]}
                     onPress={() => {
                       setThemeMode(option.value)
                       setShowThemeMenu(false)
                     }}
                   >
-                    <Text style={styles.textBody}>{option.label}</Text>
+                    <Text style={styles.textDefault}>{option.label}</Text>
                     {isActive && <Check color={colors.primary} size={20} />}
                   </TouchableOpacity>
                 )
               })}
             </View>
-            <View style={[localStyles.modalFooter, { borderTopColor: colors.border }]}>
+            <View style={[localStyles.modalFooter]}>
               <TouchableOpacity style={localStyles.cancelButton} onPress={() => setShowThemeMenu(false)}>
-                <Text style={styles.textCaption}>キャンセル</Text>
+                <Text style={styles.bodySmall}>キャンセル</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -375,7 +356,7 @@ export const SettingsTabScreen = () => {
           onPress={() => setShowHistoryRetentionMenu(false)}
         >
           <View style={[localStyles.modalContent, { backgroundColor: colors.card }]}>
-            <View style={[localStyles.modalHeader, { borderBottomColor: colors.border }]}>
+            <View style={localStyles.modalHeader}>
               <Text style={[{ marginBottom: 0 }]}>履歴の保持期間を選択</Text>
             </View>
             <View style={{ padding: spacing.sm }}>
@@ -384,10 +365,10 @@ export const SettingsTabScreen = () => {
                 return (
                   <TouchableOpacity
                     key={option.value}
-                    style={[localStyles.modalItem, isActive && { backgroundColor: colors.accent }]}
+                    style={[localStyles.modalItem, isActive && { backgroundColor: colors.primary }]}
                     onPress={() => updateHistoryRetention(option.value)}
                   >
-                    <Text style={styles.textBody}>{option.label}</Text>
+                    <Text style={styles.textDefault}>{option.label}</Text>
                     {isActive && <Check color={colors.primary} size={20} />}
                   </TouchableOpacity>
                 )
@@ -395,7 +376,7 @@ export const SettingsTabScreen = () => {
             </View>
             <View style={[localStyles.modalFooter, { borderTopColor: colors.border }]}>
               <TouchableOpacity style={localStyles.cancelButton} onPress={() => setShowHistoryRetentionMenu(false)}>
-                <Text style={styles.textCaption}>キャンセル</Text>
+                <Text style={styles.bodySmall}>キャンセル</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -439,7 +420,6 @@ const localStyles = StyleSheet.create({
   },
   modalHeader: {
     padding: 24,
-    borderBottomWidth: 1,
   },
   modalItem: {
     flexDirection: 'row',
@@ -452,7 +432,6 @@ const localStyles = StyleSheet.create({
   },
   modalFooter: {
     padding: 16,
-    borderTopWidth: 1,
   },
   cancelButton: {
     paddingVertical: 8,

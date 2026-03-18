@@ -1,13 +1,19 @@
 import { apiClient } from './core/client'
 import type {
+  ApiResult,
   AuthResponse,
-  Episode,
-  HistoryItem,
-  HomeData,
+  FavoriteParams,
+  FavoritesResponse,
+  HistoriesResponse,
+  HomeResponse,
   IApiRepository,
-  LibraryItem,
-  LoginCredentials,
-  SeriesDetail,
+  LibrariesParams,
+  LibrariesResponse,
+  LoginParams,
+  PlayEndParams,
+  PlayProgressParams,
+  SeriesResponse,
+  SettingsResponse,
 } from './IApiRepository'
 
 export class ApiRepository implements IApiRepository {
@@ -19,14 +25,11 @@ export class ApiRepository implements IApiRepository {
     return apiClient.refreshToken()
   }
 
-  async getMe() {
-    return apiClient.get<AuthResponse['user']>('/auth/me')
-  }
-
-  async login(credentials: LoginCredentials) {
-    const response = await apiClient.post<AuthResponse>('/auth/login', credentials, false)
-    await apiClient.setToken(response.token)
-    await apiClient.setRefreshToken(response.refreshToken)
+  async login(credentials: LoginParams) {
+    const response = await apiClient.post<AuthResponse>('/friend_login', credentials, false)
+    if (response.result === 1) {
+      await apiClient.setToken(response.token)
+    }
     return response
   }
 
@@ -38,27 +41,46 @@ export class ApiRepository implements IApiRepository {
     }
   }
 
-  async getHomeData() {
-    return apiClient.get<HomeData>('/api/home')
+  async getSettings() {
+    return apiClient.get<SettingsResponse>('/str_settings')
   }
 
-  async getNewArrivals() {
-    return apiClient.get<Episode[]>('/api/episodes/new-arrivals')
+  async getHome() {
+    return apiClient.get<HomeResponse>('/str_home')
   }
 
-  async getFavoriteSeries() {
-    return apiClient.get<SeriesDetail[]>('/api/favorites/series')
+  async getSeries(seriesId: number) {
+    return apiClient.get<SeriesResponse>(`/str_series?series_id=${seriesId}`)
   }
 
-  async getFavoriteEpisodes() {
-    return apiClient.get<Episode[]>('/api/favorites/episodes')
+  async getLibraries(params: LibrariesParams) {
+    const queryParams = new URLSearchParams({
+      type: params.type.toString(),
+      order: params.order.toString(),
+      asc: params.asc.toString(),
+      ...(params.category && { category: params.category.toString() }),
+      ...(params.keyword && { keyword: params.keyword }),
+    })
+    return apiClient.get<LibrariesResponse>(`/str_libraries?${queryParams.toString()}`)
   }
 
-  async getHistory() {
-    return apiClient.get<HistoryItem[]>('/api/history')
+  async getFavorites() {
+    return apiClient.get<FavoritesResponse>('/str_favorites')
   }
 
-  async getLibrary() {
-    return apiClient.get<LibraryItem[]>('/api/library')
+  async getHistories() {
+    return apiClient.get<HistoriesResponse>('/str_histories')
+  }
+
+  async updatePlayProgress(params: PlayProgressParams) {
+    return apiClient.post<ApiResult>('/str_play_progress', params)
+  }
+
+  async updatePlayEnd(params: PlayEndParams) {
+    return apiClient.post<ApiResult>('/str_play_end', params)
+  }
+
+  async updateFavorite(params: FavoriteParams) {
+    return apiClient.post<ApiResult>('/str_favorite', params)
   }
 }
