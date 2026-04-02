@@ -4,10 +4,12 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { useAuth } from '../../hooks/AuthContext'
 import { useTheme } from '../../hooks/ThemeContext'
+import { useLogin } from '../../usecases/useLogin'
 
 export const LoginScreen = () => {
   const { styles } = useTheme()
   const { signIn } = useAuth()
+  const { execute, loading } = useLogin()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   return (
@@ -31,10 +33,19 @@ export const LoginScreen = () => {
         />
         <TouchableOpacity
           style={styles.button}
-          onPress={() => {
-            // TODO: 認証 API 連携時にメール・パスワードを使用する
-            void signIn('dummy-token')
+          onPress={async () => {
+            const response = await execute({
+              friend_id: email,
+              friend_pw: password,
+              tenant_code: 'mock-tenant',
+              device_token: 'mock-device-token',
+              device_uuid: 'mock-device-uuid',
+            })
+            if (response?.result === 1) {
+              await signIn(response.token)
+            }
           }}
+          disabled={loading}
         >
           <Text style={styles.button}>ログイン</Text>
         </TouchableOpacity>

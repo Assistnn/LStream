@@ -1,32 +1,48 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 
-import { useApiError } from '../hooks/api/ApiErrorContext'
 import { apiRepository } from '../repositories/api'
+import type { FavoritesResponse } from '../repositories/api/IApiRepository'
+
+const CACHE_DURATION_MS = 5 * 60 * 1000
+
+let cachedFavorites: FavoritesResponse | null = null
+let lastFetchTime: number | null = null
+const listeners = new Set<() => void>()
+
+const fetchFavorites = async (force = false) => {
+  const now = Date.now()
+  if (!force && lastFetchTime && now - lastFetchTime < CACHE_DURATION_MS) {
+    return
+  }
+  const data = await apiRepository.getFavorites()
+  cachedFavorites = data
+  lastFetchTime = now
+  listeners.forEach((fn) => fn())
+}
 
 export const useGetFavorites = () => {
-  const [series, setSeries] = useState<Awaited<ReturnType<typeof apiRepository.getFavorites>>['series'] | null>(null)
-  const [episodes, setEpisodes] = useState<Awaited<ReturnType<typeof apiRepository.getFavorites>>['episodes'] | null>(
-    null,
-  )
-  const [loading, setLoading] = useState(true)
-  const { handleError } = useApiError()
-
-  const execute = useCallback(async () => {
-    setLoading(true)
-    try {
-      const result = await apiRepository.getFavorites()
-      setSeries(result.series)
-      setEpisodes(result.episodes)
-    } catch (error) {
-      handleError(error)
-    } finally {
-      setLoading(false)
-    }
-  }, [handleError])
+  const [favorites, setFavorites] = useState(cachedFavorites)
 
   useEffect(() => {
-    void execute()
+    const listener = () => setFavorites(cachedFavorites)
+    listeners.add(listener)
+    return () => {
+      listeners.delete(listener)
+    }
   }, [])
 
-  return { series, episodes, loading, refetch: execute }
+  return favorites
+}
+
+export const useInitFavorites = () => {
+  useEffect(() => {
+    void fetchFavorites(true)
+  }, [])
+}
+
+export const refetchFavorites = () => fetchFavorites(false)
+
+export const isFavoriteEpisode = (seriesId: number, episodeId: number): boolean => {
+  if (!cachedFavorites?.episodes) return false
+  return cachedFavorites.episodes.some((ep) => ep.series_id === seriesId && ep.item_id === episodeId)
 }

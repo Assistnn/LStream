@@ -86,6 +86,15 @@ class ApiClient {
       }
     }
 
+    console.log('[API Request]', {
+      method,
+      endpoint,
+      url,
+      headers: requestHeaders,
+      body,
+      requiresAuth,
+    })
+
     const controller = new AbortController()
     const timeoutId = setTimeout(() => controller.abort(), this.timeout)
 
@@ -98,6 +107,13 @@ class ApiClient {
       })
 
       clearTimeout(timeoutId)
+
+      console.log('[API Response:raw]', {
+        method,
+        endpoint,
+        status: response.status,
+        ok: response.ok,
+      })
 
       const necessaryVersion = response.headers.get('x-app-necessary-version')
       if (necessaryVersion) {
@@ -127,6 +143,12 @@ class ApiClient {
         let errorMessage = `HTTP Error: ${response.status}`
         try {
           const errorData = await response.json()
+          console.log('[API Response:error]', {
+            method,
+            endpoint,
+            status: response.status,
+            data: errorData,
+          })
 
           if (errorData.result !== undefined) {
             throw new ApiResponseException(errorData.result, errorData.title, errorData.message)
@@ -146,14 +168,26 @@ class ApiClient {
       }
 
       if (response.status === 204) {
+        console.log('[API Response:success]', {
+          method,
+          endpoint,
+          status: response.status,
+          data: null,
+        })
         return undefined as T
       }
 
       const data: ApiResponse<T> = await response.json()
+      console.log('[API Response:success]', {
+        method,
+        endpoint,
+        status: response.status,
+        data,
+      })
 
       switch (data.result) {
         case ApiResultCode.Success:
-          return data.data as T
+          return data.data === undefined ? (data as T) : data.data
 
         case ApiResultCode.ErrorWithAlert:
           throw new ApiResponseException(ApiResultCode.ErrorWithAlert, data.title, data.message)

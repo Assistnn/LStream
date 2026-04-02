@@ -44,13 +44,19 @@
           "**/.pnpm-store": true,
           "**/node_modules": true,
           "**/dist": true,
-          "**/out": true
+          "**/out": true,
+          "**/ios": true,
+          "**/android": true,
+          "**/Figma": true
         },
         "search.exclude": {
           "**/.pnpm-store": true,
           "**/node_modules": true,
           "**/dist": true,
-          "**/out": true
+          "**/out": true,
+          "**/ios": true,
+          "**/android": true,
+          "**/Figma": true
         }
       }
     }

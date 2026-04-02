@@ -1,3 +1,5 @@
+import AsyncStorage from '@react-native-async-storage/async-storage'
+
 import type {
   ApiResult,
   EpisodeSummary,
@@ -82,8 +84,7 @@ const mockSeries: SeriesSummaryDetail[] = [
     num_comp: 0,
     category: 'ライフスタイル',
     title: '5分間瞑想レッスン',
-    description:
-      '忙しい日常の中でも実践できる短時間の瞑想セッションです。ストレス軽減と集中力向上に効果的です。',
+    description: '忙しい日常の中でも実践できる短時間の瞑想セッションです。ストレス軽減と集中力向上に効果的です。',
     duration: 300,
   },
   {
@@ -228,7 +229,7 @@ const mockSeriesDetail: SeriesResponse[] = [
     progress: 42,
     episodes: [
       {
-        episode_id: 101,
+        item_id: 101,
         type_media: 2,
         url: 'https://example.com/js/ep101.m3u8',
         img: 'https://picsum.photos/seed/jsep1/400/300',
@@ -237,7 +238,7 @@ const mockSeriesDetail: SeriesResponse[] = [
         progress: 3600,
         units: [
           {
-            episode_id: 1011,
+            item_id: 1011,
             type_media: 2,
             url: 'https://example.com/js/ep1011.m3u8',
             img: 'https://picsum.photos/seed/jsep1u1/400/300',
@@ -246,7 +247,7 @@ const mockSeriesDetail: SeriesResponse[] = [
             progress: 1200,
           },
           {
-            episode_id: 1012,
+            item_id: 1012,
             type_media: 2,
             url: 'https://example.com/js/ep1012.m3u8',
             img: 'https://picsum.photos/seed/jsep1u2/400/300',
@@ -255,7 +256,7 @@ const mockSeriesDetail: SeriesResponse[] = [
             progress: 1200,
           },
           {
-            episode_id: 1013,
+            item_id: 1013,
             type_media: 2,
             url: 'https://example.com/js/ep1013.m3u8',
             img: 'https://picsum.photos/seed/jsep1u3/400/300',
@@ -266,7 +267,7 @@ const mockSeriesDetail: SeriesResponse[] = [
         ],
       },
       {
-        episode_id: 102,
+        item_id: 102,
         type_media: 2,
         url: 'https://example.com/js/ep102.m3u8',
         img: 'https://picsum.photos/seed/jsep2/400/300',
@@ -276,7 +277,7 @@ const mockSeriesDetail: SeriesResponse[] = [
         units: [],
       },
       {
-        episode_id: 103,
+        item_id: 103,
         type_media: 2,
         url: 'https://example.com/js/ep103.m3u8',
         img: 'https://picsum.photos/seed/jsep3/400/300',
@@ -286,7 +287,7 @@ const mockSeriesDetail: SeriesResponse[] = [
         units: [],
       },
       {
-        episode_id: 104,
+        item_id: 104,
         type_media: 2,
         url: 'https://example.com/js/ep104.m3u8',
         img: 'https://picsum.photos/seed/jsep4/400/300',
@@ -295,7 +296,7 @@ const mockSeriesDetail: SeriesResponse[] = [
         progress: 1500,
         units: [
           {
-            episode_id: 1041,
+            item_id: 1041,
             type_media: 2,
             url: 'https://example.com/js/ep1041.m3u8',
             img: 'https://picsum.photos/seed/jsep4u1/400/300',
@@ -304,7 +305,7 @@ const mockSeriesDetail: SeriesResponse[] = [
             progress: 1500,
           },
           {
-            episode_id: 1042,
+            item_id: 1042,
             type_media: 2,
             url: 'https://example.com/js/ep1042.m3u8',
             img: 'https://picsum.photos/seed/jsep4u2/400/300',
@@ -344,12 +345,13 @@ export class ApiMockRepository implements IApiRepository {
     return true
   }
 
-  async login(credentials: LoginParams) {
-    console.log(credentials)
+  async login(_credentials: LoginParams) {
     await new Promise<void>((resolve) => setTimeout(() => resolve(), 500))
+    const token = 'mock-token'
+    await AsyncStorage.setItem('auth_token', token)
     return {
       result: 1,
-      token: 'mock-token',
+      token,
     }
   }
 
@@ -398,6 +400,15 @@ export class ApiMockRepository implements IApiRepository {
       })),
       histories: mockHistories,
     }
+  }
+
+  async getSeries(seriesId: number): Promise<SeriesResponse> {
+    await new Promise<void>((resolve) => setTimeout(() => resolve(), 300))
+    const series = mockSeriesDetail.find((s) => s.series_id === seriesId)
+    if (!series) {
+      throw new Error('Series not found')
+    }
+    return series
   }
 
   async getLibraries(params: LibrariesParams): Promise<LibrariesResponse> {
@@ -460,6 +471,14 @@ export class ApiMockRepository implements IApiRepository {
     }
   }
 
+  async updateFavorite(params: FavoriteParams): Promise<ApiResult> {
+    console.log('Update favorite:', params)
+    await new Promise<void>((resolve) => setTimeout(() => resolve(), 100))
+    return {
+      result: 1,
+    }
+  }
+
   async getHistories(): Promise<HistoriesResponse> {
     await new Promise<void>((resolve) => setTimeout(() => resolve(), 300))
     return {
@@ -482,22 +501,5 @@ export class ApiMockRepository implements IApiRepository {
     return {
       result: 1,
     }
-  }
-
-  async updateFavorite(params: FavoriteParams): Promise<ApiResult> {
-    console.log('Update favorite:', params)
-    await new Promise<void>((resolve) => setTimeout(() => resolve(), 100))
-    return {
-      result: 1,
-    }
-  }
-
-  async getSeries(seriesId: number): Promise<SeriesResponse> {
-    await new Promise<void>((resolve) => setTimeout(() => resolve(), 300))
-    const series = mockSeriesDetail.find((s) => s.series_id === seriesId)
-    if (!series) {
-      throw new Error('Series not found')
-    }
-    return series
   }
 }

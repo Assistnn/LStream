@@ -89,18 +89,15 @@ export interface PlaybackHistoryItem {
   date: string
 }
 
-export interface MediaContent {
-  episode_id: number
+export interface SeriesMedia {
+  item_id: number
   type_media: 0 | 1 | 2
   url: string
   img: string
   title: string
   duration: number
   progress: number
-}
-
-export interface SeriesEpisode extends MediaContent {
-  units: MediaContent[]
+  units?: SeriesMedia[]
 }
 
 /* =========================
@@ -131,7 +128,7 @@ export interface SeriesResponse extends ApiResult, SeriesSummaryDetail {
   type_media: 0 | 1 | 2
   url: string
   progress: number
-  episodes: SeriesEpisode[]
+  episodes: SeriesMedia[]
 }
 
 /* =========================

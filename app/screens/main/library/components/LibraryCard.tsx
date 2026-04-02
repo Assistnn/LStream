@@ -1,6 +1,6 @@
-import { Heart } from 'lucide-react-native'
 import { Image, Text, TouchableOpacity, View } from 'react-native'
 
+import { FavoriteButton } from '../../../../components/ui/FavoriteButton'
 import { MediaMenuButton } from '../../../../components/ui/MediaMenuButton'
 import { useTheme } from '../../../../hooks/ThemeContext'
 import type { LibraryItem } from '../../../../repositories/api/IApiRepository'
@@ -28,15 +28,16 @@ export const LibraryCard = ({ item, onPress }: { item: LibraryItem; onPress?: ()
         }}
       >
         <Image source={{ uri: item.img }} style={{ width: '100%', height: '100%' }} />
-        <TouchableOpacity
-          style={{
+        <FavoriteButton
+          seriesId={item.series_id}
+          itemId={0}
+          size={24}
+          buttonStyle={{
             position: 'absolute',
             top: spacing.sm,
             left: spacing.sm,
           }}
-        >
-          <Heart size={24} color='#FFFFFF' fill={item.is_favorite ? '#FFFFFF' : 'transparent'} />
-        </TouchableOpacity>
+        />
         {!isSingleEpisode && (
           <View
             style={{
@@ -61,6 +62,7 @@ export const LibraryCard = ({ item, onPress }: { item: LibraryItem; onPress?: ()
         )}
         {!isSingleEpisode && (
           <MediaMenuButton
+            seriesId={item.series_id}
             mediaId={item.series_id}
             mediaType='series'
             size={16}

@@ -1,4 +1,5 @@
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack'
+import { useState } from 'react'
 import { Dimensions, Image, ScrollView, Text, TouchableOpacity, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
@@ -9,6 +10,7 @@ import { SectionHeader } from '../../../components/ui/SectionHeader'
 import { ThemedRefreshControl } from '../../../components/ui/ThemedRefreshControl'
 import { useTheme } from '../../../hooks/ThemeContext'
 import { useGetHomeData } from '../../../usecases/useGetHomeData'
+import { useSettings } from '../../../usecases/useSettings'
 import { NewsCard } from './components/NewsCard'
 import { RecentCard } from './components/RecentCard'
 import { RecommendCard } from './components/RecommendCard'
@@ -25,8 +27,12 @@ export const HomeTabScreen = ({
   }>
 }) => {
   const insets = useSafeAreaInsets()
-  const { styles, colors, spacing } = useTheme()
+  const { styles, colors, spacing, isDark } = useTheme()
   const { data, loading, refetch } = useGetHomeData()
+  const settings = useSettings()
+  const headerImageUri = isDark ? settings?.header_dark : settings?.header_light
+  const headerImageSource = settings ? (headerImageUri ? { uri: headerImageUri } : serviceLogo) : undefined
+  const [logoWidth, setLogoWidth] = useState(160)
   return (
     <View style={[styles.screenContainer, { paddingTop: insets.top }]}>
       <ScrollView
@@ -35,7 +41,7 @@ export const HomeTabScreen = ({
         refreshControl={<ThemedRefreshControl refreshing={data !== null && loading} onRefresh={refetch} />}
       >
         {/* Header */}
-        <View style={{ paddingHorizontal: spacing.lg }}>
+        <View style={{ paddingHorizontal: spacing.lg, gap: spacing.xs }}>
           <View
             style={{
               flexDirection: 'row',
@@ -43,7 +49,17 @@ export const HomeTabScreen = ({
               justifyContent: 'space-between',
             }}
           >
-            <Image source={serviceLogo} style={{ height: 40, width: 160 }} resizeMode='contain' />
+            <Image
+              source={headerImageSource}
+              style={{ width: logoWidth, height: 40 }}
+              resizeMode='contain'
+              onLoad={(e) => {
+                const { width, height } = e.nativeEvent.source
+                if (width && height) {
+                  setLogoWidth(Math.min(160, (40 * width) / height))
+                }
+              }}
+            />
             <TouchableOpacity
               style={{
                 width: 40,
@@ -101,9 +117,9 @@ export const HomeTabScreen = ({
                       ),
                   ]}
                 >
-                  {data.recommends.map((series) => (
+                  {data.recommends.map((series, index) => (
                     <RecommendCard
-                      key={series.series_id}
+                      key={index}
                       series={series}
                       onPress={() => navigation.navigate('SeriesDetail', { seriesId: series.series_id })}
                     />
@@ -123,9 +139,9 @@ export const HomeTabScreen = ({
                     gap: spacing.md,
                   }}
                 >
-                  {data.recents.map((item) => (
+                  {data.recents.map((item, index) => (
                     <RecentCard
-                      key={item.series_id}
+                      key={index}
                       item={item}
                       onPress={() => navigation.navigate('SeriesDetail', { seriesId: item.series_id })}
                     />
@@ -150,8 +166,8 @@ export const HomeTabScreen = ({
                     gap: spacing.md,
                   }}
                 >
-                  {data.news.map((item) => (
-                    <NewsCard key={item.item_id} news={item} onPress={() => {}} />
+                  {data.news.map((item, index) => (
+                    <NewsCard key={index} news={item} onPress={() => {}} />
                   ))}
                 </ScrollView>
               </View>
@@ -200,7 +216,7 @@ export const HomeTabScreen = ({
                             <Text style={styles.titleLarge}>{dateLabel}</Text>
                           </View>
                           {items.map((item, index) => (
-                            <HistoryListItem key={item.series_id} item={item} isTop={index === 0} />
+                            <HistoryListItem key={index} item={item} isTop={index === 0} />
                           ))}
                         </View>
                       ))}

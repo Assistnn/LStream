@@ -1,14 +1,33 @@
 import { Play } from 'lucide-react-native'
 import { Image, Text, TouchableOpacity, View } from 'react-native'
 
+import { usePlayer } from '../../hooks/PlayerContext'
 import { useTheme } from '../../hooks/ThemeContext'
+import { ApiRepository } from '../../repositories/api/ApiRepository'
 import type { PlaybackHistoryItem } from '../../repositories/api/IApiRepository'
+
+const apiRepository = new ApiRepository()
 
 export const HistoryListItem = ({ item, isTop }: { item: PlaybackHistoryItem; isTop: boolean }) => {
   const { colors, spacing, styles, borderRadius } = useTheme()
+  const { playEpisode } = usePlayer()
 
   const playedDate = new Date(item.date)
   const dateStr = `${playedDate.getMonth() + 1}/${playedDate.getDate()}`
+
+  const handlePlay = async () => {
+    try {
+      const seriesData = await apiRepository.getSeries(item.series_id)
+      if (seriesData.result) {
+        const episode = seriesData.episodes.find((ep) => ep.item_id === item.item_id)
+        if (episode) {
+          playEpisode(seriesData, seriesData.episodes, episode)
+        }
+      }
+    } catch (error) {
+      console.error('Failed to play from history:', error)
+    }
+  }
 
   return (
     <TouchableOpacity
@@ -24,7 +43,7 @@ export const HistoryListItem = ({ item, isTop }: { item: PlaybackHistoryItem; is
         borderBottomColor: colors.border,
         backgroundColor: colors.card,
       }}
-      onPress={() => {}}
+      onPress={handlePlay}
     >
       <View style={{ position: 'relative' }}>
         <Image source={{ uri: item.img }} style={{ width: 64, height: 64, borderRadius: borderRadius.md }} />

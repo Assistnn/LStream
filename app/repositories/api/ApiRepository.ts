@@ -68,6 +68,10 @@ export class ApiRepository implements IApiRepository {
     return apiClient.get<FavoritesResponse>('/str_favorites')
   }
 
+  async updateFavorite(params: FavoriteParams) {
+    return apiClient.post<ApiResult>('/str_favorite', params)
+  }
+
   async getHistories() {
     return apiClient.get<HistoriesResponse>('/str_histories')
   }
@@ -78,9 +82,5 @@ export class ApiRepository implements IApiRepository {
 
   async updatePlayEnd(params: PlayEndParams) {
     return apiClient.post<ApiResult>('/str_play_end', params)
-  }
-
-  async updateFavorite(params: FavoriteParams) {
-    return apiClient.post<ApiResult>('/str_favorite', params)
   }
 }

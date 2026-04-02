@@ -66,7 +66,7 @@ export const FavoriteEpisodeListItem = ({ item, onPress }: { item: EpisodeSummar
 
       {/* Actions */}
       <View style={{ alignItems: 'center', justifyContent: 'center', gap: spacing.xs }}>
-        <MediaMenuButton mediaId={item.item_id} mediaType='episode' size={20} />
+        <MediaMenuButton seriesId={item.series_id} mediaId={item.item_id} mediaType='episode' size={20} />
       </View>
     </TouchableOpacity>
   )

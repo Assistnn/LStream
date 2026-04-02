@@ -8,7 +8,7 @@ import { LoadingSpinner } from '../../../components/ui/LoadingSpinner'
 import { PageTitle } from '../../../components/ui/PageTitle'
 import { ThemedRefreshControl } from '../../../components/ui/ThemedRefreshControl'
 import { useTheme } from '../../../hooks/ThemeContext'
-import { useGetFavorites } from '../../../usecases/useGetFavorites'
+import { refetchFavorites, useGetFavorites } from '../../../usecases/useGetFavorites'
 import { FavoriteEpisodeListItem } from './components/FavoriteEpisodeListItem'
 import { FavoriteSeriesListItem } from './components/FavoriteSeriesListItem'
 
@@ -16,18 +16,26 @@ export const FavoritesTabScreen = () => {
   const insets = useSafeAreaInsets()
   const { styles, colors, spacing, borderRadius } = useTheme()
   const [activeTab, setActiveTab] = useState<'series' | 'episode'>('series')
-  const { series, episodes, loading, refetch } = useGetFavorites()
+  const [refreshing, setRefreshing] = useState(false)
+  const favorites = useGetFavorites()
   return (
     <View style={[styles.screenContainer, { paddingTop: insets.top }]}>
       <ScrollView
         style={styles.scrollContainer}
         contentContainerStyle={styles.scrollContentContainer}
         refreshControl={
-          <ThemedRefreshControl refreshing={series !== null && episodes !== null && loading} onRefresh={refetch} />
+          <ThemedRefreshControl
+            refreshing={refreshing}
+            onRefresh={async () => {
+              setRefreshing(true)
+              await refetchFavorites()
+              setRefreshing(false)
+            }}
+          />
         }
       >
         <PageTitle icon={Heart} title='お気に入り' />
-        {loading && series === null && episodes === null ? (
+        {!favorites ? (
           <LoadingSpinner />
         ) : (
           <View>
@@ -53,7 +61,7 @@ export const FavoritesTabScreen = () => {
                 }}
                 onPress={() => setActiveTab('series')}
               >
-                <Text style={styles.textBold}>シリーズ ({series?.length ?? 0})</Text>
+                <Text style={styles.textBold}>シリーズ ({favorites.series?.length ?? 0})</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -66,13 +74,13 @@ export const FavoritesTabScreen = () => {
                 }}
                 onPress={() => setActiveTab('episode')}
               >
-                <Text style={styles.textBold}>エピソード ({episodes?.length ?? 0})</Text>
+                <Text style={styles.textBold}>エピソード ({favorites.episodes?.length ?? 0})</Text>
               </TouchableOpacity>
             </View>
 
             {/* Content */}
             {activeTab === 'series' ? (
-              !series || series.length === 0 ? (
+              !favorites.series || favorites.series.length === 0 ? (
                 <View style={{ padding: spacing.lg, marginTop: spacing.xl }}>
                   <EmptyState
                     icon={Heart}
@@ -83,7 +91,7 @@ export const FavoritesTabScreen = () => {
               ) : (
                 <FlatList
                   style={{ marginTop: spacing.xl }}
-                  data={series}
+                  data={favorites.series}
                   keyExtractor={(item) => item.series_id.toString()}
                   scrollEnabled={false}
                   renderItem={({ item }) => (
@@ -94,7 +102,7 @@ export const FavoritesTabScreen = () => {
                   )}
                 />
               )
-            ) : !episodes || episodes.length === 0 ? (
+            ) : !favorites.episodes || favorites.episodes.length === 0 ? (
               <View style={{ padding: spacing.lg, marginTop: spacing.xl }}>
                 <EmptyState
                   icon={Heart}
@@ -105,7 +113,7 @@ export const FavoritesTabScreen = () => {
             ) : (
               <FlatList
                 style={{ marginTop: spacing.xl }}
-                data={episodes}
+                data={favorites.episodes}
                 keyExtractor={(item) => `${item.series_id}-${item.item_id}`}
                 scrollEnabled={false}
                 renderItem={({ item }) => (

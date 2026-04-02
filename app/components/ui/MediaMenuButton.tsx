@@ -4,10 +4,13 @@ import type { ViewStyle } from 'react-native'
 import { Dimensions, Modal, Pressable, Text, TouchableOpacity, View } from 'react-native'
 
 import { useTheme } from '../../hooks/ThemeContext'
+import { isFavoriteEpisode } from '../../usecases/useGetFavorites'
+import { toggleFavorite } from '../../usecases/useUpdateFavorite'
 
 const MENU_WIDTH = 160
 
 export const MediaMenuButton = ({
+  seriesId,
   mediaId,
   mediaType = 'media',
   size = 16,
@@ -15,6 +18,7 @@ export const MediaMenuButton = ({
   buttonStyle,
   onPress,
 }: {
+  seriesId: number
   mediaId: number
   mediaType?: 'series' | 'episode' | 'unit' | 'media'
   size?: number
@@ -27,11 +31,16 @@ export const MediaMenuButton = ({
   const [menuStyle, setMenuStyle] = useState<ViewStyle>({})
   const anchorRef = useRef<View>(null)
 
+  const isFavorited = isFavoriteEpisode(seriesId, mediaType === 'series' ? 0 : mediaId)
+
   const menuItems = [
     { label: 'プレイリストに追加', onPress: () => console.log('Add to playlist:', mediaType, mediaId) },
     { label: '再生キューに追加', onPress: () => console.log('Add to queue:', mediaType, mediaId) },
     { label: 'ダウンロード', onPress: () => console.log('Download:', mediaType, mediaId) },
-    { label: 'お気に入りに追加', onPress: () => console.log('Add to favorites:', mediaType, mediaId) },
+    {
+      label: isFavorited ? 'お気に入りから削除' : 'お気に入りに追加',
+      onPress: () => (mediaType === 'series' ? toggleFavorite(seriesId, 0) : toggleFavorite(0, mediaId)),
+    },
   ]
 
   const showMenu = useCallback(() => {

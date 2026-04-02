@@ -11,6 +11,9 @@ importers:
       '@react-native-async-storage/async-storage':
         specifier: ^2.0.0
         version: 2.2.0(react-native@0.84.0(@babel/core@7.29.0)(@react-native-community/cli@20.1.0(typescript@5.9.3))(@react-native/metro-config@0.84.0(@babel/core@7.29.0))(@types/react@19.2.14)(react@19.2.3))
+      '@react-native-community/slider':
+        specifier: ^5.1.2
+        version: 5.1.2
       '@react-native/new-app-screen':
         specifier: 0.84.0
         version: 0.84.0(@types/react@19.2.14)(react-native@0.84.0(@babel/core@7.29.0)(@react-native-community/cli@20.1.0(typescript@5.9.3))(@react-native/metro-config@0.84.0(@babel/core@7.29.0))(@types/react@19.2.14)(react@19.2.3))(react@19.2.3)
@@ -35,6 +38,9 @@ importers:
       react-native-device-info:
         specifier: ^15.0.2
         version: 15.0.2(react-native@0.84.0(@babel/core@7.29.0)(@react-native-community/cli@20.1.0(typescript@5.9.3))(@react-native/metro-config@0.84.0(@babel/core@7.29.0))(@types/react@19.2.14)(react@19.2.3))
+      react-native-orientation-locker:
+        specifier: ^1.7.0
+        version: 1.7.0(react-native@0.84.0(@babel/core@7.29.0)(@react-native-community/cli@20.1.0(typescript@5.9.3))(@react-native/metro-config@0.84.0(@babel/core@7.29.0))(@types/react@19.2.14)(react@19.2.3))(react@19.2.3)
       react-native-safe-area-context:
         specifier: ^5.5.2
         version: 5.6.2(react-native@0.84.0(@babel/core@7.29.0)(@react-native-community/cli@20.1.0(typescript@5.9.3))(@react-native/metro-config@0.84.0(@babel/core@7.29.0))(@types/react@19.2.14)(react@19.2.3))(react@19.2.3)
@@ -44,6 +50,9 @@ importers:
       react-native-svg:
         specifier: ^15.15.3
         version: 15.15.3(react-native@0.84.0(@babel/core@7.29.0)(@react-native-community/cli@20.1.0(typescript@5.9.3))(@react-native/metro-config@0.84.0(@babel/core@7.29.0))(@types/react@19.2.14)(react@19.2.3))(react@19.2.3)
+      react-native-video:
+        specifier: ^6.19.1
+        version: 6.19.1(react-native@0.84.0(@babel/core@7.29.0)(@react-native-community/cli@20.1.0(typescript@5.9.3))(@react-native/metro-config@0.84.0(@babel/core@7.29.0))(@types/react@19.2.14)(react@19.2.3))(react@19.2.3)
     devDependencies:
       '@babel/core':
         specifier: ^7.25.2
@@ -993,6 +1002,9 @@ packages:
     resolution: {integrity: sha512-441WsVtRe4nGJ9OzA+QMU1+22lA6Q2hRWqqIMKD0wjEMLqcSfOZyu2UL9a/yRpL/dRpyUsU4n7AxqKfTKO/Csg==}
     engines: {node: '>=20.19.4'}
     hasBin: true
+
+  '@react-native-community/slider@5.1.2':
+    resolution: {integrity: sha512-UV/MjCyCtSjS5BQDrrGIMmCXm309xEG6XbR0Dj65kzTraJSVDxSjQS2uBUXgX+5SZUOCzCxzv3OufOZBdtQY4w==}
 
   '@react-native/assets-registry@0.84.0':
     resolution: {integrity: sha512-YiU9h1IN0pvvZsHbd03MaD7mE2q+ySaKMlE9tWK+3iiwtbEaMQOsMUuSJ1er2LU6ERMWfhfvCYgWpKRGOMeN8A==}
@@ -3141,6 +3153,16 @@ packages:
     peerDependencies:
       react-native: '*'
 
+  react-native-orientation-locker@1.7.0:
+    resolution: {integrity: sha512-2PhG4UyRJktb3KCTISStuu8/q+Q3q3oPesGg9DhdY0b6Cu/ZzxkCvkbJte2TPWRYkS0JpClimvqVaonulGvDrA==}
+    peerDependencies:
+      react: '>=16.13.1'
+      react-native: '>=0.63.2'
+      react-native-windows: '>=0.63.3'
+    peerDependenciesMeta:
+      react-native-windows:
+        optional: true
+
   react-native-safe-area-context@5.6.2:
     resolution: {integrity: sha512-4XGqMNj5qjUTYywJqpdWZ9IG8jgkS3h06sfVjfw5yZQZfWnRFXczi0GnYyFyCc2EBps/qFmoCH8fez//WumdVg==}
     peerDependencies:
@@ -3155,6 +3177,12 @@ packages:
 
   react-native-svg@15.15.3:
     resolution: {integrity: sha512-/k4KYwPBLGcx2f5d4FjE+vCScK7QOX14cl2lIASJ28u4slHHtIhL0SZKU7u9qmRBHxTCKPoPBtN6haT1NENJNA==}
+    peerDependencies:
+      react: '*'
+      react-native: '*'
+
+  react-native-video@6.19.1:
+    resolution: {integrity: sha512-Tbiyt0JMirVHc4XzGIANjs3SaNjFXQO2qe+buvY7xMJjlyCekkDjJqD9YtlaEloJD2PGWhoPytEXB6gVT7T6lw==}
     peerDependencies:
       react: '*'
       react-native: '*'
@@ -5042,6 +5070,8 @@ snapshots:
       - supports-color
       - typescript
       - utf-8-validate
+
+  '@react-native-community/slider@5.1.2': {}
 
   '@react-native/assets-registry@0.84.0': {}
 
@@ -7774,6 +7804,11 @@ snapshots:
     dependencies:
       react-native: 0.84.0(@babel/core@7.29.0)(@react-native-community/cli@20.1.0(typescript@5.9.3))(@react-native/metro-config@0.84.0(@babel/core@7.29.0))(@types/react@19.2.14)(react@19.2.3)
 
+  react-native-orientation-locker@1.7.0(react-native@0.84.0(@babel/core@7.29.0)(@react-native-community/cli@20.1.0(typescript@5.9.3))(@react-native/metro-config@0.84.0(@babel/core@7.29.0))(@types/react@19.2.14)(react@19.2.3))(react@19.2.3):
+    dependencies:
+      react: 19.2.3
+      react-native: 0.84.0(@babel/core@7.29.0)(@react-native-community/cli@20.1.0(typescript@5.9.3))(@react-native/metro-config@0.84.0(@babel/core@7.29.0))(@types/react@19.2.14)(react@19.2.3)
+
   react-native-safe-area-context@5.6.2(react-native@0.84.0(@babel/core@7.29.0)(@react-native-community/cli@20.1.0(typescript@5.9.3))(@react-native/metro-config@0.84.0(@babel/core@7.29.0))(@types/react@19.2.14)(react@19.2.3))(react@19.2.3):
     dependencies:
       react: 19.2.3
@@ -7793,6 +7828,11 @@ snapshots:
       react: 19.2.3
       react-native: 0.84.0(@babel/core@7.29.0)(@react-native-community/cli@20.1.0(typescript@5.9.3))(@react-native/metro-config@0.84.0(@babel/core@7.29.0))(@types/react@19.2.14)(react@19.2.3)
       warn-once: 0.1.1
+
+  react-native-video@6.19.1(react-native@0.84.0(@babel/core@7.29.0)(@react-native-community/cli@20.1.0(typescript@5.9.3))(@react-native/metro-config@0.84.0(@babel/core@7.29.0))(@types/react@19.2.14)(react@19.2.3))(react@19.2.3):
+    dependencies:
+      react: 19.2.3
+      react-native: 0.84.0(@babel/core@7.29.0)(@react-native-community/cli@20.1.0(typescript@5.9.3))(@react-native/metro-config@0.84.0(@babel/core@7.29.0))(@types/react@19.2.14)(react@19.2.3)
 
   react-native@0.84.0(@babel/core@7.29.0)(@react-native-community/cli@20.1.0(typescript@5.9.3))(@react-native/metro-config@0.84.0(@babel/core@7.29.0))(@types/react@19.2.14)(react@19.2.3):
     dependencies:

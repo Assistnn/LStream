@@ -1,5 +1,5 @@
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
-import { ChevronDown, ChevronUp, CircleDot, CirclePlay, Download, Heart, Play } from 'lucide-react-native'
+import { ChevronDown, ChevronUp, CircleDot, CirclePlay, Heart, Play } from 'lucide-react-native'
 import { useRef, useState } from 'react'
 import { Image, ScrollView, Text, TouchableOpacity, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -10,7 +10,9 @@ import { LoadingSpinner } from '../../../components/ui/LoadingSpinner'
 import { MediaMenuButton } from '../../../components/ui/MediaMenuButton'
 import { SeriesProgessBar } from '../../../components/ui/SeriesProgessBar'
 import { ThemedRefreshControl } from '../../../components/ui/ThemedRefreshControl'
+import { usePlayer } from '../../../hooks/PlayerContext'
 import { useTheme } from '../../../hooks/ThemeContext'
+import { isFavoriteEpisode } from '../../../usecases/useGetFavorites'
 import { useGetSeries } from '../../../usecases/useGetSeries'
 
 export const SeriesDetailScreen = ({
@@ -25,6 +27,7 @@ export const SeriesDetailScreen = ({
   const insets = useSafeAreaInsets()
   const { styles, colors, spacing, borderRadius } = useTheme()
   const { data, loading, refetch } = useGetSeries(seriesId)
+  const { playEpisode } = usePlayer()
 
   const [filterType, setFilterType] = useState<'all' | 'notStarted'>('all')
   const [sortOrder, setSortOrder] = useState<'default' | 'newest' | 'oldest'>('default')
@@ -49,7 +52,7 @@ export const SeriesDetailScreen = ({
   const filteredEpisodes =
     filterType === 'all'
       ? data.episodes
-      : data.episodes.filter((ep) => ep.progress === 0 || ep.units.some((unit) => unit.progress === 0))
+      : data.episodes.filter((ep) => ep.progress === 0 || (ep.units && ep.units.some((unit) => unit.progress === 0)))
 
   const sortedEpisodes =
     sortOrder === 'default'
@@ -92,6 +95,7 @@ export const SeriesDetailScreen = ({
                 </Text>
               </View>
               <MediaMenuButton
+                seriesId={data.series_id}
                 mediaId={data.series_id}
                 mediaType='series'
                 size={20}
@@ -108,24 +112,68 @@ export const SeriesDetailScreen = ({
           </View>
 
           <View style={{ paddingTop: spacing.lg, gap: spacing.sm }}>
-            {data.progress > 0 && data.num_comp < data.num_total ? (
-              <>
-                <Button variant='primary' icon={<Play size={20} />} fillIcon onPress={() => {}}>
-                  {`続きから再生 (Episode ${data.episodes[0]?.episode_id || 1})`}
+            {(() => {
+              const hasProgress = data.episodes.some(
+                (ep) => ep.progress > 0 || (ep.units && ep.units.some((unit) => unit.progress > 0)),
+              )
+              const inProgressEpisode = data.episodes.find((ep) => ep.progress > 0 && ep.progress < ep.duration)
+              const nextUnwatchedEpisode = data.episodes.find((ep) => ep.progress === 0)
+              const resumeEpisode = inProgressEpisode || nextUnwatchedEpisode || data.episodes[0]
+              const resumeEpisodeIndex = resumeEpisode
+                ? data.episodes.findIndex((ep) => ep.item_id === resumeEpisode.item_id)
+                : -1
+
+              return hasProgress && data.num_comp < data.num_total ? (
+                <>
+                  <Button
+                    variant='primary'
+                    icon={<Play size={20} />}
+                    fillIcon
+                    onPress={() => {
+                      if (resumeEpisode) {
+                        playEpisode(data, data.episodes, resumeEpisode)
+                      }
+                    }}
+                  >
+                    {`続きから再生 (Episode ${resumeEpisodeIndex + 1})`}
+                  </Button>
+                  <Button
+                    variant='secondary'
+                    icon={<CirclePlay size={20} />}
+                    onPress={() => {
+                      if (data.episodes[0]) {
+                        playEpisode(data, data.episodes, { ...data.episodes[0], progress: 0 })
+                      }
+                    }}
+                  >
+                    最初から再生
+                  </Button>
+                </>
+              ) : data.num_comp >= data.num_total ? (
+                <Button
+                  variant='primary'
+                  onPress={() => {
+                    if (data.episodes[0]) {
+                      playEpisode(data, data.episodes, { ...data.episodes[0], progress: 0 })
+                    }
+                  }}
+                >
+                  すべて完了！もう一度学習する
                 </Button>
-                <Button variant='secondary' icon={<CirclePlay size={20} />} onPress={() => {}}>
-                  最初から再生
+              ) : (
+                <Button
+                  variant='primary'
+                  icon={<Play size={20} />}
+                  onPress={() => {
+                    if (data.episodes[0]) {
+                      playEpisode(data, data.episodes, data.episodes[0])
+                    }
+                  }}
+                >
+                  最初から再生 (Episode 1)
                 </Button>
-              </>
-            ) : data.num_comp >= data.num_total ? (
-              <Button variant='primary' onPress={() => {}}>
-                すべて完了！もう一度学習する
-              </Button>
-            ) : (
-              <Button variant='primary' icon={<Play size={20} />} onPress={() => {}}>
-                最初から再生 (Episode 1)
-              </Button>
-            )}
+              )
+            })()}
           </View>
         </View>
 
@@ -212,11 +260,11 @@ export const SeriesDetailScreen = ({
 
         <View style={{ paddingTop: spacing.md }}>
           {sortedEpisodes.map((episode, index) => {
-            const hasUnits = episode.units.length > 0
-            const totalPlayCount = hasUnits ? episode.units.reduce((sum) => sum + 0, 0) : 0
-            const isExpanded = expandedEpisodes.has(episode.episode_id)
+            const hasUnits = episode.units && episode.units.length > 0
+            const totalPlayCount = hasUnits && episode.units ? episode.units.reduce((sum) => sum + 0, 0) : 0
+            const isExpanded = expandedEpisodes.has(episode.item_id)
             return (
-              <View key={episode.episode_id}>
+              <View key={index}>
                 <TouchableOpacity
                   style={{
                     paddingHorizontal: spacing.lg,
@@ -230,10 +278,10 @@ export const SeriesDetailScreen = ({
                     if (hasUnits) {
                       setExpandedEpisodes((prev) => {
                         const next = new Set(prev)
-                        if (next.has(episode.episode_id)) {
-                          next.delete(episode.episode_id)
+                        if (next.has(episode.item_id)) {
+                          next.delete(episode.item_id)
                         } else {
-                          next.add(episode.episode_id)
+                          next.add(episode.item_id)
                         }
                         return next
                       })
@@ -249,7 +297,7 @@ export const SeriesDetailScreen = ({
                         borderRadius: borderRadius.lg,
                       }}
                     />
-                    {index % 2 === 0 && (
+                    {isFavoriteEpisode(seriesId, episode.item_id) && (
                       <View
                         style={{
                           position: 'absolute',
@@ -287,7 +335,7 @@ export const SeriesDetailScreen = ({
                       </Text>
                     </View>
 
-                    {hasUnits && (
+                    {hasUnits && episode.units && (
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
                         <Text style={styles.bodyTiny}>{episode.units.length} Units</Text>
                         <Text style={[styles.bodyTiny, { color: colors.text }]}>
@@ -317,7 +365,6 @@ export const SeriesDetailScreen = ({
                         )}
                       </View>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}>
-                        {index % 2 === 0 && <Download size={16} color={colors.primary} />}
                         {hasUnits ? (
                           <View
                             style={{
@@ -334,17 +381,22 @@ export const SeriesDetailScreen = ({
                             )}
                           </View>
                         ) : (
-                          <MediaMenuButton mediaId={episode.episode_id} mediaType='episode' size={16} />
+                          <MediaMenuButton
+                            seriesId={data.series_id}
+                            mediaId={episode.item_id}
+                            mediaType='episode'
+                            size={16}
+                          />
                         )}
                       </View>
                     </View>
                   </View>
                 </TouchableOpacity>
 
-                {hasUnits && isExpanded && (
+                {hasUnits && isExpanded && episode.units && (
                   <View style={{ paddingLeft: spacing.lg, borderTopWidth: 1, borderTopColor: colors.border }}>
                     {episode.units.map((unit, unitIndex) => (
-                      <View key={unit.episode_id}>
+                      <View key={unit.item_id}>
                         <TouchableOpacity
                           style={{
                             flexDirection: 'row',
@@ -372,7 +424,12 @@ export const SeriesDetailScreen = ({
                           </View>
 
                           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingRight: 8 }}>
-                            <MediaMenuButton mediaId={unit.episode_id} mediaType='unit' size={16} />
+                            <MediaMenuButton
+                              seriesId={data.series_id}
+                              mediaId={unit.item_id}
+                              mediaType='unit'
+                              size={16}
+                            />
                           </View>
                         </TouchableOpacity>
                       </View>

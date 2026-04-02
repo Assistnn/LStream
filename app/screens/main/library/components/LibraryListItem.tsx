@@ -1,6 +1,7 @@
-import { Download, Heart } from 'lucide-react-native'
+import { Download } from 'lucide-react-native'
 import { Image, Text, TouchableOpacity, View } from 'react-native'
 
+import { FavoriteButton } from '../../../../components/ui/FavoriteButton'
 import { MediaMenuButton } from '../../../../components/ui/MediaMenuButton'
 import { useTheme } from '../../../../hooks/ThemeContext'
 import type { LibraryItem } from '../../../../repositories/api/IApiRepository'
@@ -111,10 +112,8 @@ export const LibraryListItem = ({ item, onPress }: { item: LibraryItem; onPress?
 
       {/* Actions */}
       <View style={{ alignItems: 'center', justifyContent: 'center', gap: spacing.xs }}>
-        <TouchableOpacity style={{ padding: spacing.xs }}>
-          <Heart size={24} color={colors.text} fill={item.is_favorite ? colors.text : 'transparent'} />
-        </TouchableOpacity>
-        <MediaMenuButton mediaId={item.series_id} mediaType='series' size={20} />
+        <FavoriteButton seriesId={item.series_id} itemId={0} size={24} buttonStyle={{ padding: spacing.xs }} />
+        <MediaMenuButton seriesId={item.series_id} mediaId={item.series_id} mediaType='series' size={20} />
       </View>
     </TouchableOpacity>
   )

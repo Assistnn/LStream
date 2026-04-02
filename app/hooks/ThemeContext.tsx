@@ -177,6 +177,7 @@ export const lightStyles = StyleSheet.create({
   scrollContentContainer: {
     flexDirection: 'column',
     gap: spacing.xl,
+    paddingBottom: spacing.xl,
   },
 
   // - Controls

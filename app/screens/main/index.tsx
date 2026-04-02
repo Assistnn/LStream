@@ -1,8 +1,17 @@
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
 import { Clock, Heart, Home, Library, ListMusic, Settings } from 'lucide-react-native'
+import { useEffect, useState } from 'react'
+import { View } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
+import { EpisodePlayer } from '../../components/player/EpisodePlayer'
+import { FullscreenPlayer } from '../../components/player/FullscreenPlayer'
+import { MiniPlayer } from '../../components/player/MiniPlayer'
+import { usePlayer } from '../../hooks/PlayerContext'
 import { useTheme } from '../../hooks/ThemeContext'
+import { useInitFavorites } from '../../usecases/useGetFavorites'
+import { refetchSettings, useInitSettings } from '../../usecases/useSettings'
 import { SeriesDetailScreen } from '../common/series/detail'
 import { FavoritesTabScreen } from './favorites'
 import { HistoryTabScreen } from './history'
@@ -113,64 +122,140 @@ const SettingsStackScreen = () => (
 
 export const MainScreen = () => {
   const { styles, colors } = useTheme()
+  const { currentContent, setPlayerView } = usePlayer()
+  const [showPlayerModal, setShowPlayerModal] = useState(false)
+  const [showEpisodeList, setShowEpisodeList] = useState(false)
+  const [showFullscreenModal, setShowFullscreenModal] = useState(false)
+  const insets = useSafeAreaInsets()
+
+  useInitSettings()
+  useInitFavorites()
+
+  useEffect(() => {
+    if (currentContent) {
+      setShowPlayerModal(true)
+      setPlayerView('episode')
+    }
+  }, [currentContent, setPlayerView])
+
   return (
-    <Tab.Navigator
-      screenOptions={{
-        headerShown: false,
-        tabBarStyle: styles.tabBar,
-        tabBarActiveTintColor: colors.tabBarActive,
-        tabBarInactiveTintColor: colors.tabBarInactive,
-        tabBarLabelStyle: styles.tabLabel,
-      }}
-    >
-      <Tab.Screen
-        name='Home'
-        options={{
-          title: 'ホーム',
-          tabBarIcon: ({ color }) => <Home color={color} size={20} />,
+    <View style={{ flex: 1 }}>
+      <Tab.Navigator
+        screenOptions={{
+          headerShown: false,
+          tabBarStyle: styles.tabBar,
+          tabBarActiveTintColor: colors.tabBarActive,
+          tabBarInactiveTintColor: colors.tabBarInactive,
+          tabBarLabelStyle: styles.tabLabel,
+          sceneStyle: {
+            paddingBottom: currentContent ? 56 : 0,
+          },
         }}
-        component={HomeStackScreen}
-      />
-      <Tab.Screen
-        name='Library'
-        options={{
-          title: 'ライブラリ',
-          tabBarIcon: ({ color }) => <Library color={color} size={20} />,
+        screenListeners={{
+          tabPress: refetchSettings,
         }}
-        component={LibraryStackScreen}
-      />
-      <Tab.Screen
-        name='Favorites'
-        options={{
-          title: 'お気に入り',
-          tabBarIcon: ({ color }) => <Heart color={color} size={20} />,
+      >
+        <Tab.Screen
+          name='Home'
+          options={{
+            title: 'ホーム',
+            tabBarIcon: ({ color }) => <Home color={color} size={20} />,
+          }}
+          component={HomeStackScreen}
+        />
+        <Tab.Screen
+          name='Library'
+          options={{
+            title: 'ライブラリ',
+            tabBarIcon: ({ color }) => <Library color={color} size={20} />,
+          }}
+          component={LibraryStackScreen}
+        />
+        <Tab.Screen
+          name='Favorites'
+          options={{
+            title: 'お気に入り',
+            tabBarIcon: ({ color }) => <Heart color={color} size={20} />,
+          }}
+          component={FavoritesStackScreen}
+        />
+        <Tab.Screen
+          name='Playlist'
+          options={{
+            title: 'プレイリスト',
+            tabBarIcon: ({ color }) => <ListMusic color={color} size={20} />,
+          }}
+          component={PlaylistStackScreen}
+        />
+        <Tab.Screen
+          name='History'
+          options={{
+            title: '履歴',
+            tabBarIcon: ({ color }) => <Clock color={color} size={20} />,
+          }}
+          component={HistoryStackScreen}
+        />
+        <Tab.Screen
+          name='Settings'
+          options={{
+            title: '設定',
+            tabBarIcon: ({ color }) => <Settings color={color} size={20} />,
+          }}
+          component={SettingsStackScreen}
+        />
+      </Tab.Navigator>
+
+      {currentContent && (
+        <View
+          style={{
+            position: 'absolute',
+            bottom: 49 + insets.bottom,
+            left: 0,
+            right: 0,
+          }}
+        >
+          <MiniPlayer
+            onTap={() => {
+              setShowPlayerModal(true)
+              setShowEpisodeList(false)
+              setPlayerView('episode')
+            }}
+            onListTap={() => {
+              setShowPlayerModal(true)
+              setShowEpisodeList(true)
+              setPlayerView('episode')
+            }}
+          />
+        </View>
+      )}
+
+      <EpisodePlayer
+        visible={showPlayerModal}
+        showEpisodeList={showEpisodeList}
+        onClose={() => {
+          setShowPlayerModal(false)
+          setShowEpisodeList(false)
+          setPlayerView('mini')
         }}
-        component={FavoritesStackScreen}
-      />
-      <Tab.Screen
-        name='Playlist'
-        options={{
-          title: 'プレイリスト',
-          tabBarIcon: ({ color }) => <ListMusic color={color} size={20} />,
+        onOpenFullscreen={() => {
+          setShowPlayerModal(false)
+          setTimeout(() => {
+            setShowFullscreenModal(true)
+            setPlayerView('fullscreen')
+          }, 300)
         }}
-        component={PlaylistStackScreen}
       />
-      <Tab.Screen
-        name='History'
-        options={{
-          title: '履歴',
-          tabBarIcon: ({ color }) => <Clock color={color} size={20} />,
+
+      <FullscreenPlayer
+        visible={showFullscreenModal}
+        onClose={() => {
+          setShowFullscreenModal(false)
+          setTimeout(() => {
+            setShowPlayerModal(true)
+            setPlayerView('episode')
+          }, 300)
         }}
-        component={HistoryStackScreen}
       />
-      <Tab.Screen
-        name='Settings'
-        options={{
-          title: '設定',
-          tabBarIcon: ({ color }) => <Settings color={color} size={20} />,
-        }}
-        component={SettingsStackScreen}
-      />
-    </Tab.Navigator>
+    </View>
   )
 }

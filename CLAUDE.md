@@ -40,6 +40,9 @@
   - ❌ NG: `export async function uploadDocument(formData: FormData) { ... }`
   - ✅ OK: `export const uploadDocument = async (formData: FormData) => { ... }`
 - **コメント**: ただやっていることの説明をするだけのコメントはコードに残さない
+- **一度しか使わない関数はインライン化**: 一度しか呼ばれない関数は別途定義せず、使用箇所にインラインで記述する
+  - ❌ NG: `const getTimerLabel = () => { if (timer === null) return 'し'; ... }` を定義して一箇所でしか使わない
+  - ✅ OK: `{timer === null ? 'し' : timer < 60 ? `${timer}分` : `${timer / 60}時間`}` と直接記述する
 
 ### ユーティリティスクリプト作成時のルール
 
@@ -87,3 +90,70 @@
 ---
 
 _プロジェクト固有の実装・設計の注意点を追加する場合は、このファイルに記載してください。_
+
+## 🎵 プロジェクト固有の設計パターン
+
+### React Native プレイヤーコンポーネントの設計
+
+- **UIとロジックの分離**: プレイヤー関連のコンポーネント（MiniPlayer、EpisodePlayer、FullscreenPlayer）は純粋なUI表示のみを担当する。実際の再生ロジックは**すべてPlayerContextに集約**する
+- **バックグラウンド再生の実装**:
+  - `react-native-video`の`Video`コンポーネントは**PlayerContextのProvider内**に非表示で配置する
+  - 非表示にする方法: `<View style={{ position: 'absolute', width: 0, height: 0, opacity: 0 }}>`
+  - 必須設定: `playInBackground={true}`, `playWhenInactive={true}`, `ignoreSilentSwitch='ignore'`
+- **PlayerContextの責務**:
+  - `videoRef`の管理
+  - 再生状態の管理（idle、loading、playing、paused、ended、error）
+  - 再生制御メソッドの提供（play、pause、seek、skipForward、skipBackward等）
+  - 再生イベントハンドラの実装（handleProgress、handleLoad、handleEnd）
+  - これらのメソッド内で`videoRef.current?.seek()`等を呼び出す
+- **UIコンポーネントの責務**:
+  - `usePlayer()`で状態と制御メソッドを取得
+  - 現在の再生状態を表示するだけ
+  - ユーザー操作を受け取り、PlayerContextのメソッドを呼び出すだけ
+  - **絶対に`videoRef`や`Video`コンポーネントを持たない**
+- **トグルボタンの実装**: トグル機能を実装する際、アイコン自体は変更せず、状態だけを切り替える（例: 常に`List`アイコンのままでリストの表示/非表示をトグル）
+
+### React Native固有のスタイリングルール
+
+- **`StyleSheet.create`の使用禁止**: `StyleSheet.create`を使わず、インラインスタイルで記述する
+  - ❌ NG: `const styles = StyleSheet.create({ container: { flex: 1 } })`
+  - ✅ OK: `<View style={{ flex: 1 }}>` と直接記述する
+- **コンポーネントの位置決定**: コンポーネントは自身の位置を決定せず、親コンポーネント側で配置を制御する
+  - ❌ NG: コンポーネント内で`position: 'absolute'`, `bottom`, `left`などを指定
+  - ✅ OK: 親コンポーネントで`View`にラップして位置指定
+- **ThemeContextのスタイルを使用**: `Text`コンポーネントでは、インラインで`fontSize`や`fontWeight`を指定せず、ThemeContextで事前定義されたスタイルを使用する
+  - ❌ NG: `<Text style={{ fontSize: 14, fontWeight: '600' }}>テキスト</Text>`
+  - ✅ OK: `<Text style={styles.bodySmall}>テキスト</Text>`
+  - 利用可能なスタイル: `styles.textXl`, `styles.titleLarge`, `styles.titleMedium`, `styles.bodyText`, `styles.bodySmall`, `styles.bodyTiny` など
+  - **ただし、ThemeContextに勝手にスタイルを追加しない**: 既存のスタイルをベースに、必要なプロパティだけを配列でマージする
+- **追加のスタイルが必要な場合**: 配列でマージする
+  - ✅ OK: `<Text style={[styles.bodySmall, { textAlign: 'center' }]}>テキスト</Text>`
+  - ✅ OK: `<Text style={[styles.bodyTiny, { fontSize: 9, letterSpacing: 0.5 }]}>ラベル</Text>`
+- **余白の指定**: 子要素に`margin`を指定せず、親要素の`gap`を使用する
+  - ❌ NG: `<Text style={{ marginTop: 8 }}>テキスト</Text>`
+  - ✅ OK: `<View style={{ gap: 8 }}><Text>テキスト1</Text><Text>テキスト2</Text></View>`
+  - **`marginTop`、`marginBottom`、`paddingTop`、`paddingBottom`は使用禁止**: 必ず親要素の`gap`で調整する
+- **指定されていない部分は変更しない**: ユーザーから明示的に指示された部分のみを修正し、他の部分のレイアウトやスタイルは変更しない
+  - 例: シークバーの余白調整を依頼された場合、エピソード情報の余白は変更しない
+- **Textのネスト**: 避ける。複数のテキストスタイルが必要な場合は、別々のTextコンポーネントとして記述する
+  - ❌ NG: `<Text style={styles.bodyText}><Text style={styles.bodySmall}>Ep.1</Text>タイトル</Text>`
+  - ✅ OK: `<Text style={styles.bodySmall}>Ep.1</Text><Text style={styles.bodyText}>タイトル</Text>`
+
+### コンポーネント設計
+
+- **共通コンポーネント化**: 同じUIパターンが複数箇所で使われている場合、共通コンポーネントとして切り出す
+  - 例: お気に入りボタン → `FavoriteButton`コンポーネント
+  - propsの型定義は1回しか使わない場合、インラインで定義する
+
+### Figmaデザインの実装
+
+- **Figmaに書いてあることは実装する**: Figmaのコードに記載されているプロパティ（例: `textTransform: 'uppercase'`）は、効果がなさそうでも実装する
+- **後で不要と判断されたら削除**: 実装後に不要と判断された場合は、その時点で削除すればよい
+- **デザインに忠実に**: 色、グラデーション、レイアウトなどはFigmaデザイン通りに実装する
+- **Figmaのコードを正確に参照する**: 
+  - 余白（margin/padding）、高さ（height）、配置（justifyContent）などはFigmaのコード通りに実装する
+  - 例: Figmaで`h-[100px] flex flex-col justify-center`なら、React Nativeでも`height: 100, justifyContent: 'center'`を使う
+- **textStyleは近しいもので良い**: Figmaの文字サイズと完全一致させる必要はなく、ThemeContextで定義された近しいスタイルを使う
+  - 例: Figmaで`text-base`（16px）なら`styles.bodyText`（14px）でも許容される
+- **Figmaと異なる部分は明示的に指示される**: ユーザーから「ここは違って良い」と明示的に言われない限り、Figma通りに実装する
+  - 例: 「次のエピソードとセカンダリコントロールの間のmarginが空いていい」と指示された場合のみ、その部分を変更する

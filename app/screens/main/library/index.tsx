@@ -7,7 +7,7 @@ import {
   Search,
   SlidersHorizontal,
 } from 'lucide-react-native'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
@@ -17,6 +17,7 @@ import { PageTitle } from '../../../components/ui/PageTitle'
 import { ThemedRefreshControl } from '../../../components/ui/ThemedRefreshControl'
 import { useTheme } from '../../../hooks/ThemeContext'
 import { useGetLibrary } from '../../../usecases/useGetLibrary'
+import { useSettings } from '../../../usecases/useSettings'
 import { LibraryCard } from './components/LibraryCard'
 import { LibraryListItem } from './components/LibraryListItem'
 import { SearchBar } from './components/SearchBar'
@@ -28,15 +29,6 @@ const TYPE_MAP = {
   お気に入り: 4,
 } as const
 
-const CATEGORY_MAP = {
-  すべて: undefined,
-  履歴: 1,
-  英語: 2,
-  ビジネス: 3,
-  自己肯定感: 4,
-  セールス練習: 5,
-} as const
-
 const SORT_MAP = {
   登録順: 1,
   再生数順: 2,
@@ -46,6 +38,7 @@ const SORT_MAP = {
 export const LibraryTabScreen = () => {
   const insets = useSafeAreaInsets()
   const { styles, colors, spacing, borderRadius, typography } = useTheme()
+  const settings = useSettings()
 
   const [showSearch, setShowSearch] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
@@ -58,15 +51,35 @@ export const LibraryTabScreen = () => {
   const [sortAsc, setSortAsc] = useState(false)
   const [isManualRefreshing, setIsManualRefreshing] = useState(false)
 
+  const categoryMap = useMemo(
+    () =>
+      (settings?.categories ?? []).reduce<Record<string, number>>((acc, category) => {
+        acc[category.name] = category.category_id
+        return acc
+      }, {}),
+    [settings],
+  )
+
+  const categoryFilters = useMemo(
+    () => ['すべて', ...(settings?.categories ?? []).map((category) => category.name)],
+    [settings],
+  )
+
+  useEffect(() => {
+    if (!categoryFilters.includes(selectedCategory)) {
+      setSelectedCategory('すべて')
+    }
+  }, [categoryFilters, selectedCategory])
+
   const params = useMemo(
     () => ({
       type: TYPE_MAP[selectedType as keyof typeof TYPE_MAP],
       order: SORT_MAP[sortOption as keyof typeof SORT_MAP],
       asc: sortAsc ? 1 : 0,
-      category: CATEGORY_MAP[selectedCategory as keyof typeof CATEGORY_MAP],
+      category: selectedCategory === 'すべて' ? undefined : categoryMap[selectedCategory],
       keyword: searchQuery || undefined,
     }),
-    [selectedType, selectedCategory, sortOption, sortAsc, searchQuery],
+    [selectedType, selectedCategory, sortOption, sortAsc, searchQuery, categoryMap],
   )
 
   const { data, loading, refetch } = useGetLibrary(params)
@@ -78,8 +91,6 @@ export const LibraryTabScreen = () => {
   }
 
   const typeFilters = ['すべて', '音声', '動画', 'お気に入り']
-  const categoryFilters = ['すべて', '履歴', '英語', 'ビジネス', '自己肯定感', 'セールス練習']
-
   const sortMenuItems = [
     {
       label: '登録順',

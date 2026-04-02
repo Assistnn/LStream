@@ -10,7 +10,7 @@ import { LoadingSpinner } from '../../../components/ui/LoadingSpinner'
 import { PageTitle } from '../../../components/ui/PageTitle'
 import { ThemedRefreshControl } from '../../../components/ui/ThemedRefreshControl'
 import { useTheme } from '../../../hooks/ThemeContext'
-import { useGetFavorites } from '../../../usecases/useGetFavorites'
+import { refetchFavorites, useGetFavorites } from '../../../usecases/useGetFavorites'
 import { useGetHistory } from '../../../usecases/useGetHistory'
 
 export const HistoryTabScreen = () => {
@@ -18,10 +18,18 @@ export const HistoryTabScreen = () => {
   const { styles, colors, spacing, borderRadius } = useTheme()
   const [activeTab, setActiveTab] = useState<'history' | 'download'>('history')
   const { data: history, loading: historyLoading, refetch: refetchHistory } = useGetHistory()
-  const { episodes, loading: episodesLoading, refetch: refetchEpisodes } = useGetFavorites()
+  const favorites = useGetFavorites()
+  const [refreshing, setRefreshing] = useState(false)
 
-  const loading = activeTab === 'history' ? historyLoading : episodesLoading
-  const refetch = activeTab === 'history' ? refetchHistory : refetchEpisodes
+  const handleRefetch = async () => {
+    setRefreshing(true)
+    if (activeTab === 'history') {
+      await refetchHistory()
+    } else {
+      await refetchFavorites()
+    }
+    setRefreshing(false)
+  }
 
   const groupHistoryByDate = (items: NonNullable<typeof history>) => {
     const today = new Date()
@@ -57,15 +65,7 @@ export const HistoryTabScreen = () => {
       <ScrollView
         style={styles.scrollContainer}
         contentContainerStyle={styles.scrollContentContainer}
-        refreshControl={
-          <ThemedRefreshControl
-            refreshing={
-              (activeTab === 'history' && history !== null && historyLoading) ||
-              (activeTab === 'download' && episodes !== null && episodesLoading)
-            }
-            onRefresh={refetch}
-          />
-        }
+        refreshControl={<ThemedRefreshControl refreshing={refreshing} onRefresh={handleRefetch} />}
       >
         <PageTitle icon={Clock} title='履歴' />
         {/* Tab Buttons */}
@@ -107,12 +107,16 @@ export const HistoryTabScreen = () => {
         </View>
 
         {/* Content */}
-        {loading &&
-        ((activeTab === 'history' && history === null) || (activeTab === 'download' && episodes === null)) ? (
+        {(activeTab === 'history' && (historyLoading || history === null)) ||
+        (activeTab === 'download' && !favorites) ? (
           <LoadingSpinner />
         ) : activeTab === 'history' ? (
           !history || history.length === 0 ? (
-            <EmptyState icon={Clock} title='再生履歴がありません' description='コンテンツを再生すると履歴が表示されます' />
+            <EmptyState
+              icon={Clock}
+              title='再生履歴がありません'
+              description='コンテンツを再生すると履歴が表示されます'
+            />
           ) : (
             <View>
               {Object.entries(groupHistoryByDate(history)).map(([dateLabel, items]) => (
@@ -137,11 +141,15 @@ export const HistoryTabScreen = () => {
               ))}
             </View>
           )
-        ) : !episodes || episodes.length === 0 ? (
-          <EmptyState icon={Download} title='ダウンロードしたエピソードがありません' description='エピソードをダウンロードしてみましょう' />
+        ) : !favorites || !favorites.episodes || favorites.episodes.length === 0 ? (
+          <EmptyState
+            icon={Download}
+            title='ダウンロードしたエピソードがありません'
+            description='エピソードをダウンロードしてみましょう'
+          />
         ) : (
           <FlatList
-            data={episodes}
+            data={favorites.episodes}
             keyExtractor={(item) => `${item.series_id}-${item.item_id}`}
             scrollEnabled={false}
             renderItem={({ item }) => (

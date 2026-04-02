@@ -109,7 +109,7 @@ export const FavoriteSeriesListItem = ({ item, onPress }: { item: FavoriteSeries
 
       {/* Actions */}
       <View style={{ alignItems: 'center', justifyContent: 'center', gap: spacing.xs }}>
-        <MediaMenuButton mediaId={item.series_id} mediaType='series' size={20} />
+        <MediaMenuButton seriesId={item.series_id} mediaId={item.series_id} mediaType='series' size={20} />
       </View>
     </TouchableOpacity>
   )

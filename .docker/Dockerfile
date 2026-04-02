@@ -20,6 +20,9 @@ RUN npm install -g npm-check-updates
 RUN curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash \
   && apt-get install -y git-lfs \
   && git lfs install
+# Claude Code
+RUN curl -fsSL https://claude.ai/install.sh | bash
+ENV PATH="/root/.local/bin:${PATH}"
 # Docker
 RUN apt-get install -y ca-certificates gnupg lsb-release \
   && mkdir -m 0755 -p /etc/apt/keyrings \
