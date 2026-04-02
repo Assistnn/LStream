@@ -6,7 +6,6 @@ import { View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { EpisodePlayer } from '../../components/player/EpisodePlayer'
-import { FullscreenPlayer } from '../../components/player/FullscreenPlayer'
 import { MiniPlayer } from '../../components/player/MiniPlayer'
 import { usePlayer } from '../../hooks/PlayerContext'
 import { useTheme } from '../../hooks/ThemeContext'
@@ -125,7 +124,6 @@ export const MainScreen = () => {
   const { currentContent, setPlayerView } = usePlayer()
   const [showPlayerModal, setShowPlayerModal] = useState(false)
   const [showEpisodeList, setShowEpisodeList] = useState(false)
-  const [showFullscreenModal, setShowFullscreenModal] = useState(false)
   const insets = useSafeAreaInsets()
 
   useInitSettings()
@@ -236,24 +234,6 @@ export const MainScreen = () => {
           setShowPlayerModal(false)
           setShowEpisodeList(false)
           setPlayerView('mini')
-        }}
-        onOpenFullscreen={() => {
-          setShowPlayerModal(false)
-          setTimeout(() => {
-            setShowFullscreenModal(true)
-            setPlayerView('fullscreen')
-          }, 300)
-        }}
-      />
-
-      <FullscreenPlayer
-        visible={showFullscreenModal}
-        onClose={() => {
-          setShowFullscreenModal(false)
-          setTimeout(() => {
-            setShowPlayerModal(true)
-            setPlayerView('episode')
-          }, 300)
         }}
       />
     </View>
