@@ -181,7 +181,7 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
     if (loopMode === 'all' && currentContent) {
       const { episodes, episode, series } = currentContent
       const currentIndex = episodes.findIndex((ep) => ep.item_id === episode.item_id)
-      if (currentIndex < episodes.length - 1) {
+      if (currentIndex < episodes.length - 1 || isShuffleOn) {
         playNextEpisodeInternal()
       } else {
         switchContent({ series, episodes, episode: episodes[0] })
