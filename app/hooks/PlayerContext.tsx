@@ -119,32 +119,35 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
     setPendingSeek(false)
   }
 
+  const isSwitchingRef = useRef(false)
+
   const handleLoad = (data: OnLoadData) => {
     setDuration(data.duration)
+    isSwitchingRef.current = false
     if (isInitialLoadRef.current) {
       isInitialLoadRef.current = false
-      const progress = currentContent?.chapter?.progress || currentContent?.episode.progress || 0
-      if (progress > 0) {
-        setPendingSeek(true)
-        videoRef.current?.seek(progress)
-        if (seekTimeoutRef.current) clearTimeout(seekTimeoutRef.current)
-        seekTimeoutRef.current = setTimeout(() => setPendingSeek(false), 500)
-      }
+      currentTimeRef.current = 0
+      setCurrentTime(0)
+      setPendingSeek(false)
     } else if (currentTimeRef.current > 0) {
       setPendingSeek(true)
       videoRef.current?.seek(currentTimeRef.current)
       if (seekTimeoutRef.current) clearTimeout(seekTimeoutRef.current)
       seekTimeoutRef.current = setTimeout(() => setPendingSeek(false), 500)
+    } else {
+      setPendingSeek(false)
     }
     setPlaybackState('playing')
   }
 
   const switchContent = (content: CurrentContent) => {
+    isSwitchingRef.current = true
     isInitialLoadRef.current = true
     currentTimeRef.current = 0
+    setPendingSeek(true)
     setCurrentContent(content)
     setPlaybackState('loading')
-    setCurrentTime(content.chapter?.progress || content.episode.progress || 0)
+    setCurrentTime(0)
     setDuration(content.chapter?.duration || content.episode.duration || 0)
     setPlaybackRate(1.0)
   }
@@ -167,6 +170,7 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
   }
 
   const handleEnd = () => {
+    if (isSwitchingRef.current) return
     if (loopMode === 'single') {
       videoRef.current?.seek(0)
       setCurrentTime(0)
