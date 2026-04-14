@@ -236,6 +236,7 @@ const mockSeriesDetail: SeriesResponse[] = [
         title: 'JavaScript入門',
         duration: 3600,
         progress: 3600,
+        parentTitle: 'JavaScript完全マスター',
         units: [
           {
             item_id: 1011,
@@ -245,6 +246,7 @@ const mockSeriesDetail: SeriesResponse[] = [
             title: '変数と型',
             duration: 1200,
             progress: 1200,
+            parentTitle: 'JavaScript入門',
           },
           {
             item_id: 1012,
@@ -254,6 +256,7 @@ const mockSeriesDetail: SeriesResponse[] = [
             title: '関数とスコープ',
             duration: 1200,
             progress: 1200,
+            parentTitle: 'JavaScript入門',
           },
           {
             item_id: 1013,
@@ -263,6 +266,7 @@ const mockSeriesDetail: SeriesResponse[] = [
             title: '制御構文',
             duration: 1200,
             progress: 1200,
+            parentTitle: 'JavaScript入門',
           },
         ],
       },
@@ -274,6 +278,7 @@ const mockSeriesDetail: SeriesResponse[] = [
         title: 'オブジェクト指向プログラミング',
         duration: 2400,
         progress: 0,
+        parentTitle: 'JavaScript完全マスター',
         units: [],
       },
       {
@@ -284,6 +289,7 @@ const mockSeriesDetail: SeriesResponse[] = [
         title: '非同期処理とPromise',
         duration: 2400,
         progress: 0,
+        parentTitle: 'JavaScript完全マスター',
         units: [],
       },
       {
@@ -294,6 +300,7 @@ const mockSeriesDetail: SeriesResponse[] = [
         title: 'モダンJavaScript',
         duration: 3000,
         progress: 1500,
+        parentTitle: 'JavaScript完全マスター',
         units: [
           {
             item_id: 1041,
@@ -303,6 +310,7 @@ const mockSeriesDetail: SeriesResponse[] = [
             title: 'ES6+の新機能',
             duration: 1500,
             progress: 1500,
+            parentTitle: 'モダンJavaScript',
           },
           {
             item_id: 1042,
@@ -312,6 +320,7 @@ const mockSeriesDetail: SeriesResponse[] = [
             title: 'モジュールシステム',
             duration: 1500,
             progress: 0,
+            parentTitle: 'モダンJavaScript',
           },
         ],
       },
@@ -408,6 +417,11 @@ export class ApiMockRepository implements IApiRepository {
     if (!series) {
       throw new Error('Series not found')
     }
+    series.episodes = series.episodes.map((ep) => ({
+      ...ep,
+      parentTitle: series.title,
+      units: ep.units?.map((u) => ({ ...u, parentTitle: ep.title })),
+    }))
     return series
   }
 

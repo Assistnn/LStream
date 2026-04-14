@@ -10,7 +10,7 @@ const apiRepository = new ApiRepository()
 
 export const HistoryListItem = ({ item, isTop }: { item: PlaybackHistoryItem; isTop: boolean }) => {
   const { colors, spacing, styles, borderRadius } = useTheme()
-  const { playEpisode } = usePlayer()
+  const { navigation: { playEpisode } } = usePlayer()
 
   const playedDate = new Date(item.date)
   const dateStr = `${playedDate.getMonth() + 1}/${playedDate.getDate()}`
@@ -19,10 +19,7 @@ export const HistoryListItem = ({ item, isTop }: { item: PlaybackHistoryItem; is
     try {
       const seriesData = await apiRepository.getSeries(item.series_id)
       if (seriesData.result) {
-        const episode = seriesData.episodes.find((ep) => ep.item_id === item.item_id)
-        if (episode) {
-          playEpisode(seriesData, seriesData.episodes, episode)
-        }
+        playEpisode(seriesData, item.item_id)
       }
     } catch (error) {
       console.error('Failed to play from history:', error)

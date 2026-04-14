@@ -27,7 +27,7 @@ export const SeriesDetailScreen = ({
   const insets = useSafeAreaInsets()
   const { styles, colors, spacing, borderRadius } = useTheme()
   const { data, loading, refetch } = useGetSeries(seriesId)
-  const { playEpisode } = usePlayer()
+  const { navigation: { playEpisode } } = usePlayer()
 
   const [filterType, setFilterType] = useState<'all' | 'notStarted'>('all')
   const [sortOrder, setSortOrder] = useState<'default' | 'newest' | 'oldest'>('default')
@@ -131,7 +131,7 @@ export const SeriesDetailScreen = ({
                     fillIcon
                     onPress={() => {
                       if (resumeEpisode) {
-                        playEpisode(data, data.episodes, resumeEpisode)
+                        playEpisode(data, resumeEpisode.item_id)
                       }
                     }}
                   >
@@ -142,7 +142,7 @@ export const SeriesDetailScreen = ({
                     icon={<CirclePlay size={20} />}
                     onPress={() => {
                       if (data.episodes[0]) {
-                        playEpisode(data, data.episodes, { ...data.episodes[0], progress: 0 })
+                        playEpisode(data)
                       }
                     }}
                   >
@@ -154,7 +154,7 @@ export const SeriesDetailScreen = ({
                   variant='primary'
                   onPress={() => {
                     if (data.episodes[0]) {
-                      playEpisode(data, data.episodes, { ...data.episodes[0], progress: 0 })
+                      playEpisode(data)
                     }
                   }}
                 >
@@ -165,9 +165,7 @@ export const SeriesDetailScreen = ({
                   variant='primary'
                   icon={<Play size={20} />}
                   onPress={() => {
-                    if (data.episodes[0]) {
-                      playEpisode(data, data.episodes, data.episodes[0])
-                    }
+                    playEpisode(data)
                   }}
                 >
                   最初から再生 (Episode 1)

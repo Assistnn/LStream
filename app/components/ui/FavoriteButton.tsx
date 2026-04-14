@@ -6,13 +6,13 @@ import { isFavoriteEpisode } from '../../usecases/useGetFavorites'
 import { toggleFavorite } from '../../usecases/useUpdateFavorite'
 
 export const FavoriteButton = ({
-  seriesId,
-  itemId,
+  seriesId = 0,
+  itemId = 0,
   size = 20,
   buttonStyle,
 }: {
-  seriesId: number
-  itemId: number
+  seriesId?: number
+  itemId?: number
   size?: number
   buttonStyle?: ViewStyle
 }) => {
@@ -20,7 +20,7 @@ export const FavoriteButton = ({
   return (
     <TouchableOpacity
       style={buttonStyle}
-      onPress={() => (itemId === 0 ? toggleFavorite(seriesId, 0) : toggleFavorite(0, itemId))}
+      onPress={() => toggleFavorite(seriesId, itemId)}
     >
       <Heart size={size} color='#FFFFFF' fill={isFavorited ? '#FFFFFF' : 'transparent'} />
     </TouchableOpacity>

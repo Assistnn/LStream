@@ -4,7 +4,6 @@ import {
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
-  ChevronUp,
   Clock,
   Gauge,
   List,
@@ -57,36 +56,32 @@ export const EpisodePlayer = ({
   const { colors, styles, spacing } = useTheme()
   const {
     currentContent,
-    playbackState,
-    currentTime,
-    duration,
-    playbackRate,
-    volume,
-    sleepTimer,
-    loopMode,
-    isShuffleOn,
-    togglePlayPause,
-    seek,
-    setPlaybackRate,
-    setVolume,
-    setSleepTimer,
-    setLoopMode,
-    setShuffleOn,
-    skipForward,
-    skipBackward,
-    playNextEpisode,
-    playPreviousEpisode,
-    playNextChapter,
-    playPreviousChapter,
-    renderMediaDisplay,
-    setPlayerView,
+    state: {
+      playbackState, currentTime,
+    },
+    controls: {
+      pause, resume, seek, skipForward, skipBackward,
+    },
+    navigation: {
+      playNextEpisode, playPreviousEpisode,
+      playNextUnit, playPreviousUnit, selectEpisode,
+    },
+    view: {
+      setPlayerExpanded, renderThumbnail, renderVideo,
+    },
+    settings: {
+      playbackRate, setPlaybackRate,
+      volume, setVolume,
+      sleepTimer, setSleepTimer,
+      loopMode, setLoopMode,
+      isShuffleOn, setShuffleOn,
+    },
   } = usePlayer()
 
   const [showSpeedMenu, setShowSpeedMenu] = useState(false)
   const [showTimerMenu, setShowTimerMenu] = useState(false)
   const [showVolumeMenu, setShowVolumeMenu] = useState(false)
   const [showEpisodeList, setShowEpisodeList] = useState(initialShowEpisodeList)
-  const [showChapterList, setShowChapterList] = useState(false)
   const [expandedEpisodes, setExpandedEpisodes] = useState<Set<number>>(new Set())
   const [filterType, setFilterType] = useState<'all' | 'unplayed'>('all')
   const [sortOrder, setSortOrder] = useState<'default' | 'newest' | 'oldest'>('default')
@@ -98,6 +93,10 @@ export const EpisodePlayer = ({
   useEffect(() => {
     setShowEpisodeList(initialShowEpisodeList)
   }, [initialShowEpisodeList])
+
+  useEffect(() => {
+    setPlayerExpanded(visible)
+  }, [visible, setPlayerExpanded])
 
   const isPlaying = playbackState === 'playing'
 
@@ -118,12 +117,10 @@ export const EpisodePlayer = ({
       isLockedRef.current = true
       Orientation.lockToLandscape()
       StatusBar.setHidden(true, 'fade')
-      setPlayerView('fullscreen')
     } else if (!isFullscreen && isLockedRef.current) {
       isLockedRef.current = false
       Orientation.unlockAllOrientations()
       StatusBar.setHidden(false, 'fade')
-      setPlayerView('episode')
     }
     return () => {
       if (isLockedRef.current) {
@@ -132,7 +129,7 @@ export const EpisodePlayer = ({
         StatusBar.setHidden(false, 'fade')
       }
     }
-  }, [isFullscreen, setPlayerView])
+  }, [isFullscreen])
 
   useEffect(() => {
     if (isFullscreen) resetFsControlsTimer()
@@ -143,18 +140,11 @@ export const EpisodePlayer = ({
 
   if (!currentContent || !visible) return null
 
-  const { series, episodes, episode, chapter } = currentContent
-  const thumbnail = chapter?.img || episode.img
+  const { episodes, episodeId, unitId, episode, unit: currentUnit, duration, hasNextEpisode, hasPrevEpisode, hasNextUnit, hasPrevUnit, hasUnits } = currentContent
+  const thumbnail = currentUnit?.img || episode.img
 
-  const currentEpisodeIndex = episodes.findIndex((ep) => ep.item_id === episode.item_id)
-  const hasNextEpisode = currentEpisodeIndex < episodes.length - 1
-  const hasPrevEpisode = currentEpisodeIndex > 0
-
-  const chapters = episode.units || []
-  const hasChapters = chapters.length > 0
-  const currentChapterIndex = chapter ? chapters.findIndex((ch) => ch.item_id === chapter.item_id) : -1
-  const hasNextChapter = hasChapters && currentChapterIndex < chapters.length - 1
-  const hasPrevChapter = hasChapters && currentChapterIndex > 0
+  const currentEpisodeIndex = currentContent.episodeIndex
+  const units = currentContent.units
 
   const speedOptions = [0.75, 1.0, 1.25, 1.5, 2.0]
   const timerOptions = [
@@ -229,7 +219,7 @@ export const EpisodePlayer = ({
               }}
             >
               <View style={{ flex: 1, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center' }}>
-                {renderMediaDisplay({ position: 'absolute', width: screenWidth, height: screenHeight }, 'fullscreen')}
+                {renderVideo({ position: 'absolute', width: screenWidth, height: screenHeight }) || renderThumbnail({ position: 'absolute', width: screenWidth, height: screenHeight })}
                 {showFsControls && (
                   <View
                     style={{
@@ -270,7 +260,7 @@ export const EpisodePlayer = ({
                         }}
                         numberOfLines={1}
                       >
-                        {chapter?.title || episode.title}
+                        {currentUnit?.title || episode.title}
                       </Text>
                       <View style={{ width: 28 }} />
                     </View>
@@ -284,7 +274,7 @@ export const EpisodePlayer = ({
                         <RotateCcw size={48} color={currentTime < 30 ? 'rgba(255,255,255,0.3)' : '#FFFFFF'} />
                       </TouchableOpacity>
                       <TouchableOpacity
-                        onPress={togglePlayPause}
+                        onPress={() => isPlaying ? pause() : resume()}
                         style={{ padding: 20 }}
                         hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
                       >
@@ -354,7 +344,7 @@ export const EpisodePlayer = ({
 
             <View style={{ flex: 1, alignItems: 'center', marginHorizontal: spacing.lg }}>
               <Text style={[styles.bodySmall, { textAlign: 'center' }]} numberOfLines={1}>
-                {series.title}
+                {episode.parentTitle}
               </Text>
             </View>
 
@@ -378,13 +368,7 @@ export const EpisodePlayer = ({
                       aspectRatio: 16 / 9,
                     }}
                   >
-                    {renderMediaDisplay(
-                      {
-                        width: '100%',
-                        height: '100%',
-                      },
-                      'episode',
-                    )}
+                    {renderVideo({ width: '100%', height: '100%' }) || renderThumbnail({ width: '100%', height: '100%' })}
                   </View>
                   {/* Episode Info */}
                   <View
@@ -395,17 +379,17 @@ export const EpisodePlayer = ({
                     }}
                   >
                     <View style={{ gap: 4 }}>
-                      {chapter ? (
-                        <Text style={[styles.bodyText, { textAlign: 'center' }]}>Unit.{currentChapterIndex + 1}</Text>
+                      {currentUnit ? (
+                        <Text style={[styles.bodyText, { textAlign: 'center' }]}>Unit.{units.findIndex((ch) => ch.item_id === currentUnit?.item_id) + 1}</Text>
                       ) : (
                         <Text style={[styles.bodyText, { textAlign: 'center' }]}>
                           Episode.{currentEpisodeIndex + 1}
                         </Text>
                       )}
                       <Text style={[styles.text2xl, { textAlign: 'center' }]} numberOfLines={2}>
-                        {chapter ? chapter.title : episode.title}
+                        {currentUnit ? currentUnit.title : episode.title}
                       </Text>
-                      {chapter && (
+                      {currentUnit && (
                         <Text style={[styles.bodyTiny, { textAlign: 'center' }]} numberOfLines={1}>
                           <Text>Ep.{currentEpisodeIndex + 1}</Text>
                           <Text> {episode.title}</Text>
@@ -414,8 +398,7 @@ export const EpisodePlayer = ({
                     </View>
                     {/* Favorite button in top right */}
                     <FavoriteButton
-                      seriesId={series.series_id}
-                      itemId={chapter?.item_id || episode.item_id}
+                      itemId={unitId ?? episodeId}
                       size={20}
                       buttonStyle={{
                         position: 'absolute',
@@ -459,31 +442,28 @@ export const EpisodePlayer = ({
                   >
                     <TouchableOpacity
                       onPress={() => {
-                        if (hasPrevChapter) playPreviousChapter()
-                        else if (hasPrevEpisode) playPreviousEpisode()
+                        if (hasPrevEpisode) playPreviousEpisode()
                       }}
-                      disabled={!hasPrevChapter && !hasPrevEpisode}
+                      disabled={!hasPrevEpisode}
                       hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                       style={{ padding: spacing.sm }}
                     >
                       <SkipBack
                         size={36}
-                        color={!hasPrevChapter && !hasPrevEpisode ? colors.muted : colors.text}
-                        fill={!hasPrevChapter && !hasPrevEpisode ? colors.muted : colors.text}
+                        color={!hasPrevEpisode ? colors.muted : colors.text}
+                        fill={!hasPrevEpisode ? colors.muted : colors.text}
                       />
                     </TouchableOpacity>
 
-                    {/* Previous Chapter Button */}
-                    {hasChapters && (
+                    {/* Previous Unit Button */}
+                    {hasUnits && (
                       <TouchableOpacity
-                        onPress={() => {
-                          if (hasPrevChapter) playPreviousChapter()
-                        }}
-                        disabled={!hasPrevChapter}
+                        onPress={() => playPreviousUnit()}
+                        disabled={!hasPrevUnit}
                         hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                         style={{ padding: spacing.sm }}
                       >
-                        <ChevronsLeft size={32} color={!hasPrevChapter ? colors.muted : colors.text} />
+                        <ChevronsLeft size={32} color={hasPrevUnit ? colors.text : colors.muted} />
                       </TouchableOpacity>
                     )}
 
@@ -513,7 +493,7 @@ export const EpisodePlayer = ({
                     </TouchableOpacity>
 
                     <TouchableOpacity
-                      onPress={togglePlayPause}
+                      onPress={() => isPlaying ? pause() : resume()}
                       hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                       style={{ padding: spacing.sm }}
                     >
@@ -549,33 +529,30 @@ export const EpisodePlayer = ({
                       </Text>
                     </TouchableOpacity>
 
-                    {/* Next Chapter Button */}
-                    {hasChapters && (
+                    {/* Next Unit Button */}
+                    {hasUnits && (
                       <TouchableOpacity
-                        onPress={() => {
-                          if (hasNextChapter) playNextChapter()
-                        }}
-                        disabled={!hasNextChapter}
+                        onPress={() => playNextUnit()}
+                        disabled={!hasNextUnit}
                         hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                         style={{ padding: spacing.sm }}
                       >
-                        <ChevronsRight size={32} color={!hasNextChapter ? colors.muted : colors.text} />
+                        <ChevronsRight size={32} color={hasNextUnit ? colors.text : colors.muted} />
                       </TouchableOpacity>
                     )}
 
                     <TouchableOpacity
                       onPress={() => {
-                        if (hasNextChapter) playNextChapter()
-                        else if (hasNextEpisode) playNextEpisode()
+                        if (hasNextEpisode) playNextEpisode()
                       }}
-                      disabled={!hasNextChapter && !hasNextEpisode}
+                      disabled={!hasNextEpisode}
                       hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                       style={{ padding: spacing.sm }}
                     >
                       <SkipForward
                         size={36}
-                        color={!hasNextChapter && !hasNextEpisode ? colors.muted : colors.text}
-                        fill={!hasNextChapter && !hasNextEpisode ? colors.muted : colors.text}
+                        color={!hasNextEpisode ? colors.muted : colors.text}
+                        fill={!hasNextEpisode ? colors.muted : colors.text}
                       />
                     </TouchableOpacity>
                   </View>
@@ -731,24 +708,22 @@ export const EpisodePlayer = ({
                       </TouchableOpacity>
                     </View>
 
-                    {hasChapters && (
-                      <View style={{ position: 'relative' }}>
-                        <TouchableOpacity
-                          onPress={() => setShowChapterList(!showChapterList)}
-                          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                          style={{
-                            width: 40,
-                            height: 40,
-                            borderRadius: 20,
-                            justifyContent: 'center',
-                            alignItems: 'center',
-                            backgroundColor: showChapterList ? colors.text : 'rgba(255, 255, 255, 0.08)',
-                          }}
-                        >
-                          <List size={20} color={showChapterList ? colors.background : colors.text} />
-                        </TouchableOpacity>
-                      </View>
-                    )}
+                    <View style={{ position: 'relative' }}>
+                      <TouchableOpacity
+                        onPress={() => setShowEpisodeList(!showEpisodeList)}
+                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                        style={{
+                          width: 40,
+                          height: 40,
+                          borderRadius: 20,
+                          justifyContent: 'center',
+                          alignItems: 'center',
+                          backgroundColor: showEpisodeList ? colors.text : 'rgba(255, 255, 255, 0.08)',
+                        }}
+                      >
+                        <List size={20} color={showEpisodeList ? colors.background : colors.text} />
+                      </TouchableOpacity>
+                    </View>
 
                     <View style={{ position: 'relative' }}>
                       <TouchableOpacity
@@ -908,12 +883,12 @@ export const EpisodePlayer = ({
                 />
                 <View style={{ flex: 1, justifyContent: 'center' }}>
                   <Text style={[styles.bodyTiny, { marginBottom: 2 }]}>
-                    {chapter ? `Unit.${currentChapterIndex + 1}` : `Episode.${currentEpisodeIndex + 1}`}
+                    {currentUnit ? `Unit.${units.findIndex((ch) => ch.item_id === currentUnit?.item_id) + 1}` : `Episode.${currentEpisodeIndex + 1}`}
                   </Text>
                   <Text style={[styles.textDefault, { fontWeight: '500' }]} numberOfLines={1}>
-                    {chapter ? chapter.title : episode.title}
+                    {currentUnit ? currentUnit.title : episode.title}
                   </Text>
-                  {chapter && (
+                  {currentUnit && (
                     <Text style={styles.bodyTiny} numberOfLines={1}>
                       Ep.{currentEpisodeIndex + 1} {episode.title}
                     </Text>
@@ -1020,7 +995,7 @@ export const EpisodePlayer = ({
                             toggleEpisodeExpansion(ep.item_id)
                           } else {
                             if (ep.item_id !== episode.item_id) {
-                              playNextEpisode()
+                              selectEpisode(ep.item_id)
                             }
                             setShowEpisodeList(false)
                           }
@@ -1032,7 +1007,7 @@ export const EpisodePlayer = ({
                           paddingVertical: spacing.md,
                           borderBottomWidth: 1,
                           borderBottomColor: colors.border,
-                          backgroundColor: isCurrentEpisode && !chapter ? colors.muted : colors.background,
+                          backgroundColor: isCurrentEpisode && !currentUnit ? colors.muted : colors.background,
                         }}
                       >
                         <Image
@@ -1047,7 +1022,7 @@ export const EpisodePlayer = ({
                               {
                                 fontWeight: '600',
                                 marginBottom: 4,
-                                color: isCurrentEpisode && !chapter ? colors.primary : colors.text,
+                                color: isCurrentEpisode && !currentUnit ? colors.primary : colors.text,
                               },
                             ]}
                             numberOfLines={1}
@@ -1071,7 +1046,7 @@ export const EpisodePlayer = ({
                                 {formatTime(ep.duration)}
                               </Text>
                             )}
-                            {isCurrentEpisode && !chapter && (
+                            {isCurrentEpisode && !currentUnit && (
                               <Text style={[styles.bodyTiny, { color: colors.primary, fontWeight: '700' }]}>
                                 再生中
                               </Text>
@@ -1094,13 +1069,13 @@ export const EpisodePlayer = ({
                       {hasUnits && isExpanded && ep.units && (
                         <View style={{ marginLeft: spacing['5xl'] }}>
                           {ep.units.map((unit, unitIndex) => {
-                            const isCurrentChapter = chapter?.item_id === unit.item_id
+                            const isCurrentUnit = currentUnit?.item_id === unit.item_id
 
                             return (
                               <TouchableOpacity
                                 key={unit.item_id}
                                 onPress={() => {
-                                  playNextChapter()
+                                  selectEpisode(ep.item_id, unit.item_id)
                                   setShowEpisodeList(false)
                                 }}
                                 style={{
@@ -1108,7 +1083,7 @@ export const EpisodePlayer = ({
                                   paddingRight: spacing.lg,
                                   borderBottomWidth: 1,
                                   borderBottomColor: colors.border,
-                                  backgroundColor: isCurrentChapter ? colors.muted : colors.background,
+                                  backgroundColor: isCurrentUnit ? colors.muted : colors.background,
                                 }}
                               >
                                 <Text
@@ -1117,7 +1092,7 @@ export const EpisodePlayer = ({
                                     {
                                       fontWeight: '500',
                                       marginBottom: 4,
-                                      color: isCurrentChapter ? colors.primary : colors.text,
+                                      color: isCurrentUnit ? colors.primary : colors.text,
                                     },
                                   ]}
                                   numberOfLines={1}
@@ -1131,7 +1106,7 @@ export const EpisodePlayer = ({
                                   <Text style={[styles.bodyTiny, { fontWeight: '600' }]}>
                                     {formatTime(unit.duration)}
                                   </Text>
-                                  {isCurrentChapter && (
+                                  {isCurrentUnit && (
                                     <Text style={[styles.bodyTiny, { color: colors.primary, fontWeight: '700' }]}>
                                       再生中
                                     </Text>
@@ -1267,70 +1242,6 @@ export const EpisodePlayer = ({
             </View>
           )}
 
-          {/* Chapter List Menu */}
-          {showChapterList && hasChapters && (
-            <View
-              style={{
-                position: 'absolute',
-                bottom: 180,
-                left: spacing.lg,
-                right: spacing.lg,
-                backgroundColor: colors.card,
-                borderRadius: spacing.xl,
-                borderWidth: 1,
-                borderColor: colors.border,
-                maxHeight: 400,
-                overflow: 'hidden',
-                zIndex: 20,
-              }}
-            >
-              <View
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: spacing.md,
-                }}
-              >
-                <Text style={styles.titleMedium}>チャプター</Text>
-                <TouchableOpacity onPress={() => setShowChapterList(false)}>
-                  <ChevronUp size={20} color={colors.text} />
-                </TouchableOpacity>
-              </View>
-              <ScrollView style={{ maxHeight: 350 }}>
-                {chapters.map((ch, index) => (
-                  <TouchableOpacity
-                    key={ch.item_id}
-                    onPress={() => {
-                      playNextChapter()
-                      setShowChapterList(false)
-                    }}
-                    style={{
-                      padding: spacing.md,
-                      borderBottomWidth: 1,
-                      borderBottomColor: colors.border,
-                      backgroundColor: chapter?.item_id === ch.item_id ? colors.muted : undefined,
-                    }}
-                  >
-                    <Text
-                      style={[
-                        styles.textDefault,
-                        {
-                          fontWeight: '500',
-                          marginBottom: 4,
-                          color: chapter?.item_id === ch.item_id ? colors.primary : colors.text,
-                        },
-                      ]}
-                      numberOfLines={1}
-                    >
-                      {index + 1}. {ch.title}
-                    </Text>
-                    <Text style={styles.bodySmall}>{formatTime(ch.duration)}</Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            </View>
-          )}
         </View>
       )}
     </Modal>

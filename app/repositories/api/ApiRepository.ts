@@ -50,7 +50,13 @@ export class ApiRepository implements IApiRepository {
   }
 
   async getSeries(seriesId: number) {
-    return apiClient.get<SeriesResponse>(`/str_series?series_id=${seriesId}`)
+    const data = await apiClient.get<SeriesResponse>(`/str_series?series_id=${seriesId}`)
+    data.episodes = data.episodes.map((ep) => ({
+      ...ep,
+      parentTitle: data.title,
+      units: ep.units?.map((u) => ({ ...u, parentTitle: ep.title })),
+    }))
+    return data
   }
 
   async getLibraries(params: LibrariesParams) {

@@ -7,12 +7,14 @@ import { FavoriteButton } from '../ui/FavoriteButton'
 
 export const MiniPlayer = ({ onTap, onListTap }: { onTap: () => void; onListTap: () => void }) => {
   const { colors } = useTheme()
-  const { currentContent, playbackState, togglePlayPause, closePlayer, renderMediaDisplay } = usePlayer()
+  const { currentContent, state: { playbackState }, controls: { pause, resume }, view: { closePlayer, renderThumbnail } } = usePlayer()
 
   if (!currentContent) return null
 
   const isPlaying = playbackState === 'playing'
-  const { series, episode, chapter } = currentContent
+  const episode = currentContent.episodes.find((ep) => ep.item_id === currentContent.episodeId)
+  if (!episode) return null
+  const unit = currentContent.unitId ? episode.units?.find((u) => u.item_id === currentContent.unitId) : undefined
 
   return (
     <View
@@ -37,24 +39,23 @@ export const MiniPlayer = ({ onTap, onListTap }: { onTap: () => void; onListTap:
             paddingHorizontal: 0,
           }}
         >
-          {renderMediaDisplay({ width: 80, height: 56 }, 'mini')}
+          {renderThumbnail({ width: 80, height: 56 })}
           <View style={{ flex: 1, paddingHorizontal: 12, justifyContent: 'center' }}>
             <Text style={{ fontSize: 13, fontWeight: '600', color: colors.text }} numberOfLines={1}>
-              {chapter?.title || episode.title}
+              {unit?.title || episode.title}
             </Text>
             <Text style={{ fontSize: 11, marginTop: 2, color: colors.textSecondary }} numberOfLines={1}>
-              {chapter ? episode.title : series.title}
-              {(chapter?.type_media || episode.type_media) === 1
+              {unit ? episode.title : episode.parentTitle}
+              {(unit?.type_media || episode.type_media) === 1
                 ? ' • 動画'
-                : (chapter?.type_media || episode.type_media) === 2
+                : (unit?.type_media || episode.type_media) === 2
                   ? ' • 音声'
                   : ''}
             </Text>
           </View>
 
           <FavoriteButton
-            seriesId={series.series_id}
-            itemId={episode.item_id}
+            itemId={currentContent.unitId ?? currentContent.episodeId}
             size={20}
             buttonStyle={{ padding: 6, justifyContent: 'center', alignItems: 'center' }}
           />
@@ -73,7 +74,7 @@ export const MiniPlayer = ({ onTap, onListTap }: { onTap: () => void; onListTap:
           <TouchableOpacity
             onPress={(e) => {
               e.stopPropagation()
-              togglePlayPause()
+              isPlaying ? pause() : resume()
             }}
             style={{ padding: 6, justifyContent: 'center', alignItems: 'center' }}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}

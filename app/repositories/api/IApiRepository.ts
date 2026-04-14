@@ -97,7 +97,9 @@ export interface SeriesMedia {
   title: string
   duration: number
   progress: number
-  units?: SeriesMedia[]
+  units?: Omit<SeriesMedia, 'units'>[]
+  // アプリ側で設定。unit > 親episode、episode > 親シリーズのタイトルが入る
+  parentTitle: string
 }
 
 /* =========================

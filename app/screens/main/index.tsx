@@ -121,7 +121,7 @@ const SettingsStackScreen = () => (
 
 export const MainScreen = () => {
   const { styles, colors } = useTheme()
-  const { currentContent, setPlayerView } = usePlayer()
+  const { currentContent } = usePlayer()
   const [showPlayerModal, setShowPlayerModal] = useState(false)
   const [showEpisodeList, setShowEpisodeList] = useState(false)
   const insets = useSafeAreaInsets()
@@ -132,9 +132,8 @@ export const MainScreen = () => {
   useEffect(() => {
     if (currentContent) {
       setShowPlayerModal(true)
-      setPlayerView('episode')
     }
-  }, [currentContent, setPlayerView])
+  }, [currentContent])
 
   return (
     <View style={{ flex: 1 }}>
@@ -216,12 +215,10 @@ export const MainScreen = () => {
             onTap={() => {
               setShowPlayerModal(true)
               setShowEpisodeList(false)
-              setPlayerView('episode')
             }}
             onListTap={() => {
               setShowPlayerModal(true)
               setShowEpisodeList(true)
-              setPlayerView('episode')
             }}
           />
         </View>
@@ -233,7 +230,6 @@ export const MainScreen = () => {
         onClose={() => {
           setShowPlayerModal(false)
           setShowEpisodeList(false)
-          setPlayerView('mini')
         }}
       />
     </View>
