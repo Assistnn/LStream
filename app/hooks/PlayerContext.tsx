@@ -1,13 +1,13 @@
 import type { ReactNode } from 'react'
 import { createContext, useContext, useEffect, useRef, useState } from 'react'
-import type { ImageStyle, ViewStyle } from 'react-native'
-import { Image, Text, View } from 'react-native'
-import Video, { type OnLoadData, type OnProgressData, type VideoRef } from 'react-native-video'
+import type { ViewStyle } from 'react-native'
+import Video, { type VideoRef } from 'react-native-video'
 
 import type { SeriesMedia, SeriesResponse } from '../repositories/api/IApiRepository'
 
 type PlaybackState = 'idle' | 'loading' | 'playing' | 'paused' | 'ended' | 'error'
 type LoopMode = 'off' | 'single' | 'all'
+type Rect = { x: number; y: number; width: number; height: number }
 
 class CurrentContent {
   readonly episodes: SeriesMedia[]
@@ -85,51 +85,60 @@ class CurrentContent {
   }
 }
 
-interface PlayerContextValue {
-  currentContent: CurrentContent | null
-  state: {
-    playbackState: PlaybackState
-    currentTime: number
-  }
-  navigation: {
-    playEpisode: (series: SeriesResponse, episodeId?: number, unitId?: number) => void
-    selectEpisode: (episodeId: number, unitId?: number) => void
-    playNextEpisode: () => void
-    playPreviousEpisode: () => void
-    playNextUnit: () => void
-    playPreviousUnit: () => void
-  }
-  view: {
-    renderThumbnail: (style: ViewStyle | ImageStyle) => React.ReactElement | null
-    renderVideo: (style: ViewStyle) => React.ReactElement | null
-    isPlayerExpanded: boolean
-    setPlayerExpanded: (expanded: boolean) => void
-    closePlayer: () => void
-  }
-  controls: {
-    pause: () => void
-    resume: () => void
-    seek: (time: number) => void
-    skipForward: (seconds: number) => void
-    skipBackward: (seconds: number) => void
-  }
-  settings: {
-    playbackRate: number
-    setPlaybackRate: (rate: number) => void
-    isFullscreen: boolean
-    setFullscreen: (fullscreen: boolean) => void
-    volume: number
-    setVolume: (volume: number) => void
-    sleepTimer: number | null
-    setSleepTimer: (minutes: number | null) => void
-    loopMode: LoopMode
-    setLoopMode: (mode: LoopMode) => void
-    isShuffleOn: boolean
-    setShuffleOn: (on: boolean) => void
-  }
-}
-
-const PlayerContext = createContext<PlayerContextValue | undefined>(undefined)
+const PlayerContext = createContext<
+  | {
+      currentContent: CurrentContent | undefined
+      state: {
+        playbackState: PlaybackState
+        currentTime: number
+      }
+      settings: {
+        playbackRate: number
+        setPlaybackRate: (rate: number) => void
+        isFullscreen: boolean
+        setIsFullscreen: (fullscreen: boolean) => void
+        volume: number
+        setVolume: (volume: number) => void
+        sleepTimer: number | undefined
+        setSleepTimer: (minutes: number | undefined) => void
+        loopMode: LoopMode
+        setLoopMode: (mode: LoopMode) => void
+        isShuffleOn: boolean
+        setShuffleOn: (on: boolean) => void
+      }
+      view: {
+        videoRef: React.RefObject<VideoRef | null>
+        isPlayerExpanded: boolean
+        setPlayerExpanded: (expanded: boolean) => void
+        closePlayer: () => void
+        handleProgress: (currentTime: number) => void
+        handleLoad: () => void
+        handleEnd: () => void
+        compactSlot: Rect | null
+        setCompactSlot: (rect: Rect | null) => void
+        expandedSlot: Rect | null
+        setExpandedSlot: (rect: Rect | null) => void
+        isPipActive: boolean
+        setPipActive: (active: boolean) => void
+      }
+      navigation: {
+        playEpisode: (series: SeriesResponse, episodeId?: number, unitId?: number) => void
+        selectEpisode: (episodeId: number, unitId?: number) => void
+        playNextEpisode: () => void
+        playPreviousEpisode: () => void
+        playNextUnit: () => void
+        playPreviousUnit: () => void
+      }
+      controls: {
+        pause: () => void
+        resume: () => void
+        seek: (time: number) => void
+        skipForward: (seconds: number) => void
+        skipBackward: (seconds: number) => void
+      }
+    }
+  | undefined
+>(undefined)
 
 export const usePlayer = () => {
   const context = useContext(PlayerContext)
@@ -140,94 +149,67 @@ export const usePlayer = () => {
 }
 
 export const PlayerProvider = ({ children }: { children: ReactNode }) => {
-  const [currentContent, setCurrentContent] = useState<CurrentContent | null>(null)
-  const [playbackState, setPlaybackState] = useState<PlaybackState>('idle')
-  const [currentTime, setCurrentTime] = useState(0)
-  const [playbackRate, setPlaybackRate] = useState(1.0)
-  const [isFullscreen, setIsFullscreen] = useState(false)
-  const [volume, setVolume] = useState(75)
-  const [sleepTimer, setSleepTimer] = useState<number | null>(null)
-  const [loopMode, setLoopMode] = useState<LoopMode>('off')
-  const [isShuffleOn, setShuffleOn] = useState(false)
-  const [isPlayerExpanded, setPlayerExpanded] = useState(true)
+  // currentContent
+  const [currentContent, setCurrentContent] = useState<CurrentContent>()
+  const switchContent = (content: CurrentContent) => {
+    setCurrentContent(content)
+    updateState({ playbackState: 'loading', currentTime: 0 })
+  }
 
-  const videoRef = useRef<VideoRef>(null)
-  const [pendingSeek, setPendingSeek] = useState(false)
-  const currentTimeRef = useRef(0)
-  const isInitialLoadRef = useRef(true)
-  const seekTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const sleepTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const isSwitchingRef = useRef(false)
+  // state
+  const [state, setState] = useState({ playbackState: 'idle' as PlaybackState, currentTime: 0 })
+  const updateState = (patch: Partial<typeof state>) => setState((prev) => ({ ...prev, ...patch }))
+  const doSeek = (time: number) => {
+    videoRef.current?.seek(time)
+    updateState({ currentTime: time })
+  }
 
+  // settings
+  const [settings, setSettings] = useState({
+    playbackRate: 1.0,
+    isFullscreen: false,
+    volume: 75,
+    sleepTimer: undefined as number | undefined,
+    loopMode: 'off' as LoopMode,
+    isShuffleOn: false,
+  })
+  const updateSettings = (patch: Partial<typeof settings>) => setSettings((prev) => ({ ...prev, ...patch }))
+  const [sleepTimerId, setSleepTimerId] = useState<ReturnType<typeof setTimeout>>()
   useEffect(() => {
-    if (sleepTimerRef.current) {
-      clearTimeout(sleepTimerRef.current)
-      sleepTimerRef.current = null
+    if (sleepTimerId) {
+      clearTimeout(sleepTimerId)
     }
-    if (sleepTimer !== null && playbackState === 'playing') {
-      sleepTimerRef.current = setTimeout(
-        () => {
-          setPlaybackState('paused')
-          setSleepTimer(null)
-        },
-        sleepTimer * 60 * 1000,
+    if (settings.sleepTimer !== undefined && state.playbackState === 'playing') {
+      setSleepTimerId(
+        setTimeout(
+          () => {
+            updateState({ playbackState: 'paused' })
+            updateSettings({ sleepTimer: undefined })
+          },
+          settings.sleepTimer * 60 * 1000,
+        ),
       )
+    } else {
+      setSleepTimerId(undefined)
     }
     return () => {
-      if (sleepTimerRef.current) {
-        clearTimeout(sleepTimerRef.current)
-        sleepTimerRef.current = null
+      if (sleepTimerId) {
+        clearTimeout(sleepTimerId)
       }
     }
-  }, [sleepTimer, playbackState])
-
-  const handleProgress = (data: OnProgressData) => {
-    if (data.currentTime !== undefined && !pendingSeek) {
-      currentTimeRef.current = data.currentTime
-      setCurrentTime(data.currentTime)
-    }
-  }
-
-  const handleSeek = () => {
-    if (seekTimeoutRef.current) {
-      clearTimeout(seekTimeoutRef.current)
-      seekTimeoutRef.current = null
-    }
-    setPendingSeek(false)
-  }
-
-  const handleLoad = (_data: OnLoadData) => {
-    isSwitchingRef.current = false
-    isInitialLoadRef.current = false
-    currentTimeRef.current = 0
-    setCurrentTime(0)
-    setPendingSeek(false)
-    setPlaybackState('playing')
-  }
-
-  const switchContent = (content: CurrentContent) => {
-    isSwitchingRef.current = true
-    currentTimeRef.current = 0
-    setPendingSeek(true)
-    setCurrentContent(content)
-    setPlaybackState('loading')
-    setCurrentTime(0)
-  }
-
-  const doSeek = (time: number) => {
-    setPendingSeek(true)
-    setCurrentTime(time)
-    currentTimeRef.current = time
-    videoRef.current?.seek(time)
-    if (seekTimeoutRef.current) clearTimeout(seekTimeoutRef.current)
-    seekTimeoutRef.current = setTimeout(() => setPendingSeek(false), 500)
-  }
+  }, [settings.sleepTimer, state.playbackState])
+  // view
+  const videoRef = useRef<VideoRef>(null)
+  const [isPlayerExpanded, setPlayerExpanded] = useState(true)
+  const [compactSlot, setCompactSlot] = useState<Rect | null>(null)
+  const [expandedSlot, setExpandedSlot] = useState<Rect | null>(null)
+  const [isPipActive, setPipActive] = useState(false)
 
   const playNextEpisodeInternal = () => {
     if (!currentContent) return
     const { episodes } = currentContent
 
-    if (isShuffleOn && episodes.length > 1) {
+    if (settings.isShuffleOn && episodes.length > 1) {
       const otherEpisodes = episodes.filter((ep) => ep.item_id !== currentContent.episodeId)
       const randomEpisode = otherEpisodes[Math.floor(Math.random() * otherEpisodes.length)]
       switchContent(currentContent.withEpisode(randomEpisode.item_id, randomEpisode.units?.[0]?.item_id))
@@ -240,86 +222,33 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
       switchContent(currentContent.withEpisode(nextEpisode.item_id, nextEpisode.units?.[0]?.item_id))
     }
   }
-
-  const handleEnd = () => {
-    if (isSwitchingRef.current) return
-    if (loopMode === 'single') {
-      videoRef.current?.seek(0)
-      setCurrentTime(0)
-      currentTimeRef.current = 0
-      setPlaybackState('playing')
-      return
-    }
-    if (loopMode === 'all' && currentContent) {
-      if (currentContent.unitId) {
-        const allUnits = currentContent.units
-        const uIdx = allUnits.findIndex((u) => u.item_id === currentContent.unitId)
-        if (uIdx < allUnits.length - 1) {
-          switchContent(currentContent.withUnit(allUnits[uIdx + 1].item_id))
-          return
-        }
-      }
-      const epIdx = currentContent.episodeIndex
-      if (epIdx < currentContent.episodes.length - 1 || isShuffleOn) {
-        playNextEpisodeInternal()
-      } else {
-        const firstEp = currentContent.episodes[0]
-        switchContent(currentContent.withEpisode(firstEp.item_id, firstEp.units?.[0]?.item_id))
-      }
-      return
-    }
-    setPlaybackState('ended')
-  }
-
-  const renderThumbnailElement = (content: CurrentContent, style: ViewStyle | ImageStyle) => {
-    if (content.thumbnail) {
-      return (
-        <Image
-          source={{ uri: content.thumbnail }}
-          style={[style as ImageStyle, { borderRadius: 8 }]}
-          resizeMode='cover'
-        />
-      )
-    }
-    return (
-      <View
-        style={[style, { borderRadius: 8, backgroundColor: '#6b7280', justifyContent: 'center', alignItems: 'center' }]}
-      >
-        <Text style={{ fontSize: 64 }}>🎵</Text>
-      </View>
-    )
-  }
-
   return (
     <PlayerContext.Provider
       value={{
         currentContent,
-        state: {
-          playbackState,
-          currentTime,
-        },
+        state,
         controls: {
           pause: () => {
-            if (playbackState === 'playing') setPlaybackState('paused')
+            if (state.playbackState === 'playing') updateState({ playbackState: 'paused' })
           },
           resume: () => {
-            if (playbackState === 'ended') {
+            if (state.playbackState === 'ended') {
               doSeek(0)
-              setPlaybackState('playing')
-            } else if (playbackState === 'paused') {
-              setPlaybackState('playing')
+              updateState({ playbackState: 'playing' })
+            } else if (state.playbackState === 'paused') {
+              updateState({ playbackState: 'playing' })
             }
           },
           seek: doSeek,
-          skipForward: (seconds) => doSeek(Math.min(currentTimeRef.current + seconds, currentContent?.duration ?? 0)),
-          skipBackward: (seconds) => doSeek(Math.max(currentTimeRef.current - seconds, 0)),
+          skipForward: (seconds) => doSeek(Math.min(state.currentTime + seconds, currentContent?.duration ?? 0)),
+          skipBackward: (seconds) => doSeek(Math.max(state.currentTime - seconds, 0)),
         },
         navigation: {
           playEpisode: (series, episodeId?, unitId?) => {
             const ep = episodeId
               ? (series.episodes.find((e) => e.item_id === episodeId) ?? series.episodes[0])
               : series.episodes[0]
-            setPendingSeek(false)
+
             switchContent(new CurrentContent(series.episodes, ep.item_id, unitId ?? ep.units?.[0]?.item_id))
           },
           playNextEpisode: playNextEpisodeInternal,
@@ -353,81 +282,104 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
         },
         view: {
           closePlayer: () => {
-            setPendingSeek(false)
-            setCurrentContent(null)
-            setPlaybackState('idle')
-            setCurrentTime(0)
-            setPlaybackRate(1.0)
-            setIsFullscreen(false)
-            setVolume(75)
-            setSleepTimer(null)
-            setLoopMode('off')
-            setShuffleOn(false)
+            setCurrentContent(undefined)
+            updateState({ playbackState: 'idle', currentTime: 0 })
+            setSettings({
+              playbackRate: 1.0,
+              isFullscreen: false,
+              volume: 75,
+              sleepTimer: undefined,
+              loopMode: 'off',
+              isShuffleOn: false,
+            })
             setPlayerExpanded(true)
-          },
-          renderThumbnail: (style) => {
-            if (!currentContent) return null
-            return renderThumbnailElement(currentContent, style)
-          },
-          renderVideo: (style) => {
-            if (!currentContent?.isVideo) return null
-            return (
-              <Video
-                ref={videoRef}
-                source={{ uri: currentContent.mediaUrl }}
-                style={style}
-                resizeMode='cover'
-                paused={playbackState !== 'playing'}
-                rate={playbackRate}
-                volume={volume / 100}
-                onProgress={handleProgress}
-                onLoad={handleLoad}
-                onEnd={handleEnd}
-                onSeek={handleSeek}
-                playInBackground={true}
-                playWhenInactive={true}
-                ignoreSilentSwitch='ignore'
-              />
-            )
           },
           isPlayerExpanded,
           setPlayerExpanded,
+          videoRef,
+          compactSlot,
+          setCompactSlot,
+          expandedSlot,
+          setExpandedSlot,
+          isPipActive,
+          setPipActive,
+          handleProgress: (currentTime) => updateState({ currentTime }),
+          handleLoad: () => {
+            setState((prev) => (prev.playbackState === 'loading' ? { ...prev, playbackState: 'playing' } : prev))
+          },
+          handleEnd: () => {
+            if (settings.loopMode === 'single') {
+              videoRef.current?.seek(0)
+              updateState({ currentTime: 0, playbackState: 'playing' })
+              return
+            }
+            if (settings.loopMode === 'all' && currentContent) {
+              if (currentContent.unitId) {
+                const allUnits = currentContent.units
+                const uIdx = allUnits.findIndex((u) => u.item_id === currentContent.unitId)
+                if (uIdx < allUnits.length - 1) {
+                  switchContent(currentContent.withUnit(allUnits[uIdx + 1].item_id))
+                  return
+                }
+              }
+              const epIdx = currentContent.episodeIndex
+              if (epIdx < currentContent.episodes.length - 1 || settings.isShuffleOn) {
+                playNextEpisodeInternal()
+              } else {
+                const firstEp = currentContent.episodes[0]
+                switchContent(currentContent.withEpisode(firstEp.item_id, firstEp.units?.[0]?.item_id))
+              }
+              return
+            }
+            updateState({ playbackState: 'ended' })
+          },
         },
         settings: {
-          playbackRate,
-          setPlaybackRate,
-          isFullscreen,
-          setFullscreen: setIsFullscreen,
-          volume,
-          setVolume,
-          sleepTimer,
-          setSleepTimer,
-          loopMode,
-          setLoopMode,
-          isShuffleOn,
-          setShuffleOn,
+          playbackRate: settings.playbackRate,
+          setPlaybackRate: (rate: number) => updateSettings({ playbackRate: rate }),
+          isFullscreen: settings.isFullscreen,
+          setIsFullscreen: (v: boolean) => updateSettings({ isFullscreen: v }),
+          volume: settings.volume,
+          setVolume: (v: number) => updateSettings({ volume: v }),
+          sleepTimer: settings.sleepTimer,
+          setSleepTimer: (v: number | undefined) => updateSettings({ sleepTimer: v }),
+          loopMode: settings.loopMode,
+          setLoopMode: (v: LoopMode) => updateSettings({ loopMode: v }),
+          isShuffleOn: settings.isShuffleOn,
+          setShuffleOn: (v: boolean) => updateSettings({ isShuffleOn: v }),
         },
       }}
     >
       {children}
-      {currentContent && !currentContent.isVideo && (
-        <View style={{ position: 'absolute', width: 0, height: 0, opacity: 0 }}>
-          <Video
-            ref={videoRef}
-            source={{ uri: currentContent.mediaUrl }}
-            paused={playbackState !== 'playing'}
-            rate={playbackRate}
-            volume={volume / 100}
-            onProgress={handleProgress}
-            onLoad={handleLoad}
-            onEnd={handleEnd}
-            onSeek={handleSeek}
-            playInBackground={true}
-            playWhenInactive={true}
-            ignoreSilentSwitch='ignore'
-          />
-        </View>
-      )}
     </PlayerContext.Provider>
+  )
+}
+
+export const PlayerVideo = ({ style }: { style?: ViewStyle }) => {
+  const {
+    currentContent,
+    state: { playbackState },
+    settings: { playbackRate, volume },
+    view: { videoRef, handleProgress, handleLoad, handleEnd, setPipActive },
+  } = usePlayer()
+  if (!currentContent) return null
+  return (
+    <Video
+      ref={videoRef}
+      source={{ uri: currentContent.mediaUrl }}
+      style={style}
+      resizeMode='cover'
+      paused={playbackState !== 'playing'}
+      rate={playbackRate}
+      volume={volume / 100}
+      onProgress={(data) => handleProgress(data.currentTime)}
+      onLoad={handleLoad}
+      onEnd={handleEnd}
+      playInBackground={true}
+      playWhenInactive={true}
+      ignoreSilentSwitch='ignore'
+      enterPictureInPictureOnLeave={currentContent.isVideo}
+      onPictureInPictureStatusChanged={({ isActive }) => setPipActive(isActive)}
+    />
   )
 }

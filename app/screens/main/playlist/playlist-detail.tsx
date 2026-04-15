@@ -1,12 +1,501 @@
-import { Text, View } from 'react-native'
+import { useNavigation } from '@react-navigation/native'
+import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-navigation/native-stack'
+import {
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  List,
+  MoreVertical,
+  Pause,
+  Play,
+  Repeat,
+  Repeat1,
+  Shuffle,
+} from 'lucide-react-native'
+import { useMemo, useRef, useState } from 'react'
+import { Alert, Animated, ScrollView, Text, TouchableOpacity, View } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
+import { ContextMenu, type ContextMenuItem } from '../../../components/ui/ContextMenu'
+import { EmptyState } from '../../../components/ui/EmptyState'
+import { usePlayer } from '../../../hooks/PlayerContext'
+import type { Playlist, PlaylistItem } from '../../../hooks/PlaylistContext'
+import { usePlaylist } from '../../../hooks/PlaylistContext'
 import { useTheme } from '../../../hooks/ThemeContext'
+import { AddToPlaylistModal } from './components/AddToPlaylistModal'
+import { CreatePlaylistModal } from './components/CreatePlaylistModal'
+import { PlaylistCover } from './components/PlaylistCover'
+import { ITEM_HEIGHT, PlaylistItemRow } from './components/PlaylistItemRow'
+import type { PlaylistStackParamList } from './types'
+import { formatAlarmTime, formatTotalDuration, getTotalDuration } from './utils'
 
-export const PlaylistDetailScreen = () => {
-  const { styles } = useTheme()
+type Props = NativeStackScreenProps<PlaylistStackParamList, 'PlaylistDetail'>
+
+export const PlaylistDetailScreen = ({ route }: Props) => {
+  const { playlistId } = route.params
+  const insets = useSafeAreaInsets()
+  const navigation = useNavigation<NativeStackNavigationProp<PlaylistStackParamList>>()
+  const { styles, colors, spacing, borderRadius } = useTheme()
+  const { playlists, updatePlaylist, deletePlaylist, reorderPlaylistItems, addToQueue, playPlaylistFrom } =
+    usePlaylist()
+  const { currentContent, state, controls, settings, navigation: playerNav } = usePlayer()
+
+  const playlist = useMemo<Playlist | undefined>(
+    () => playlists.find((p) => p.id === playlistId),
+    [playlists, playlistId],
+  )
+
+  const [headerMenuVisible, setHeaderMenuVisible] = useState(false)
+  const [editOpen, setEditOpen] = useState(false)
+  const [itemMenuVisible, setItemMenuVisible] = useState(false)
+  const [itemMenuTarget, setItemMenuTarget] = useState<PlaylistItem | null>(null)
+  const [itemMenuAnchorY, setItemMenuAnchorY] = useState<number | undefined>(undefined)
+  const [addToPlaylistItem, setAddToPlaylistItem] = useState<Omit<PlaylistItem, 'id'> | null>(null)
+
+  // Drag-and-drop state
+  const [draggingIndex, setDraggingIndex] = useState<number | null>(null)
+  const [targetIndex, setTargetIndex] = useState<number | null>(null)
+  const dragStartIndexRef = useRef<number>(-1)
+  const dragDyRef = useRef(0)
+  const dragTranslate = useRef(new Animated.Value(0)).current
+
+  const handleDragStart = (index: number) => {
+    dragStartIndexRef.current = index
+    dragDyRef.current = 0
+    dragTranslate.setValue(0)
+    setDraggingIndex(index)
+    setTargetIndex(index)
+  }
+
+  const handleDragMove = (dy: number) => {
+    dragDyRef.current = dy
+    dragTranslate.setValue(dy)
+    if (dragStartIndexRef.current < 0 || !playlist) return
+    const offset = Math.round(dy / ITEM_HEIGHT)
+    const raw = dragStartIndexRef.current + offset
+    const clamped = Math.max(0, Math.min(playlist.items.length - 1, raw))
+    setTargetIndex(clamped)
+  }
+
+  const handleDragEnd = () => {
+    if (
+      playlist &&
+      dragStartIndexRef.current >= 0 &&
+      targetIndex !== null &&
+      targetIndex !== dragStartIndexRef.current
+    ) {
+      reorderPlaylistItems(playlist.id, dragStartIndexRef.current, targetIndex)
+    }
+    setDraggingIndex(null)
+    setTargetIndex(null)
+    dragStartIndexRef.current = -1
+    dragDyRef.current = 0
+    dragTranslate.setValue(0)
+  }
+
+  if (!playlist) {
+    return (
+      <View style={[styles.screenContainer, { paddingTop: insets.top }]}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', padding: spacing.lg }}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={{ padding: spacing.xs }}>
+            <ChevronLeft size={24} color={colors.text} />
+          </TouchableOpacity>
+        </View>
+        <EmptyState title='プレイリストが見つかりません' />
+      </View>
+    )
+  }
+
+  const total = getTotalDuration(playlist)
+  const itemsCount = playlist.items.length
+
+  const currentPlayingIndex = (() => {
+    if (!currentContent) return -1
+    return playlist.items.findIndex(
+      (i) =>
+        i.episodeId === currentContent.episodeId && (i.unitId ?? undefined) === (currentContent.unitId ?? undefined),
+    )
+  })()
+
+  const isPlayingThisPlaylist = currentPlayingIndex >= 0
+  const isActuallyPlaying = isPlayingThisPlaylist && state.playbackState === 'playing'
+
+  const headerMenuItems: ContextMenuItem[] = [
+    {
+      label: '編集',
+      onPress: () => setEditOpen(true),
+    },
+    {
+      label: '削除',
+      onPress: () => {
+        Alert.alert('プレイリストを削除', `「${playlist.name}」を削除しますか？`, [
+          { text: 'キャンセル', style: 'cancel' },
+          {
+            text: '削除',
+            style: 'destructive',
+            onPress: () => {
+              deletePlaylist(playlist.id)
+              navigation.goBack()
+            },
+          },
+        ])
+      },
+    },
+  ]
+
+  const openItemMenu = (item: PlaylistItem, anchorY: number) => {
+    setItemMenuTarget(item)
+    setItemMenuAnchorY(anchorY)
+    setItemMenuVisible(true)
+  }
+
+  const itemMenuItems: ContextMenuItem[] = itemMenuTarget
+    ? [
+        {
+          label: '再生キューに追加',
+          onPress: () => {
+            addToQueue({
+              seriesId: itemMenuTarget.seriesId,
+              episodeId: itemMenuTarget.episodeId,
+              unitId: itemMenuTarget.unitId,
+              title: itemMenuTarget.title,
+              seriesTitle: itemMenuTarget.seriesTitle,
+              thumbnail: itemMenuTarget.thumbnail,
+              duration: itemMenuTarget.duration,
+            })
+          },
+        },
+        {
+          label: '他のプレイリストに追加',
+          onPress: () => {
+            setAddToPlaylistItem({
+              seriesId: itemMenuTarget.seriesId,
+              episodeId: itemMenuTarget.episodeId,
+              unitId: itemMenuTarget.unitId,
+              title: itemMenuTarget.title,
+              seriesTitle: itemMenuTarget.seriesTitle,
+              thumbnail: itemMenuTarget.thumbnail,
+              duration: itemMenuTarget.duration,
+            })
+          },
+        },
+      ]
+    : []
+
+  const LoopIcon = settings.loopMode === 'single' ? Repeat1 : Repeat
+  const loopActive = settings.loopMode !== 'off'
+  const cycleLoop = () => {
+    const next = settings.loopMode === 'off' ? 'all' : settings.loopMode === 'all' ? 'single' : 'off'
+    settings.setLoopMode(next)
+  }
+
+  const playOrPause = () => {
+    if (itemsCount === 0) return
+    if (!isPlayingThisPlaylist) {
+      playPlaylistFrom(playlist.id, Math.max(0, currentPlayingIndex))
+      return
+    }
+    if (isActuallyPlaying) controls.pause()
+    else controls.resume()
+  }
+
+  const playPrev = () => {
+    if (isPlayingThisPlaylist) playerNav.playPreviousEpisode()
+  }
+  const playNext = () => {
+    if (isPlayingThisPlaylist) playerNav.playNextEpisode()
+  }
+
+  // Build the display list preserving order, but shifting the dragging item visually to targetIndex
+  const displayItems = (() => {
+    if (draggingIndex === null || targetIndex === null) return playlist.items.map((item, idx) => ({ item, idx }))
+    const arr = playlist.items.slice()
+    const [moved] = arr.splice(draggingIndex, 1)
+    arr.splice(targetIndex, 0, moved)
+    return arr.map((item) => ({ item, idx: playlist.items.findIndex((p) => p.id === item.id) }))
+  })()
+
   return (
-    <View style={styles.screenContainer}>
-      <Text>プレイリスト詳細画面</Text>
+    <View style={[styles.screenContainer]}>
+      {/* Header with cover background */}
+      <View style={{ overflow: 'hidden' }}>
+        <PlaylistCover
+          gradient={playlist.gradient}
+          coverImage={playlist.coverImage}
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+          }}
+        />
+        <View style={{ paddingTop: insets.top + spacing.xs, paddingBottom: spacing.lg, paddingHorizontal: spacing.lg }}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+            <TouchableOpacity
+              onPress={() => navigation.goBack()}
+              style={{ padding: spacing.xs, backgroundColor: 'rgba(0,0,0,0.35)', borderRadius: 999 }}
+            >
+              <ChevronDown size={22} color='#FFFFFF' />
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => setHeaderMenuVisible(true)}
+              style={{ padding: spacing.xs, backgroundColor: 'rgba(0,0,0,0.35)', borderRadius: 999 }}
+            >
+              <MoreVertical size={22} color='#FFFFFF' />
+            </TouchableOpacity>
+          </View>
+
+          <View style={{ marginTop: spacing['3xl'], gap: spacing.xs }}>
+            <Text
+              style={{
+                fontSize: 24,
+                fontWeight: '700',
+                color: '#FFFFFF',
+                textShadowColor: 'rgba(0,0,0,0.6)',
+                textShadowOffset: { width: 0, height: 2 },
+                textShadowRadius: 6,
+              }}
+              numberOfLines={2}
+            >
+              {playlist.name}
+            </Text>
+            {playlist.description.length > 0 && (
+              <Text
+                style={{
+                  fontSize: 13,
+                  color: 'rgba(255,255,255,0.9)',
+                  textShadowColor: 'rgba(0,0,0,0.5)',
+                  textShadowRadius: 4,
+                }}
+                numberOfLines={2}
+              >
+                {playlist.description}
+              </Text>
+            )}
+            <View style={{ flexDirection: 'row', gap: spacing.sm, alignItems: 'center' }}>
+              <Text style={{ color: 'rgba(255,255,255,0.85)', fontSize: 12 }}>
+                {itemsCount}メディア ・ 合計 {formatTotalDuration(total)}
+              </Text>
+              {playlist.alarm?.enabled && (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                  <Clock size={12} color='#FFFFFF' />
+                  <Text style={{ color: '#FFFFFF', fontSize: 12 }}>{formatAlarmTime(playlist.alarm)}</Text>
+                </View>
+              )}
+            </View>
+          </View>
+
+          {itemsCount > 0 && (
+            <View style={{ flexDirection: 'row', gap: spacing.sm, alignItems: 'center', marginTop: spacing.lg }}>
+              <TouchableOpacity
+                onPress={playPrev}
+                disabled={!isPlayingThisPlaylist}
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 20,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: 'rgba(255,255,255,0.25)',
+                  opacity: isPlayingThisPlaylist ? 1 : 0.5,
+                }}
+              >
+                <ChevronLeft size={22} color='#FFFFFF' />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={playOrPause}
+                style={{
+                  flex: 1,
+                  height: 40,
+                  borderRadius: 20,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexDirection: 'row',
+                  gap: spacing.xs,
+                  backgroundColor: '#FFFFFF',
+                }}
+              >
+                {isActuallyPlaying ? (
+                  <Pause size={18} color='#111827' fill='#111827' />
+                ) : (
+                  <Play size={18} color='#111827' fill='#111827' />
+                )}
+                <Text style={{ color: '#111827', fontWeight: '700' }}>{isActuallyPlaying ? '停止' : '再生'}</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={playNext}
+                disabled={!isPlayingThisPlaylist}
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 20,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: 'rgba(255,255,255,0.25)',
+                  opacity: isPlayingThisPlaylist ? 1 : 0.5,
+                }}
+              >
+                <ChevronRight size={22} color='#FFFFFF' />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => settings.setShuffleOn(!settings.isShuffleOn)}
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 20,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: settings.isShuffleOn ? '#FFFFFF' : 'rgba(255,255,255,0.25)',
+                }}
+              >
+                <Shuffle size={18} color={settings.isShuffleOn ? '#111827' : '#FFFFFF'} />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={cycleLoop}
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 20,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: loopActive ? '#FFFFFF' : 'rgba(255,255,255,0.25)',
+                }}
+              >
+                <LoopIcon size={18} color={loopActive ? '#111827' : '#FFFFFF'} />
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+
+        {/* Dark overlay at the bottom to improve contrast */}
+        <View
+          style={{
+            position: 'absolute',
+            left: 0,
+            right: 0,
+            bottom: 0,
+            height: 80,
+            backgroundColor: 'rgba(0,0,0,0.35)',
+          }}
+          pointerEvents='none'
+        />
+      </View>
+
+      {/* Items */}
+      <ScrollView scrollEnabled={draggingIndex === null} contentContainerStyle={{ paddingBottom: spacing['4xl'] }}>
+        {itemsCount === 0 ? (
+          <EmptyState
+            icon={List}
+            title='プレイリストが空です'
+            description='各メディアの「...」から「プレイリストに追加」を選んでください'
+          />
+        ) : (
+          <View style={{ position: 'relative' }}>
+            {displayItems.map(({ item, idx }) => (
+              <PlaylistItemRow
+                key={item.id}
+                playlistId={playlist.id}
+                item={item}
+                index={idx}
+                isPlaying={currentPlayingIndex === idx}
+                isDragging={draggingIndex === idx}
+                onPress={() => playPlaylistFrom(playlist.id, idx)}
+                onMenuPress={() => openItemMenu(item, insets.top + 300 + idx * ITEM_HEIGHT)}
+                onDragStart={handleDragStart}
+                onDragMove={handleDragMove}
+                onDragEnd={handleDragEnd}
+              />
+            ))}
+
+            {/* Floating ghost row while dragging */}
+            {draggingIndex !== null && (
+              <Animated.View
+                pointerEvents='none'
+                style={{
+                  position: 'absolute',
+                  top: draggingIndex * ITEM_HEIGHT,
+                  left: 0,
+                  right: 0,
+                  height: ITEM_HEIGHT,
+                  transform: [{ translateY: dragTranslate }],
+                  backgroundColor: colors.card,
+                  borderRadius: borderRadius.lg,
+                  opacity: 0.9,
+                  elevation: 6,
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 4 },
+                  shadowOpacity: 0.25,
+                  shadowRadius: 8,
+                }}
+              >
+                <PlaylistItemRow
+                  key='ghost'
+                  playlistId={playlist.id}
+                  item={playlist.items[draggingIndex]}
+                  index={draggingIndex}
+                  isPlaying={currentPlayingIndex === draggingIndex}
+                  isDragging={false}
+                  onPress={() => {}}
+                  onMenuPress={() => {}}
+                  onDragStart={() => {}}
+                  onDragMove={() => {}}
+                  onDragEnd={() => {}}
+                />
+              </Animated.View>
+            )}
+          </View>
+        )}
+      </ScrollView>
+
+      {/* Header menu */}
+      <ContextMenu
+        visible={headerMenuVisible}
+        items={headerMenuItems}
+        onClose={() => setHeaderMenuVisible(false)}
+        position='right'
+        anchorY={insets.top + spacing.xl}
+      />
+
+      {/* Item menu */}
+      <ContextMenu
+        visible={itemMenuVisible}
+        items={itemMenuItems}
+        onClose={() => {
+          setItemMenuVisible(false)
+          setItemMenuTarget(null)
+        }}
+        position='right'
+        anchorY={itemMenuAnchorY}
+      />
+
+      {/* Edit modal */}
+      <CreatePlaylistModal
+        visible={editOpen}
+        editing={playlist}
+        onClose={() => setEditOpen(false)}
+        onSubmit={(payload) => {
+          updatePlaylist(playlist.id, {
+            name: payload.name,
+            description: payload.description,
+            gradient: payload.gradient,
+            alarm: payload.alarm,
+          })
+          setEditOpen(false)
+        }}
+      />
+
+      {/* Add to another playlist */}
+      <AddToPlaylistModal
+        visible={addToPlaylistItem !== null}
+        item={addToPlaylistItem}
+        onClose={() => setAddToPlaylistItem(null)}
+      />
     </View>
   )
 }

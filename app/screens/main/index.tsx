@@ -1,13 +1,14 @@
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
 import { Clock, Heart, Home, Library, ListMusic, Settings } from 'lucide-react-native'
-import { useEffect, useState } from 'react'
-import { View } from 'react-native'
+import { useEffect, useRef, useState } from 'react'
+import { Animated, BackHandler, Easing, Image, useWindowDimensions, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { EpisodePlayer } from '../../components/player/EpisodePlayer'
+import { FullscreenControls } from '../../components/player/FullscreenControls'
 import { MiniPlayer } from '../../components/player/MiniPlayer'
-import { usePlayer } from '../../hooks/PlayerContext'
+import { PlayerVideo, usePlayer } from '../../hooks/PlayerContext'
 import { useTheme } from '../../hooks/ThemeContext'
 import { useInitFavorites } from '../../usecases/useGetFavorites'
 import { refetchSettings, useInitSettings } from '../../usecases/useSettings'
@@ -18,7 +19,9 @@ import { HomeTabScreen } from './home'
 import { NewArrivalsScreen } from './home/new-arrivals'
 import { LibraryTabScreen } from './library'
 import { PlaylistTabScreen } from './playlist'
-import { PlaylistChildScreen } from './playlist/child'
+import { PlaylistDetailScreen } from './playlist/playlist-detail'
+import { QueueScreen } from './playlist/queue'
+import type { PlaylistStackParamList } from './playlist/types'
 import { SettingsTabScreen } from './setting'
 
 const Tab = createBottomTabNavigator<{
@@ -37,7 +40,7 @@ const HomeStack = createNativeStackNavigator<{
 }>()
 const LibraryStack = createNativeStackNavigator()
 const FavoritesStack = createNativeStackNavigator()
-const PlaylistStack = createNativeStackNavigator()
+const PlaylistStack = createNativeStackNavigator<PlaylistStackParamList>()
 const HistoryStack = createNativeStackNavigator()
 const SettingsStack = createNativeStackNavigator()
 
@@ -100,10 +103,11 @@ const PlaylistStackScreen = () => (
   <PlaylistStack.Navigator screenOptions={{ headerShown: false, presentation: 'card', animation: 'default' }}>
     <PlaylistStack.Screen name='PlaylistRoot' component={PlaylistTabScreen} options={{ title: 'プレイリスト' }} />
     <PlaylistStack.Screen
-      name='PlaylistChild'
-      component={PlaylistChildScreen}
-      options={{ title: 'プレイリスト child' }}
+      name='PlaylistDetail'
+      component={PlaylistDetailScreen}
+      options={{ title: 'プレイリスト詳細' }}
     />
+    <PlaylistStack.Screen name='Queue' component={QueueScreen} options={{ title: '再生キュー' }} />
   </PlaylistStack.Navigator>
 )
 
@@ -121,10 +125,16 @@ const SettingsStackScreen = () => (
 
 export const MainScreen = () => {
   const { styles, colors } = useTheme()
-  const { currentContent } = usePlayer()
+  const {
+    currentContent,
+    view: { compactSlot, expandedSlot },
+    settings: { isFullscreen, setIsFullscreen },
+  } = usePlayer()
   const [showPlayerModal, setShowPlayerModal] = useState(false)
   const [showEpisodeList, setShowEpisodeList] = useState(false)
   const insets = useSafeAreaInsets()
+  const { width: screenWidth, height: screenHeight } = useWindowDimensions()
+  const slideAnim = useRef(new Animated.Value(screenHeight)).current
 
   useInitSettings()
   useInitFavorites()
@@ -134,6 +144,82 @@ export const MainScreen = () => {
       setShowPlayerModal(true)
     }
   }, [currentContent])
+
+  useEffect(() => {
+    Animated.timing(slideAnim, {
+      toValue: showPlayerModal ? 0 : screenHeight,
+      duration: 300,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: false,
+    }).start()
+  }, [showPlayerModal, screenHeight, slideAnim])
+
+  useEffect(() => {
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (isFullscreen) {
+        setIsFullscreen(false)
+        return true
+      }
+      if (showPlayerModal) {
+        setShowPlayerModal(false)
+        setShowEpisodeList(false)
+        return true
+      }
+      return false
+    })
+    return () => sub.remove()
+  }, [showPlayerModal, isFullscreen, setIsFullscreen])
+
+  const hasSlots = compactSlot && expandedSlot
+  const videoLeft = hasSlots
+    ? slideAnim.interpolate({
+        inputRange: [0, screenHeight],
+        outputRange: [expandedSlot.x, compactSlot.x],
+        extrapolate: 'clamp',
+      })
+    : 0
+  const videoTop = hasSlots
+    ? slideAnim.interpolate({
+        inputRange: [0, screenHeight],
+        outputRange: [expandedSlot.y, compactSlot.y],
+        extrapolate: 'clamp',
+      })
+    : 0
+  const videoWidth = hasSlots
+    ? slideAnim.interpolate({
+        inputRange: [0, screenHeight],
+        outputRange: [expandedSlot.width, compactSlot.width],
+        extrapolate: 'clamp',
+      })
+    : 0
+  const videoHeight = hasSlots
+    ? slideAnim.interpolate({
+        inputRange: [0, screenHeight],
+        outputRange: [expandedSlot.height, compactSlot.height],
+        extrapolate: 'clamp',
+      })
+    : 0
+
+  const videoWrapperStyle = isFullscreen
+    ? {
+        position: 'absolute' as const,
+        top: 0,
+        left: 0,
+        width: screenWidth,
+        height: screenHeight,
+        zIndex: 60,
+      }
+    : {
+        position: 'absolute' as const,
+        left: videoLeft,
+        top: videoTop,
+        width: videoWidth,
+        height: videoHeight,
+        zIndex: 60,
+      }
+
+  const thumbnail = currentContent?.thumbnail
+  const showVideoWrapper = currentContent && (hasSlots || isFullscreen)
 
   return (
     <View style={{ flex: 1 }}>
@@ -224,14 +310,43 @@ export const MainScreen = () => {
         </View>
       )}
 
-      <EpisodePlayer
-        visible={showPlayerModal}
-        showEpisodeList={showEpisodeList}
-        onClose={() => {
-          setShowPlayerModal(false)
-          setShowEpisodeList(false)
-        }}
-      />
+      {currentContent && (
+        <Animated.View
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            transform: [{ translateY: slideAnim }],
+          }}
+          pointerEvents={showPlayerModal ? 'auto' : 'none'}
+        >
+          <EpisodePlayer
+            visible={showPlayerModal}
+            showEpisodeList={showEpisodeList}
+            onClose={() => {
+              setShowPlayerModal(false)
+              setShowEpisodeList(false)
+            }}
+          />
+        </Animated.View>
+      )}
+
+      {showVideoWrapper && (
+        <Animated.View style={videoWrapperStyle} pointerEvents='none'>
+          <PlayerVideo style={{ width: '100%', height: '100%' }} />
+          {!currentContent.isVideo && thumbnail && (
+            <Image
+              source={{ uri: thumbnail }}
+              style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+              resizeMode='cover'
+            />
+          )}
+        </Animated.View>
+      )}
+
+      <FullscreenControls />
     </View>
   )
 }

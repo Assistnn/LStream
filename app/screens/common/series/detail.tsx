@@ -27,7 +27,9 @@ export const SeriesDetailScreen = ({
   const insets = useSafeAreaInsets()
   const { styles, colors, spacing, borderRadius } = useTheme()
   const { data, loading, refetch } = useGetSeries(seriesId)
-  const { navigation: { playEpisode } } = usePlayer()
+  const {
+    navigation: { playEpisode },
+  } = usePlayer()
 
   const [filterType, setFilterType] = useState<'all' | 'notStarted'>('all')
   const [sortOrder, setSortOrder] = useState<'default' | 'newest' | 'oldest'>('default')
@@ -384,6 +386,12 @@ export const SeriesDetailScreen = ({
                             mediaId={episode.item_id}
                             mediaType='episode'
                             size={16}
+                            mediaInfo={{
+                              title: episode.title,
+                              seriesTitle: data.title,
+                              thumbnail: episode.img,
+                              duration: episode.duration,
+                            }}
                           />
                         )}
                       </View>
@@ -427,6 +435,12 @@ export const SeriesDetailScreen = ({
                               mediaId={unit.item_id}
                               mediaType='unit'
                               size={16}
+                              mediaInfo={{
+                                title: unit.title,
+                                seriesTitle: data.title,
+                                thumbnail: unit.img,
+                                duration: unit.duration,
+                              }}
                             />
                           </View>
                         </TouchableOpacity>

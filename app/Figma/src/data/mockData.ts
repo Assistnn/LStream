@@ -1,102 +1,102 @@
 // Type definitions
 export interface Chapter {
-  id: string;
-  chapterNumber: number;
-  title: string;
-  duration: number;
-  startTime?: number; // Start time in seconds from episode beginning
-  isCompleted: boolean;
-  playCount: number;
-  lastPlayed?: Date;
-  isFavorite?: boolean;
-  isDownloaded?: boolean;
-  isLocked?: boolean;
+  id: string
+  chapterNumber: number
+  title: string
+  duration: number
+  startTime?: number // Start time in seconds from episode beginning
+  isCompleted: boolean
+  playCount: number
+  lastPlayed?: Date
+  isFavorite?: boolean
+  isDownloaded?: boolean
+  isLocked?: boolean
 }
 
 export interface Episode {
-  id: string;
-  episodeNumber: number;
-  title: string;
-  duration: number;
-  isCompleted: boolean;
-  playCount: number;
-  lastPlayed?: Date;
-  isFavorite?: boolean;
-  isDownloaded?: boolean;
-  videoUrl?: string;
-  aspectRatio?: '16:9' | '9:16';
-  chapters?: Chapter[];
-  isLocked?: boolean;
-  description?: string; // For episode description/text content
+  id: string
+  episodeNumber: number
+  title: string
+  duration: number
+  isCompleted: boolean
+  playCount: number
+  lastPlayed?: Date
+  isFavorite?: boolean
+  isDownloaded?: boolean
+  videoUrl?: string
+  aspectRatio?: '16:9' | '9:16'
+  chapters?: Chapter[]
+  isLocked?: boolean
+  description?: string // For episode description/text content
 }
 
 export interface Series {
-  id: string;
-  title: string;
-  description: string;
-  category: string;
-  type: 'video' | 'audio';
-  thumbnail: string;
-  isFavorite: boolean;
-  isDownloaded: boolean;
-  totalEpisodes: number;
-  completedEpisodes: number;
-  lastPlayedEpisode?: number;
-  isAccessible?: boolean; // If false, series is visible but content is not accessible
-  episodes: Episode[];
+  id: string
+  title: string
+  description: string
+  category: string
+  type: 'video' | 'audio'
+  thumbnail: string
+  isFavorite: boolean
+  isDownloaded: boolean
+  totalEpisodes: number
+  completedEpisodes: number
+  lastPlayedEpisode?: number
+  isAccessible?: boolean // If false, series is visible but content is not accessible
+  episodes: Episode[]
 }
 
 export interface Content {
-  id: string;
-  title: string;
-  category: string;
-  type: 'video' | 'audio';
-  duration: number;
-  thumbnail?: string;
-  isFavorite: boolean;
-  isDownloaded: boolean;
-  lastPlayed?: Date;
-  playCount: number;
-  isSeries: false;
-  isLocked?: boolean;
-  description?: string; // For content description/text content
+  id: string
+  title: string
+  category: string
+  type: 'video' | 'audio'
+  duration: number
+  thumbnail?: string
+  isFavorite: boolean
+  isDownloaded: boolean
+  lastPlayed?: Date
+  playCount: number
+  isSeries: false
+  isLocked?: boolean
+  description?: string // For content description/text content
 }
 
-export type LibraryItem = Series | Content;
+export type LibraryItem = Series | Content
 
 export interface HistoryItem {
-  id: string;
-  series: Series;
-  episode?: Episode;
-  chapter?: Chapter;
-  playedAt: Date;
-  duration: number; // Total duration of the content
-  progress: number; // Progress in seconds
-  thumbnail: string;
+  id: string
+  series: Series
+  episode?: Episode
+  chapter?: Chapter
+  playedAt: Date
+  duration: number // Total duration of the content
+  progress: number // Progress in seconds
+  thumbnail: string
 }
 
 export interface PlaylistItem {
-  series: Series;
-  episode: Episode;
-  chapter?: Chapter;
+  series: Series
+  episode: Episode
+  chapter?: Chapter
 }
 
 export interface AlarmSettings {
-  enabled: boolean;
-  time: string; // Format: "HH:MM"
-  days: ('sun' | 'mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat')[]; // Selected days of the week
-  random?: boolean; // Random playback option
+  enabled: boolean
+  time: string // Format: "HH:MM"
+  days: ('sun' | 'mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat')[] // Selected days of the week
+  random?: boolean // Random playback option
 }
 
 export interface Playlist {
-  id: string;
-  name: string;
-  description: string;
-  items: PlaylistItem[];
-  alarm?: AlarmSettings;
-  coverImage?: string; // URL to cover image (1:1 aspect ratio)
-  gradient?: string; // Tailwind gradient classes (e.g., "from-blue-500 to-purple-600")
-  createdAt: Date;
+  id: string
+  name: string
+  description: string
+  items: PlaylistItem[]
+  alarm?: AlarmSettings
+  coverImage?: string // URL to cover image (1:1 aspect ratio)
+  gradient?: string // Tailwind gradient classes (e.g., "from-blue-500 to-purple-600")
+  createdAt: Date
 }
 
 export const categories = [
@@ -106,7 +106,7 @@ export const categories = [
   { id: 'business', label: 'ビジネス' },
   { id: 'affirmation', label: '自己肯定感' },
   { id: 'sales', label: 'セールス練習' },
-];
+]
 
 export const mockSeries: Series[] = [
   {
@@ -115,7 +115,8 @@ export const mockSeries: Series[] = [
     description: '基礎から応用まで、ビジネスシーン使える英会話を段階的に学習',
     category: 'english',
     type: 'video',
-    thumbnail: 'https://images.unsplash.com/photo-1565022536102-f7645c84354a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxlbmdsaXNoJTIwc3R1ZHklMjBib29rc3xlbnwxfHx8fDE3Njg5NDcxOTJ8MA&ixlib=rb-4.1.0&q=80&w=1080',
+    thumbnail:
+      'https://images.unsplash.com/photo-1565022536102-f7645c84354a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxlbmdsaXNoJTIwc3R1ZHklMjBib29rc3xlbnwxfHx8fDE3Njg5NDcxOTJ8MA&ixlib=rb-4.1.0&q=80&w=1080',
     isFavorite: true,
     isDownloaded: true,
     totalEpisodes: 12,
@@ -135,7 +136,8 @@ export const mockSeries: Series[] = [
         videoUrl: 'qiyTDxBjmIw', // 16:9 video
         aspectRatio: '16:9',
         isLocked: false, // Unlocked
-        description: 'Episode 1: 自己紹介とあいさつ\n\nこのエピソードでは、ビジネスシーンで必要な基本的な自己紹介のフレーズを学びます。初対面の相手に好印象を与え、スムーズにコミュニケーションを開始するためのテクニックを習得しましょう。\n\n第1章：ビジネスにおける第一印象の重要性\n最初の数秒で相手に与える印象が、その後の関係性に大きく影響します。適切な言葉選び、声のトーン、そして表情が重要です。\n\n第2章：基本の自己紹介フレーズ\n"Hello, my name is..." から始まる基本的なフレーズを確認します。名前、所属部署、役職を明確に伝えることで、相手に信頼感を与えることができます。',
+        description:
+          'Episode 1: 自己紹介とあいさつ\n\nこのエピソードでは、ビジネスシーンで必要な基本的な自己紹介のフレーズを学びます。初対面の相手に好印象を与え、スムーズにコミュニケーションを開始するためのテクニックを習得しましょう。\n\n第1章：ビジネスにおける第一印象の重要性\n最初の数秒で相手に与える印象が、その後の関係性に大きく影響します。適切な言葉選び、声のトーン、そして表情が重要です。\n\n第2章：基本の自己紹介フレーズ\n"Hello, my name is..." から始まる基本的なフレーズを確認します。名前、所属部署、役職を明確に伝えることで、相手に信頼感を与えることができます。',
         chapters: [
           {
             id: 'ep-1-1-ch-1',
@@ -179,7 +181,8 @@ export const mockSeries: Series[] = [
         videoUrl: 'Q2S1JLSJv1U', // 9:16 video
         aspectRatio: '9:16',
         isLocked: false, // Unlocked
-        description: 'Episode 2: 電話応対の基本\n\nビジネスの電話応対で求められるプロフェッショナルな対応方法を学びます。明確で丁寧な英語表現を使い、相手に安心感を与える電話スキルを身につけましょう。\n\n第1章：電話の受け答えの基本\n電話を受けた際の第一声は非常に重要です。"Thank you for calling..." というフレーズで始め、相手に歓迎の意を示しましょう。\n\n第2章：用件の聞き取りと転送\n相手の用件を正確に聞き取り、適切な担当者に転送する方法を学びます。メモの取り方や復唱のテクニックも紹介します。',
+        description:
+          'Episode 2: 電話応対の基本\n\nビジネスの電話応対で求められるプロフェッショナルな対応方法を学びます。明確で丁寧な英語表現を使い、相手に安心感を与える電話スキルを身につけましょう。\n\n第1章：電話の受け答えの基本\n電話を受けた際の第一声は非常に重要です。"Thank you for calling..." というフレーズで始め、相手に歓迎の意を示しましょう。\n\n第2章：用件の聞き取りと転送\n相手の用件を正確に聞き取り、適切な担当者に転送する方法を学びます。メモの取り方や復唱のテクニックも紹介します。',
       },
       {
         id: 'ep-1-3',
@@ -288,7 +291,8 @@ export const mockSeries: Series[] = [
     description: '毎日続けることで習慣化する、段階的な瞑想プログラム',
     category: 'meditation',
     type: 'audio',
-    thumbnail: 'https://images.unsplash.com/photo-1764192114257-ae9ecf97eb6f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtZWRpdGF0aW9uJTIwY2FsbSUyMG5hdHVyZXxlbnwxfHx8fDE3Njg4NTMxMzJ8MA&ixlib=rb-4.1.0&q=80&w=1080',
+    thumbnail:
+      'https://images.unsplash.com/photo-1764192114257-ae9ecf97eb6f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtZWRpdGF0aW9uJTIwY2FsbSUyMG5hdHVyZXxlbnwxfHx8fDE3Njg4NTMxMzJ8MA&ixlib=rb-4.1.0&q=80&w=1080',
     isFavorite: true,
     isDownloaded: true,
     totalEpisodes: 21,
@@ -298,9 +302,7 @@ export const mockSeries: Series[] = [
     episodes: Array.from({ length: 21 }, (_, i) => ({
       id: `ep-2-${i + 1}`,
       episodeNumber: i + 1,
-      title: `Day ${i + 1} - ${
-        i < 7 ? '基礎編' : i < 14 ? '応用編' : '実践編'
-      }`,
+      title: `Day ${i + 1} - ${i < 7 ? '基礎編' : i < 14 ? '応用編' : '実践編'}`,
       duration: 300 + Math.floor(Math.random() * 300),
       isCompleted: i < 5,
       playCount: i < 5 ? Math.floor(Math.random() * 10) + 1 : 0,
@@ -314,7 +316,8 @@ export const mockSeries: Series[] = [
     description: '営業のプロが教える、成果を出すための実践的なセールステクニック',
     category: 'sales',
     type: 'video',
-    thumbnail: 'https://images.unsplash.com/photo-1758691736722-cda1858056e0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxidXNpbmVzcyUyMGxlYXJuaW5nfGVufDF8fHx8MTc2ODk0NzE5Mnww&ixlib=rb-4.1.0&q=80&w=1080',
+    thumbnail:
+      'https://images.unsplash.com/photo-1758691736722-cda1858056e0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxidXNpbmVzcyUyMGxlYXJuaW5nfGVufDF8fHx8MTc2ODk0NzE5Mnww&ixlib=rb-4.1.0&q=80&w=1080',
     isFavorite: false,
     isDownloaded: true,
     totalEpisodes: 4,
@@ -422,7 +425,7 @@ export const mockSeries: Series[] = [
       },
     ],
   },
-];
+]
 
 export const mockContents: Content[] = [
   {
@@ -431,7 +434,8 @@ export const mockContents: Content[] = [
     category: 'meditation',
     type: 'audio',
     duration: 300,
-    thumbnail: 'https://images.unsplash.com/photo-1764192114257-ae9ecf97eb6f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtZWRpdGF0aW9uJTIwY2FsbSUyMG5hdHVyZXxlbnwxfHx8fDE3Njg4NTMxMzJ8MA&ixlib=rb-4.1.0&q=80&w=1080',
+    thumbnail:
+      'https://images.unsplash.com/photo-1764192114257-ae9ecf97eb6f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtZWRpdGF0aW9uJTIwY2FsbSUyMG5hdHVyZXxlbnwxfHx8fDE3Njg4NTMxMzJ8MA&ixlib=rb-4.1.0&q=80&w=1080',
     isFavorite: true,
     isDownloaded: true,
     lastPlayed: new Date('2026-01-20T07:30:00'),
@@ -444,7 +448,8 @@ export const mockContents: Content[] = [
     category: 'affirmation',
     type: 'audio',
     duration: 900,
-    thumbnail: 'https://images.unsplash.com/flagged/photo-1564401398070-9a0ec00bd38a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtb3RpdmF0aW9uYWwlMjBzcGVha2VyfGVufDF8fHx8MTc2ODk0NzE5Mnww&ixlib=rb-4.1.0&q=80&w=1080',
+    thumbnail:
+      'https://images.unsplash.com/flagged/photo-1564401398070-9a0ec00bd38a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtb3RpdmF0aW9uYWwlMjBzcGVha2VyfGVufDF8fHx8MTc2ODk0NzE5Mnww&ixlib=rb-4.1.0&q=80&w=1080',
     isFavorite: true,
     isDownloaded: false,
     lastPlayed: new Date('2026-01-18T12:00:00'),
@@ -485,28 +490,25 @@ export const mockContents: Content[] = [
     playCount: 1234,
     isSeries: false,
   },
-];
+]
 
-export const mockLibraryItems: LibraryItem[] = [
-  ...mockSeries,
-  ...mockContents,
-];
+export const mockLibraryItems: LibraryItem[] = [...mockSeries, ...mockContents]
 
 // New Arrivals - Episodes, Chapters, and standalone Content items
 export interface NewArrivalItem {
-  id: string;
-  type: 'episode' | 'chapter' | 'content';
-  title: string;
-  series?: Series;
-  episode?: Episode;
-  chapter?: Chapter;
-  content?: Content;
-  thumbnail: string;
-  duration: number;
-  category: string;
-  itemType: 'video' | 'audio';
-  addedAt: Date;
-  isFavorite?: boolean;
+  id: string
+  type: 'episode' | 'chapter' | 'content'
+  title: string
+  series?: Series
+  episode?: Episode
+  chapter?: Chapter
+  content?: Content
+  thumbnail: string
+  duration: number
+  category: string
+  itemType: 'video' | 'audio'
+  addedAt: Date
+  isFavorite?: boolean
 }
 
 // Mock New Arrivals Data (8 items for horizontal scroll)
@@ -624,30 +626,30 @@ export const mockNewArrivals: NewArrivalItem[] = [
     addedAt: new Date('2026-01-31T08:00:00'),
     isFavorite: false,
   },
-];
+]
 
 export const formatDuration = (seconds: number): string => {
-  const hours = Math.floor(seconds / 3600);
-  const minutes = Math.floor((seconds % 3600) / 60);
-  const secs = seconds % 60;
+  const hours = Math.floor(seconds / 3600)
+  const minutes = Math.floor((seconds % 3600) / 60)
+  const secs = seconds % 60
 
   if (hours > 0) {
-    return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
   }
-  return `${minutes}:${secs.toString().padStart(2, '0')}`;
-};
+  return `${minutes}:${secs.toString().padStart(2, '0')}`
+}
 
 export const getCategoryLabel = (categoryId: string): string => {
-  return categories.find((c) => c.id === categoryId)?.label || categoryId;
-};
+  return categories.find((c) => c.id === categoryId)?.label || categoryId
+}
 
 export const isSeries = (item: LibraryItem): item is Series => {
-  return 'episodes' in item;
-};
+  return 'episodes' in item
+}
 
 export const isContent = (item: LibraryItem): item is Content => {
-  return 'isSeries' in item && !item.isSeries;
-};
+  return 'isSeries' in item && !item.isSeries
+}
 
 // Mock Play History Data
 export const mockPlayHistory: HistoryItem[] = [
@@ -768,4 +770,4 @@ export const mockPlayHistory: HistoryItem[] = [
     progress: 1800,
     thumbnail: mockSeries[2].thumbnail,
   },
-];
+]

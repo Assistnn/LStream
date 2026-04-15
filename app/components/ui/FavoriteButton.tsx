@@ -18,10 +18,7 @@ export const FavoriteButton = ({
 }) => {
   const isFavorited = isFavoriteEpisode(seriesId, itemId)
   return (
-    <TouchableOpacity
-      style={buttonStyle}
-      onPress={() => toggleFavorite(seriesId, itemId)}
-    >
+    <TouchableOpacity style={buttonStyle} onPress={() => toggleFavorite(seriesId, itemId)}>
       <Heart size={size} color='#FFFFFF' fill={isFavorited ? '#FFFFFF' : 'transparent'} />
     </TouchableOpacity>
   )

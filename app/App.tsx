@@ -7,6 +7,7 @@ import { enableScreens } from 'react-native-screens'
 import { ApiErrorProvider } from './hooks/api/ApiErrorContext'
 import { AuthProvider, useAuth } from './hooks/AuthContext'
 import { PlayerProvider } from './hooks/PlayerContext'
+import { PlaylistProvider } from './hooks/PlaylistContext'
 import { ThemeContext, ThemeProvider } from './hooks/ThemeContext'
 import { LoginScreen } from './screens/login'
 import { MainScreen } from './screens/main'
@@ -20,7 +21,9 @@ export default () => (
       <ApiErrorProvider>
         <AuthProvider>
           <PlayerProvider>
-            <AppContent />
+            <PlaylistProvider>
+              <AppContent />
+            </PlaylistProvider>
           </PlayerProvider>
         </AuthProvider>
       </ApiErrorProvider>

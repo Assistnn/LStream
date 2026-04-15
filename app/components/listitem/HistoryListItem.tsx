@@ -10,7 +10,9 @@ const apiRepository = new ApiRepository()
 
 export const HistoryListItem = ({ item, isTop }: { item: PlaybackHistoryItem; isTop: boolean }) => {
   const { colors, spacing, styles, borderRadius } = useTheme()
-  const { navigation: { playEpisode } } = usePlayer()
+  const {
+    navigation: { playEpisode },
+  } = usePlayer()
 
   const playedDate = new Date(item.date)
   const dateStr = `${playedDate.getMonth() + 1}/${playedDate.getDate()}`

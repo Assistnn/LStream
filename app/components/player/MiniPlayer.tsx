@@ -1,5 +1,6 @@
 import { List, Pause, Play, X } from 'lucide-react-native'
-import { Text, TouchableOpacity, View } from 'react-native'
+import { useCallback, useRef } from 'react'
+import { Image, Text, TouchableOpacity, View } from 'react-native'
 
 import { usePlayer } from '../../hooks/PlayerContext'
 import { useTheme } from '../../hooks/ThemeContext'
@@ -7,7 +8,21 @@ import { FavoriteButton } from '../ui/FavoriteButton'
 
 export const MiniPlayer = ({ onTap, onListTap }: { onTap: () => void; onListTap: () => void }) => {
   const { colors } = useTheme()
-  const { currentContent, state: { playbackState }, controls: { pause, resume }, view: { closePlayer, renderThumbnail } } = usePlayer()
+  const {
+    currentContent,
+    state: { playbackState },
+    controls: { pause, resume },
+    view: { closePlayer, setCompactSlot },
+  } = usePlayer()
+  const slotRef = useRef<View>(null)
+
+  const measureSlot = useCallback(() => {
+    slotRef.current?.measureInWindow((x, y, width, height) => {
+      if (width > 0 && height > 0) {
+        setCompactSlot({ x, y, width, height })
+      }
+    })
+  }, [setCompactSlot])
 
   if (!currentContent) return null
 
@@ -15,6 +30,7 @@ export const MiniPlayer = ({ onTap, onListTap }: { onTap: () => void; onListTap:
   const episode = currentContent.episodes.find((ep) => ep.item_id === currentContent.episodeId)
   if (!episode) return null
   const unit = currentContent.unitId ? episode.units?.find((u) => u.item_id === currentContent.unitId) : undefined
+  const thumbnail = unit?.img || episode.img
 
   return (
     <View
@@ -39,7 +55,24 @@ export const MiniPlayer = ({ onTap, onListTap }: { onTap: () => void; onListTap:
             paddingHorizontal: 0,
           }}
         >
-          {renderThumbnail({ width: 80, height: 56 })}
+          <View ref={slotRef} onLayout={measureSlot} collapsable={false} style={{ width: 80, height: 56 }}>
+            {!currentContent.isVideo &&
+              (thumbnail ? (
+                <Image source={{ uri: thumbnail }} style={{ width: 80, height: 56 }} resizeMode='cover' />
+              ) : (
+                <View
+                  style={{
+                    width: 80,
+                    height: 56,
+                    backgroundColor: '#6b7280',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                  }}
+                >
+                  <Text style={{ fontSize: 24 }}>🎵</Text>
+                </View>
+              ))}
+          </View>
           <View style={{ flex: 1, paddingHorizontal: 12, justifyContent: 'center' }}>
             <Text style={{ fontSize: 13, fontWeight: '600', color: colors.text }} numberOfLines={1}>
               {unit?.title || episode.title}
@@ -74,7 +107,11 @@ export const MiniPlayer = ({ onTap, onListTap }: { onTap: () => void; onListTap:
           <TouchableOpacity
             onPress={(e) => {
               e.stopPropagation()
-              isPlaying ? pause() : resume()
+              if (isPlaying) {
+                pause()
+              } else {
+                resume()
+              }
             }}
             style={{ padding: 6, justifyContent: 'center', alignItems: 'center' }}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
