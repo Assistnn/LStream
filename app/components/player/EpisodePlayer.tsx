@@ -70,14 +70,21 @@ export const EpisodePlayer = ({
   const [expandedEpisodes, setExpandedEpisodes] = useState<Set<number>>(new Set())
   const [filterType, setFilterType] = useState<'all' | 'unplayed'>('all')
   const [sortOrder, setSortOrder] = useState<'default' | 'newest' | 'oldest'>('default')
+  const outerRef = useRef<View>(null)
   const slotRef = useRef<View>(null)
 
   const measureSlot = useCallback(() => {
-    slotRef.current?.measureInWindow((x, y, width, height) => {
-      if (width > 0 && height > 0) {
-        setExpandedSlot({ x, y, width, height })
-      }
-    })
+    const outer = outerRef.current
+    if (!outer) return
+    slotRef.current?.measureLayout(
+      outer,
+      (x, y, width, height) => {
+        if (width > 0 && height > 0) {
+          setExpandedSlot({ x, y, width, height })
+        }
+      },
+      () => {},
+    )
   }, [setExpandedSlot])
 
   useEffect(() => {
@@ -87,13 +94,6 @@ export const EpisodePlayer = ({
   useEffect(() => {
     setPlayerExpanded(visible)
   }, [visible, setPlayerExpanded])
-
-  useEffect(() => {
-    if (visible) {
-      const timer = setTimeout(measureSlot, 350)
-      return () => clearTimeout(timer)
-    }
-  }, [visible, measureSlot])
 
   const isPlaying = playbackState === 'playing'
 
@@ -162,7 +162,7 @@ export const EpisodePlayer = ({
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.background }}>
+    <View ref={outerRef} collapsable={false} style={{ flex: 1, backgroundColor: colors.background }}>
       {/* Fixed Header */}
       <View
         style={{

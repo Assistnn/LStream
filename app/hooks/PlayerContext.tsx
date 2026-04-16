@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { createContext, useContext, useEffect, useRef, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import type { ViewStyle } from 'react-native'
 import Video, { type VideoRef } from 'react-native-video'
 
@@ -205,23 +205,68 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
   const [expandedSlot, setExpandedSlot] = useState<Rect | null>(null)
   const [isPipActive, setPipActive] = useState(false)
 
-  const playNextEpisodeInternal = () => {
-    if (!currentContent) return
-    const { episodes } = currentContent
+  // latest refs for stable callbacks
+  const settingsRef = useRef(settings)
+  settingsRef.current = settings
+  const currentContentRef = useRef(currentContent)
+  currentContentRef.current = currentContent
 
-    if (settings.isShuffleOn && episodes.length > 1) {
-      const otherEpisodes = episodes.filter((ep) => ep.item_id !== currentContent.episodeId)
+  const playNextEpisodeInternal = () => {
+    const content = currentContentRef.current
+    if (!content) return
+    const { episodes } = content
+
+    if (settingsRef.current.isShuffleOn && episodes.length > 1) {
+      const otherEpisodes = episodes.filter((ep) => ep.item_id !== content.episodeId)
       const randomEpisode = otherEpisodes[Math.floor(Math.random() * otherEpisodes.length)]
-      switchContent(currentContent.withEpisode(randomEpisode.item_id, randomEpisode.units?.[0]?.item_id))
+      switchContent(content.withEpisode(randomEpisode.item_id, randomEpisode.units?.[0]?.item_id))
       return
     }
 
-    const currentIndex = episodes.findIndex((ep) => ep.item_id === currentContent.episodeId)
+    const currentIndex = episodes.findIndex((ep) => ep.item_id === content.episodeId)
     if (currentIndex < episodes.length - 1) {
       const nextEpisode = episodes[currentIndex + 1]
-      switchContent(currentContent.withEpisode(nextEpisode.item_id, nextEpisode.units?.[0]?.item_id))
+      switchContent(content.withEpisode(nextEpisode.item_id, nextEpisode.units?.[0]?.item_id))
     }
   }
+
+  const handleProgress = useCallback((currentTime: number) => {
+    setState((prev) => ({ ...prev, currentTime }))
+  }, [])
+
+  const handleLoad = useCallback(() => {
+    setState((prev) => (prev.playbackState === 'loading' ? { ...prev, playbackState: 'playing' } : prev))
+  }, [])
+
+  const handleEnd = useCallback(() => {
+    const s = settingsRef.current
+    const content = currentContentRef.current
+    if (s.loopMode === 'single') {
+      videoRef.current?.seek(0)
+      setState((prev) => ({ ...prev, currentTime: 0, playbackState: 'playing' }))
+      return
+    }
+    if (s.loopMode === 'all' && content) {
+      if (content.unitId) {
+        const allUnits = content.units
+        const uIdx = allUnits.findIndex((u) => u.item_id === content.unitId)
+        if (uIdx < allUnits.length - 1) {
+          switchContent(content.withUnit(allUnits[uIdx + 1].item_id))
+          return
+        }
+      }
+      const epIdx = content.episodeIndex
+      if (epIdx < content.episodes.length - 1 || s.isShuffleOn) {
+        playNextEpisodeInternal()
+      } else {
+        const firstEp = content.episodes[0]
+        switchContent(content.withEpisode(firstEp.item_id, firstEp.units?.[0]?.item_id))
+      }
+      return
+    }
+    setState((prev) => ({ ...prev, playbackState: 'ended' }))
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
   return (
     <PlayerContext.Provider
       value={{
@@ -303,36 +348,9 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
           setExpandedSlot,
           isPipActive,
           setPipActive,
-          handleProgress: (currentTime) => updateState({ currentTime }),
-          handleLoad: () => {
-            setState((prev) => (prev.playbackState === 'loading' ? { ...prev, playbackState: 'playing' } : prev))
-          },
-          handleEnd: () => {
-            if (settings.loopMode === 'single') {
-              videoRef.current?.seek(0)
-              updateState({ currentTime: 0, playbackState: 'playing' })
-              return
-            }
-            if (settings.loopMode === 'all' && currentContent) {
-              if (currentContent.unitId) {
-                const allUnits = currentContent.units
-                const uIdx = allUnits.findIndex((u) => u.item_id === currentContent.unitId)
-                if (uIdx < allUnits.length - 1) {
-                  switchContent(currentContent.withUnit(allUnits[uIdx + 1].item_id))
-                  return
-                }
-              }
-              const epIdx = currentContent.episodeIndex
-              if (epIdx < currentContent.episodes.length - 1 || settings.isShuffleOn) {
-                playNextEpisodeInternal()
-              } else {
-                const firstEp = currentContent.episodes[0]
-                switchContent(currentContent.withEpisode(firstEp.item_id, firstEp.units?.[0]?.item_id))
-              }
-              return
-            }
-            updateState({ playbackState: 'ended' })
-          },
+          handleProgress,
+          handleLoad,
+          handleEnd,
         },
         settings: {
           playbackRate: settings.playbackRate,
@@ -362,24 +380,35 @@ export const PlayerVideo = ({ style }: { style?: ViewStyle }) => {
     settings: { playbackRate, volume },
     view: { videoRef, handleProgress, handleLoad, handleEnd, setPipActive },
   } = usePlayer()
-  if (!currentContent) return null
+  const mediaUrl = currentContent?.mediaUrl
+  const source = useMemo(() => (mediaUrl ? { uri: mediaUrl } : undefined), [mediaUrl])
+  const onProgress = useCallback(
+    (data: { currentTime: number }) => handleProgress(data.currentTime),
+    [handleProgress],
+  )
+  const onPipStatusChanged = useCallback(
+    ({ isActive }: { isActive: boolean }) => setPipActive(isActive),
+    [setPipActive],
+  )
+  const enterPip = !!currentContent?.isVideo
+  if (!currentContent || !source) return null
   return (
     <Video
       ref={videoRef}
-      source={{ uri: currentContent.mediaUrl }}
+      source={source}
       style={style}
       resizeMode='cover'
       paused={playbackState !== 'playing'}
       rate={playbackRate}
       volume={volume / 100}
-      onProgress={(data) => handleProgress(data.currentTime)}
+      onProgress={onProgress}
       onLoad={handleLoad}
       onEnd={handleEnd}
       playInBackground={true}
       playWhenInactive={true}
       ignoreSilentSwitch='ignore'
-      enterPictureInPictureOnLeave={currentContent.isVideo}
-      onPictureInPictureStatusChanged={({ isActive }) => setPipActive(isActive)}
+      enterPictureInPictureOnLeave={enterPip}
+      onPictureInPictureStatusChanged={onPipStatusChanged}
     />
   )
 }

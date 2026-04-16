@@ -150,7 +150,7 @@ export const MainScreen = () => {
       toValue: showPlayerModal ? 0 : screenHeight,
       duration: 300,
       easing: Easing.out(Easing.cubic),
-      useNativeDriver: false,
+      useNativeDriver: true,
     }).start()
   }, [showPlayerModal, screenHeight, slideAnim])
 
@@ -170,35 +170,40 @@ export const MainScreen = () => {
     return () => sub.remove()
   }, [showPlayerModal, isFullscreen, setIsFullscreen])
 
-  const hasSlots = compactSlot && expandedSlot
-  const videoLeft = hasSlots
-    ? slideAnim.interpolate({
-        inputRange: [0, screenHeight],
-        outputRange: [expandedSlot.x, compactSlot.x],
-        extrapolate: 'clamp',
-      })
-    : 0
-  const videoTop = hasSlots
-    ? slideAnim.interpolate({
-        inputRange: [0, screenHeight],
-        outputRange: [expandedSlot.y, compactSlot.y],
-        extrapolate: 'clamp',
-      })
-    : 0
-  const videoWidth = hasSlots
-    ? slideAnim.interpolate({
-        inputRange: [0, screenHeight],
-        outputRange: [expandedSlot.width, compactSlot.width],
-        extrapolate: 'clamp',
-      })
-    : 0
-  const videoHeight = hasSlots
-    ? slideAnim.interpolate({
-        inputRange: [0, screenHeight],
-        outputRange: [expandedSlot.height, compactSlot.height],
-        extrapolate: 'clamp',
-      })
-    : 0
+  // ラッパーのベースサイズは常に「expandedSlot の想定サイズ」= 画面幅 × 9/16 に固定する。
+  // 実測値 expandedSlot と同じサイズになるので、測定後もサイズは変わらず、
+  // iOS AVPlayerLayer が再初期化されない (→ 遷移中に動画描画が一瞬止まる問題を回避)。
+  const baseWidth = screenWidth
+  const baseHeight = (screenWidth * 9) / 16
+  const effectiveExpanded = expandedSlot ?? { x: 0, y: 0, width: baseWidth, height: baseHeight }
+  const effectiveCompact = compactSlot ?? {
+    x: 0,
+    y: screenHeight - 49 - insets.bottom - 56,
+    width: 80,
+    height: 56,
+  }
+
+  // transform ベース (useNativeDriver: true 対応): translate + scale で compactSlot へ補間
+  const translateX = slideAnim.interpolate({
+    inputRange: [0, screenHeight],
+    outputRange: [effectiveExpanded.x, effectiveCompact.x],
+    extrapolate: 'clamp',
+  })
+  const translateY = slideAnim.interpolate({
+    inputRange: [0, screenHeight],
+    outputRange: [effectiveExpanded.y, effectiveCompact.y],
+    extrapolate: 'clamp',
+  })
+  const scaleX = slideAnim.interpolate({
+    inputRange: [0, screenHeight],
+    outputRange: [1, effectiveCompact.width / baseWidth],
+    extrapolate: 'clamp',
+  })
+  const scaleY = slideAnim.interpolate({
+    inputRange: [0, screenHeight],
+    outputRange: [1, effectiveCompact.height / baseHeight],
+    extrapolate: 'clamp',
+  })
 
   const videoWrapperStyle = isFullscreen
     ? {
@@ -211,15 +216,17 @@ export const MainScreen = () => {
       }
     : {
         position: 'absolute' as const,
-        left: videoLeft,
-        top: videoTop,
-        width: videoWidth,
-        height: videoHeight,
+        top: 0,
+        left: 0,
+        width: baseWidth,
+        height: baseHeight,
+        transformOrigin: '0% 0%' as const,
+        transform: [{ translateX }, { translateY }, { scaleX }, { scaleY }],
         zIndex: 60,
       }
 
   const thumbnail = currentContent?.thumbnail
-  const showVideoWrapper = currentContent && (hasSlots || isFullscreen)
+  const showVideoWrapper = !!currentContent
 
   return (
     <View style={{ flex: 1 }}>
