@@ -1,7 +1,6 @@
 name: lstream
 services:
   app:
-    platform: linux/amd64
     build:
       context: ../..
       dockerfile: .docker/Dockerfile
@@ -10,7 +9,6 @@ services:
     env_file:
       - .env.development
     environment:
-      GITHUB_TOKEN:
       NODE_ENV: development
     volumes:
       - ../..:/workspace
@@ -18,7 +16,11 @@ services:
       - ~/.gitconfig:/root/.gitconfig:ro
       - ~/.zshrc:/root/.zshrc
       - /var/run/docker.sock:/var/run/docker.sock
+      - claude:/root/.claude
     extra_hosts:
       - 'host.docker.internal:host-gateway'
     working_dir: /workspace/app
     command: sleep infinity
+
+volumes:
+  claude:

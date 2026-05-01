@@ -7,57 +7,74 @@
     "vscode": {
       "extensions": ["esbenp.prettier-vscode", "dbaeumer.vscode-eslint"],
       "settings": {
-        // common
-        "editor.codeActionsOnSave": {
-          "source.fixAll.eslint": "explicit",
-          "source.fixAll.stylelint": "explicit",
-          "source.fixAll": "explicit"
+        // ---- General
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "editor.tabSize": 2,
+        "editor.quickSuggestions": {
+          "strings": true
         },
         "editor.formatOnSave": true,
+        "editor.codeActionsOnSave": {
+          "source.fixAll": "explicit"
+        },
         "[markdown]": {
           "editor.formatOnSave": false
         },
-        "editor.defaultFormatter": "esbenp.prettier-vscode",
-        "editor.tabSize": 2,
         "files.insertFinalNewline": true,
-        "files.trimFinalNewlines": true,
         "files.trimTrailingWhitespace": true,
+        "search.exclude": {
+          // general
+          "**/.git": true,
+          "**/cache": true,
+          // Node.js
+          "**/node_modules": true,
+          "**/esm": true,
+          "**/cjs": true,
+          "**/dist": true,
+          "**/out": true,
+          // pnpm
+          "**/.pnpm-store": true,
+          // React Native
+          "**/ios": true,
+          "**/android": true,
+          "**/Figma": true
+        },
+        "files.watcherExclude": {
+          // general
+          "**/.git": true,
+          "**/cache": true,
+          // Node.js
+          "**/node_modules": true,
+          "**/esm": true,
+          "**/cjs": true,
+          "**/dist": true,
+          "**/out": true,
+          // pnpm
+          "**/.pnpm-store": true,
+          // React Native
+          "**/ios": true,
+          "**/android": true,
+          "**/Figma": true
+        },
 
-        // ---- js / ts
-        "javascript.updateImportsOnFileMove.enabled": "never",
+        // ---- Node.js - Common
+        "javascript.updateImportsOnFileMove.enabled": "always",
         "javascript.preferences.quoteStyle": "single",
         "typescript.updateImportsOnFileMove.enabled": "always",
         "typescript.preferences.quoteStyle": "single",
         "typescript.tsdk": "node_modules/typescript/lib",
         "typescript.enablePromptUseWorkspaceTsdk": true,
         "typescript.validate.enable": true,
-        "typescript.tsserver.experimental.enableProjectDiagnostics": true,
-        "typescript.preferences.importModuleSpecifier": "non-relative",
-
-        // ESLint
+        "html.format.contentUnformatted": "pre, code, textarea, title, h1, h2, h3, h4, h5, h6, p",
+        "html.format.extraLiners": "",
+        "html.format.unformatted": null,
+        "html.format.wrapLineLength": 0,
         "eslint.validate": ["javascript", "javascriptreact", "typescript", "typescriptreact"],
 
-        // DevContainer
-        "eslint.workingDirectories": ["/workspace/app/packages/*"],
+        // ---- DevContainer
+        "remote.autoForwardPorts": false,
         "git.openRepositoryInParentFolders": "always",
-        "files.watcherExclude": {
-          "**/.pnpm-store": true,
-          "**/node_modules": true,
-          "**/dist": true,
-          "**/out": true,
-          "**/ios": true,
-          "**/android": true,
-          "**/Figma": true
-        },
-        "search.exclude": {
-          "**/.pnpm-store": true,
-          "**/node_modules": true,
-          "**/dist": true,
-          "**/out": true,
-          "**/ios": true,
-          "**/android": true,
-          "**/Figma": true
-        }
+        "eslint.workingDirectories": ["/workspace/app/packages/*"]
       }
     }
   },

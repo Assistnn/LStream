@@ -10,7 +10,7 @@ export default defineConfig([
     files: ['**/*.js', '**/*.jsx', '**/*.ts', '**/*.tsx'],
   },
   {
-    ignores: ['node_modules', 'dist', '**/*.config.js'],
+    ignores: ['node_modules', 'dist', 'Figma', '**/*.config.js'],
   },
   // typescript-eslint
   // - @eslint/js
