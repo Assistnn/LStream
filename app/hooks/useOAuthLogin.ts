@@ -10,8 +10,6 @@ const WebAuthSessionModule =
     'WebAuthSessionModule',
   ) ?? NativeModules.WebAuthSessionModule
 
-console.log('[OAuth] WebAuthSessionModule:', WebAuthSessionModule)
-console.log('[OAuth] NativeModules keys:', Object.keys(NativeModules))
 
 const generateRandom = (length: number) => {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
@@ -49,10 +47,8 @@ export const useOAuthLogin = () => {
         code_challenge_method: 'S256',
       })
 
-      const authUrl = `https://login.lseed.app/oauth/authorize?${params.toString()}`
-      console.log('[OAuth] Authorization URL:', authUrl)
       const callbackUrl: string = await WebAuthSessionModule.openAuthSession(
-        authUrl,
+        `https://login.lseed.app/oauth/authorize?${params.toString()}`,
         'login.lseed.app',
         '/app/lstream',
       )
@@ -90,7 +86,6 @@ export const useOAuthLogin = () => {
       }
       await signIn(tokenResponse.access_token)
     } catch (e: unknown) {
-      console.error('[OAuth Error]', e)
       if (e instanceof Error && (e.message?.includes('cancelled') || e.message?.includes('USER_CANCELLED'))) return
       setError('認証に失敗しました')
     } finally {
