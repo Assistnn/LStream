@@ -4,6 +4,6 @@ This is a code bundle for Learning Audio/Video Player App. The original project 
 
 ## Running the code
 
-Run `npm i` to install the dependencies.
+Run `pnpm i` to install the dependencies.
 
-Run `npm run dev` to start the development server.
+Run `pnpm run dev` to start the development server.

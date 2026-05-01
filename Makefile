@@ -1,7 +1,7 @@
 # ------- 開発環境系
 setup: setup-repo setup-app
 setup-repo: ensure-nodenv
-	npm install
+	pnpm install
 setup-app:
 	cd app && pnpm install --frozen-lockfile
 	cd .docker/dev && docker compose build
@@ -9,13 +9,13 @@ setup-app:
 
 lint: lint-root lint-app
 lint-root:
-	npm run lint
+	pnpm run lint
 lint-app:
 	cd .docker/app && docker compose run --rm --no-deps app bash -c "cd /workspace/app && pnpm run lint"
 
 fix: fix-root fix-app
 fix-root:
-	npm run fix
+	pnpm run fix
 fix-app:
 	cd .docker/dev && docker compose run --rm --no-deps app bash -c "cd /workspace/backend && pnpm run fix"
 
@@ -27,7 +27,7 @@ zsh-app:
 
 open:
 	@echo "Building and opening backend in DevContainer..."
-	@npm run devcontainer:up
+	@pnpm run devcontainer:up
 	@CONFIG_JSON='{"settingType":"config","workspacePath":"$(PWD)","devcontainerPath":"$(PWD)/.docker/dev/devcontainer.json"}'; \
 	HEX_CONFIG=$$(printf '%s' "$$CONFIG_JSON" | xxd -p | tr -d '\n'); \
 	DEVCONTAINER_URI="vscode-remote://dev-container+$${HEX_CONFIG}/workspace/app"; \

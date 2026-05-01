@@ -11,6 +11,8 @@
 		4B426FE2C8503BA4373E859B /* libPods-LStream.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F06801CE3FA0F690CAEF1866 /* libPods-LStream.a */; };
 		761780ED2CA45674006654EE /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 761780EC2CA45674006654EE /* AppDelegate.swift */; };
 		81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */; };
+		AA000001AAAA000100000001 /* WebAuthSessionModule.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000001AAAA000100000002 /* WebAuthSessionModule.swift */; };
+		AA000001AAAA000100000003 /* WebAuthSessionModule.m in Sources */ = {isa = PBXBuildFile; fileRef = AA000001AAAA000100000004 /* WebAuthSessionModule.m */; };
 		BBD84EBD6062E8A1C764A403 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */; };
 /* End PBXBuildFile section */
 
@@ -25,6 +27,8 @@
 		63FD8F412FA4335400984586 /* LStream.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; name = LStream.entitlements; path = LStream/LStream.entitlements; sourceTree = "<group>"; };
 		761780EC2CA45674006654EE /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = LStream/AppDelegate.swift; sourceTree = "<group>"; };
 		81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = LStream/LaunchScreen.storyboard; sourceTree = "<group>"; };
+		AA000001AAAA000100000002 /* WebAuthSessionModule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = WebAuthSessionModule.swift; path = LStream/WebAuthSessionModule.swift; sourceTree = "<group>"; };
+		AA000001AAAA000100000004 /* WebAuthSessionModule.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; name = WebAuthSessionModule.m; path = LStream/WebAuthSessionModule.m; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
 		F06801CE3FA0F690CAEF1866 /* libPods-LStream.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-LStream.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -47,6 +51,8 @@
 				63FD8F412FA4335400984586 /* LStream.entitlements */,
 				13B07FB51A68108700A75B9A /* Images.xcassets */,
 				761780EC2CA45674006654EE /* AppDelegate.swift */,
+				AA000001AAAA000100000002 /* WebAuthSessionModule.swift */,
+				AA000001AAAA000100000004 /* WebAuthSessionModule.m */,
 				13B07FB61A68108700A75B9A /* Info.plist */,
 				81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */,
 				13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */,
@@ -251,6 +257,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				761780ED2CA45674006654EE /* AppDelegate.swift in Sources */,
+				AA000001AAAA000100000001 /* WebAuthSessionModule.swift in Sources */,
+				AA000001AAAA000100000003 /* WebAuthSessionModule.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -267,7 +275,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = LStream/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.4;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -278,7 +286,8 @@
 					"-ObjC",
 					"-lc++",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = net.assist_management.lsteam;
+				DEVELOPMENT_TEAM = NS4F7Q2Y5S;
+				PRODUCT_BUNDLE_IDENTIFIER = com.metadirection.lseed;
 				PRODUCT_NAME = LStream;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SWIFT_OBJC_BRIDGING_HEADER = "LStream/LStream-Bridging-Header.h";
@@ -298,7 +307,7 @@
 				CODE_SIGN_ENTITLEMENTS = LStream/LStream.entitlements;
 				CURRENT_PROJECT_VERSION = 1;
 				INFOPLIST_FILE = LStream/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.4;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -309,7 +318,8 @@
 					"-ObjC",
 					"-lc++",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = net.assist_management.lsteam;
+				DEVELOPMENT_TEAM = NS4F7Q2Y5S;
+				PRODUCT_BUNDLE_IDENTIFIER = com.metadirection.lseed;
 				PRODUCT_NAME = LStream;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SWIFT_OBJC_BRIDGING_HEADER = "LStream/LStream-Bridging-Header.h";
@@ -368,7 +378,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.4;
 				LD_RUNPATH_SEARCH_PATHS = (
 					/usr/lib/swift,
 					"$(inherited)",
@@ -443,7 +453,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.4;
 				LD_RUNPATH_SEARCH_PATHS = (
 					/usr/lib/swift,
 					"$(inherited)",

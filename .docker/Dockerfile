@@ -7,6 +7,8 @@ ENV NODE_ENV=${NODE_ENV}
 
 RUN apt-get update
 RUN npm install -g pnpm
+ENV PNPM_HOME="/root/.local/share/pnpm"
+ENV PATH="${PNPM_HOME}:${PATH}"
 
 # -------- run --------
 RUN apt-get install -y zsh && chsh -s /usr/bin/zsh root
@@ -15,7 +17,7 @@ RUN apt-get install -y curl vim jq
 # -------- development --------
 RUN apt-get install -y git make
 # Node.js
-RUN npm install -g npm-check-updates
+RUN pnpm add -g npm-check-updates
 # git-lfs
 RUN curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash \
   && apt-get install -y git-lfs \

@@ -1,8 +1,26 @@
 import { useCallback, useState } from 'react'
-import { authorize } from 'react-native-app-auth'
+import { NativeModules, TurboModuleRegistry } from 'react-native'
+import { sha256 } from 'js-sha256'
 
 import { apiClient } from '../repositories/api/core/client'
 import { useAuth } from './AuthContext'
+
+const WebAuthSessionModule =
+  TurboModuleRegistry.get<{ openAuthSession: (url: string, host: string, path: string) => Promise<string> }>(
+    'WebAuthSessionModule',
+  ) ?? NativeModules.WebAuthSessionModule
+
+console.log('[OAuth] WebAuthSessionModule:', WebAuthSessionModule)
+console.log('[OAuth] NativeModules keys:', Object.keys(NativeModules))
+
+const generateRandom = (length: number) => {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
+  let result = ''
+  for (let i = 0; i < length; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length))
+  }
+  return result
+}
 
 export const useOAuthLogin = () => {
   const { signIn } = useAuth()
@@ -13,23 +31,67 @@ export const useOAuthLogin = () => {
     setError(null)
     setLoading(true)
     try {
-      const result = await authorize({
-        clientId: '019d4cf4-5131-7013-a558-a03999a25318',
-        redirectUrl: 'https://login.lseed.app/app/lstream',
-        scopes: [],
-        serviceConfiguration: {
-          authorizationEndpoint: 'https://login.lseed.app/oauth/authorize',
-          tokenEndpoint: 'https://login.lseed.app/oauth/token',
-        },
-        usePKCE: true,
+      const state = generateRandom(40)
+      const codeVerifier = generateRandom(128)
+
+      const hash = sha256.arrayBuffer(codeVerifier)
+      const codeChallenge = btoa(String.fromCharCode(...new Uint8Array(hash)))
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_')
+        .replace(/=+$/, '')
+
+      const params = new URLSearchParams({
+        client_id: '019dbced-45c8-7255-97b7-f35703aa5702',
+        redirect_uri: 'https://login.lseed.app/app/lstream',
+        response_type: 'code',
+        state,
+        code_challenge: codeChallenge,
+        code_challenge_method: 'S256',
       })
 
-      await apiClient.setToken(result.accessToken)
-      if (result.refreshToken) {
-        await apiClient.setRefreshToken(result.refreshToken)
+      const authUrl = `https://login.lseed.app/oauth/authorize?${params.toString()}`
+      console.log('[OAuth] Authorization URL:', authUrl)
+      const callbackUrl: string = await WebAuthSessionModule.openAuthSession(
+        authUrl,
+        'login.lseed.app',
+        '/app/lstream',
+      )
+
+      const callbackParams = new URL(callbackUrl).searchParams
+      const code = callbackParams.get('code')
+      const returnedState = callbackParams.get('state')
+
+      if (!code || returnedState !== state) {
+        setError('認証に失敗しました')
+        return
       }
-      await signIn(result.accessToken)
-    } catch {
+
+      const response = await fetch('https://login.lseed.app/oauth/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          grant_type: 'authorization_code',
+          client_id: '019dbced-45c8-7255-97b7-f35703aa5702',
+          code_verifier: codeVerifier,
+          redirect_uri: 'https://login.lseed.app/app/lstream',
+          code,
+        }).toString(),
+      })
+      const tokenResponse = await response.json()
+
+      if (!tokenResponse.access_token) {
+        setError('トークンの取得に失敗しました')
+        return
+      }
+
+      await apiClient.setToken(tokenResponse.access_token)
+      if (tokenResponse.refresh_token) {
+        await apiClient.setRefreshToken(tokenResponse.refresh_token)
+      }
+      await signIn(tokenResponse.access_token)
+    } catch (e: unknown) {
+      console.error('[OAuth Error]', e)
+      if (e instanceof Error && (e.message?.includes('cancelled') || e.message?.includes('USER_CANCELLED'))) return
       setError('認証に失敗しました')
     } finally {
       setLoading(false)

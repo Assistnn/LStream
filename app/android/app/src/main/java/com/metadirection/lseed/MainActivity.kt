@@ -1,4 +1,4 @@
-package net.assist_management.lsteam
+package com.metadirection.lseed
 
 import android.app.PictureInPictureParams
 import android.content.res.Configuration

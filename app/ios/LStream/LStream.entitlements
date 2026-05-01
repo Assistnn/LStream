@@ -5,6 +5,8 @@
 	<key>com.apple.developer.associated-domains</key>
 	<array>
 		<string>applinks:login.lseed.app</string>
+		<string>applinks:login.lseed.app?mode=developer</string>
+		<string>webcredentials:login.lseed.app</string>
 	</array>
 </dict>
 </plist>
