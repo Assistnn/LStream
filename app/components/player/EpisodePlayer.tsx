@@ -24,6 +24,7 @@ import { Defs, LinearGradient, Rect, Stop, Svg } from 'react-native-svg'
 
 import { usePlayer } from '../../hooks/PlayerContext'
 import { useTheme } from '../../hooks/ThemeContext'
+import type { LoopMode } from '../../repositories/storage'
 import { FavoriteButton } from '../ui/FavoriteButton'
 
 const formatTime = (seconds: number): string => {
@@ -461,7 +462,7 @@ export const EpisodePlayer = ({
                 <View style={{ position: 'relative' }}>
                   <TouchableOpacity
                     onPress={() => {
-                      const modes: Array<'off' | 'single' | 'all'> = ['off', 'single', 'all']
+                      const modes: LoopMode[] = ['off', 'all', 'single']
                       const currentIndex = modes.indexOf(loopMode)
                       setLoopMode(modes[(currentIndex + 1) % modes.length])
                     }}

@@ -2,12 +2,17 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 
 import type { ThemeMode } from '../../hooks/ThemeContext'
 
+export type LoopMode = 'off' | 'single' | 'all'
+
 const KEYS = {
   THEME_MODE: 'themeMode',
   SHOW_NEXT_EPISODE: 'showNextEpisode',
   HISTORY_RETENTION_DAYS: 'historyRetentionDays',
   NOTIFICATIONS_ENABLED: 'notificationsEnabled',
   MOBILE_DATA_ENABLED: 'mobileDataEnabled',
+  PLAYBACK_RATE: 'playbackRate',
+  LOOP_MODE: 'loopMode',
+  IS_SHUFFLE_ON: 'isShuffleOn',
 } as const
 
 export const StorageRepository = {
@@ -101,6 +106,78 @@ export const StorageRepository = {
     } catch (error) {
       console.error('Failed to set mobileDataEnabled:', error)
     }
+  },
+
+  async getPlaybackRate(): Promise<number> {
+    try {
+      const value = await AsyncStorage.getItem(KEYS.PLAYBACK_RATE)
+      return value !== null ? parseFloat(value) : 1.0
+    } catch (error) {
+      console.error('Failed to get playbackRate:', error)
+      return 1.0
+    }
+  },
+
+  async setPlaybackRate(rate: number) {
+    try {
+      await AsyncStorage.setItem(KEYS.PLAYBACK_RATE, rate.toString())
+    } catch (error) {
+      console.error('Failed to set playbackRate:', error)
+    }
+  },
+
+  async getLoopMode(): Promise<LoopMode> {
+    try {
+      const value = await AsyncStorage.getItem(KEYS.LOOP_MODE)
+      if (value === 'off' || value === 'single' || value === 'all') return value
+      return 'off'
+    } catch (error) {
+      console.error('Failed to get loopMode:', error)
+      return 'off'
+    }
+  },
+
+  async setLoopMode(mode: LoopMode) {
+    try {
+      await AsyncStorage.setItem(KEYS.LOOP_MODE, mode)
+    } catch (error) {
+      console.error('Failed to set loopMode:', error)
+    }
+  },
+
+  async getIsShuffleOn(): Promise<boolean> {
+    try {
+      const value = await AsyncStorage.getItem(KEYS.IS_SHUFFLE_ON)
+      return value === null ? false : (JSON.parse(value) as boolean)
+    } catch (error) {
+      console.error('Failed to get isShuffleOn:', error)
+      return false
+    }
+  },
+
+  async setIsShuffleOn(value: boolean) {
+    try {
+      await AsyncStorage.setItem(KEYS.IS_SHUFFLE_ON, JSON.stringify(value))
+    } catch (error) {
+      console.error('Failed to set isShuffleOn:', error)
+    }
+  },
+
+  async getPlayerSettings() {
+    const [playbackRate, loopMode, isShuffleOn] = await Promise.all([
+      this.getPlaybackRate(),
+      this.getLoopMode(),
+      this.getIsShuffleOn(),
+    ])
+    return { playbackRate, loopMode, isShuffleOn }
+  },
+
+  async savePlayerSettings(settings: { playbackRate: number; loopMode: LoopMode; isShuffleOn: boolean }) {
+    await Promise.all([
+      this.setPlaybackRate(settings.playbackRate),
+      this.setLoopMode(settings.loopMode),
+      this.setIsShuffleOn(settings.isShuffleOn),
+    ])
   },
 
   async getAllSettings() {

@@ -4,9 +4,10 @@ import type { ViewStyle } from 'react-native'
 import Video, { type VideoRef } from 'react-native-video'
 
 import type { SeriesMedia, SeriesResponse } from '../repositories/api/IApiRepository'
+import type { LoopMode } from '../repositories/storage'
+import { StorageRepository } from '../repositories/storage'
 
 type PlaybackState = 'idle' | 'loading' | 'playing' | 'paused' | 'ended' | 'error'
-type LoopMode = 'off' | 'single' | 'all'
 type Rect = { x: number; y: number; width: number; height: number }
 
 class CurrentContent {
@@ -207,6 +208,24 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
       }
     }
   }, [settings.sleepTimer, state.playbackState])
+
+  // persist player settings
+  const isSettingsLoadedRef = useRef(false)
+  useEffect(() => {
+    StorageRepository.getPlayerSettings().then((saved) => {
+      updateSettings(saved)
+      isSettingsLoadedRef.current = true
+    })
+  }, [])
+  useEffect(() => {
+    if (!isSettingsLoadedRef.current) return
+    StorageRepository.savePlayerSettings({
+      playbackRate: settings.playbackRate,
+      loopMode: settings.loopMode,
+      isShuffleOn: settings.isShuffleOn,
+    })
+  }, [settings.playbackRate, settings.loopMode, settings.isShuffleOn])
+
   // view
   const videoRef = useRef<VideoRef>(null)
   const [isPlayerExpanded, setPlayerExpanded] = useState(true)
@@ -270,6 +289,10 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
       setState((prev) => ({ ...prev, currentTime: 0, playbackState: 'playing' }))
       return
     }
+    if (s.isShuffleOn && content) {
+      playNextEpisodeInternal()
+      return
+    }
     if (s.loopMode === 'all' && content) {
       if (content.unitId) {
         const allUnits = content.units
@@ -280,7 +303,7 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
         }
       }
       const epIdx = content.episodeIndex
-      if (epIdx < content.episodes.length - 1 || s.isShuffleOn) {
+      if (epIdx < content.episodes.length - 1) {
         playNextEpisodeInternal()
       } else {
         const firstEp = content.episodes[0]
@@ -328,6 +351,7 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
               : series.episodes[0]
 
             switchContent(new CurrentContent(series.episodes, ep.item_id, unitId ?? ep.units?.[0]?.item_id))
+            setPlayerExpanded(true)
           },
           playNextEpisode: playNextEpisodeInternal,
           playPreviousEpisode: () => {
@@ -435,7 +459,7 @@ export const PlayerVideo = ({ style }: { style?: ViewStyle }) => {
       source={source}
       style={style}
       resizeMode='cover'
-      paused={playbackState !== 'playing'}
+      paused={playbackState !== 'playing' && playbackState !== 'loading'}
       rate={playbackRate}
       volume={volume / 100}
       onProgress={onProgress}

@@ -55,10 +55,10 @@ export const MiniPlayer = ({ onTap, onListTap }: { onTap: () => void; onListTap:
             paddingHorizontal: 0,
           }}
         >
-          <View ref={slotRef} onLayout={measureSlot} collapsable={false} style={{ width: 80, height: 56 }}>
+          <View ref={slotRef} onLayout={measureSlot} collapsable={false} style={{ width: 56 * (16 / 9), height: 56 }}>
             {!currentContent.isVideo &&
               (thumbnail ? (
-                <Image source={{ uri: thumbnail }} style={{ width: 80, height: 56 }} resizeMode='cover' />
+                <Image source={{ uri: thumbnail }} style={{ width: 56 * (16 / 9), height: 56 }} resizeMode='cover' />
               ) : (
                 <View
                   style={{
