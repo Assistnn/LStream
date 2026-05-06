@@ -15,7 +15,7 @@ const formatTime = (seconds: number): string => {
 export const FullscreenControls = () => {
   const {
     currentContent,
-    state: { playbackState, currentTime },
+    state: { playbackState, currentTime, duration },
     controls: { pause, resume, skipForward, skipBackward, startSliding, stopSliding, updateSlidingTime },
     settings: { isFullscreen, setIsFullscreen },
   } = usePlayer()
@@ -66,7 +66,6 @@ export const FullscreenControls = () => {
 
   if (!isFullscreen || !currentContent) return null
 
-  const duration = currentContent.duration
   const title = currentContent.unit?.title || currentContent.episode.title
 
   return (

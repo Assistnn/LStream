@@ -91,6 +91,7 @@ const PlayerContext = createContext<
       state: {
         playbackState: PlaybackState
         currentTime: number
+        duration: number
       }
       settings: {
         playbackRate: number
@@ -112,7 +113,7 @@ const PlayerContext = createContext<
         setPlayerExpanded: (expanded: boolean) => void
         closePlayer: () => void
         handleProgress: (currentTime: number) => void
-        handleLoad: () => void
+        handleLoad: (duration: number) => void
         handleEnd: () => void
         handleBuffer: (isBuffering: boolean) => void
         isBuffering: boolean
@@ -158,11 +159,11 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
   const [currentContent, setCurrentContent] = useState<CurrentContent>()
   const switchContent = (content: CurrentContent) => {
     setCurrentContent(content)
-    updateState({ playbackState: 'loading', currentTime: 0 })
+    updateState({ playbackState: 'loading', currentTime: 0, duration: 0 })
   }
 
   // state
-  const [state, setState] = useState({ playbackState: 'idle' as PlaybackState, currentTime: 0 })
+  const [state, setState] = useState({ playbackState: 'idle' as PlaybackState, currentTime: 0, duration: 0 })
   const updateState = (patch: Partial<typeof state>) => setState((prev) => ({ ...prev, ...patch }))
   const seekTargetRef = useRef<number | null>(null)
   const isSlidingRef = useRef(false)
@@ -252,8 +253,8 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
     })
   }, [])
 
-  const handleLoad = useCallback(() => {
-    setState((prev) => (prev.playbackState === 'loading' ? { ...prev, playbackState: 'playing' } : prev))
+  const handleLoad = useCallback((duration: number) => {
+    setState((prev) => (prev.playbackState === 'loading' ? { ...prev, playbackState: 'playing', duration } : prev))
   }, [])
 
   const [isBuffering, setIsBuffering] = useState(false)
@@ -307,7 +308,7 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
             }
           },
           seek: doSeek,
-          skipForward: (seconds) => doSeek(Math.min(state.currentTime + seconds, currentContent?.duration ?? 0)),
+          skipForward: (seconds) => doSeek(Math.min(state.currentTime + seconds, state.duration)),
           skipBackward: (seconds) => doSeek(Math.max(state.currentTime - seconds, 0)),
           startSliding: () => {
             isSlidingRef.current = true
@@ -360,7 +361,7 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
         view: {
           closePlayer: () => {
             setCurrentContent(undefined)
-            updateState({ playbackState: 'idle', currentTime: 0 })
+            updateState({ playbackState: 'idle', currentTime: 0, duration: 0 })
             setSettings({
               playbackRate: 1.0,
               isFullscreen: false,
@@ -421,6 +422,7 @@ export const PlayerVideo = ({ style }: { style?: ViewStyle }) => {
     ({ isActive }: { isActive: boolean }) => setPipActive(isActive),
     [setPipActive],
   )
+  const onLoad = useCallback((data: { duration: number }) => handleLoad(data.duration), [handleLoad])
   const onBuffer = useCallback(
     ({ isBuffering: buffering }: { isBuffering: boolean }) => handleBuffer(buffering),
     [handleBuffer],
@@ -437,7 +439,7 @@ export const PlayerVideo = ({ style }: { style?: ViewStyle }) => {
       rate={playbackRate}
       volume={volume / 100}
       onProgress={onProgress}
-      onLoad={handleLoad}
+      onLoad={onLoad}
       onEnd={handleEnd}
       onBuffer={onBuffer}
       playInBackground={true}

@@ -44,7 +44,7 @@ export const EpisodePlayer = ({
   const { colors, styles, spacing } = useTheme()
   const {
     currentContent,
-    state: { playbackState, currentTime },
+    state: { playbackState, currentTime, duration: mediaDuration },
     controls: { pause, resume, skipForward, skipBackward, startSliding, stopSliding, updateSlidingTime },
     navigation: { playNextEpisode, playPreviousEpisode, playNextUnit, playPreviousUnit, selectEpisode },
     view: { setPlayerExpanded, setExpandedSlot },
@@ -105,7 +105,6 @@ export const EpisodePlayer = ({
     unitId,
     episode,
     unit: currentUnit,
-    duration,
     hasNextEpisode,
     hasPrevEpisode,
     hasNextUnit,
@@ -260,7 +259,7 @@ export const EpisodePlayer = ({
                 <Slider
                   style={{ width: '100%' }}
                   minimumValue={0}
-                  maximumValue={duration || 1}
+                  maximumValue={mediaDuration || 1}
                   value={currentTime}
                   onSlidingStart={startSliding}
                   onValueChange={updateSlidingTime}
@@ -273,7 +272,7 @@ export const EpisodePlayer = ({
                 {/* Time labels */}
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                   <Text style={styles.bodyTiny}>{formatTime(currentTime)}</Text>
-                  <Text style={styles.bodyTiny}>-{formatTime(duration - currentTime)}</Text>
+                  <Text style={styles.bodyTiny}>-{formatTime(mediaDuration - currentTime)}</Text>
                 </View>
               </View>
 
@@ -353,11 +352,11 @@ export const EpisodePlayer = ({
 
                 <TouchableOpacity
                   onPress={() => skipForward(30)}
-                  disabled={currentTime >= duration - 30}
+                  disabled={currentTime >= mediaDuration - 30}
                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                   style={{ padding: spacing.sm, position: 'relative' }}
                 >
-                  <RotateCw size={32} color={currentTime >= duration - 30 ? colors.muted : colors.text} />
+                  <RotateCw size={32} color={currentTime >= mediaDuration - 30 ? colors.muted : colors.text} />
                   <Text
                     style={{
                       position: 'absolute',
@@ -369,7 +368,7 @@ export const EpisodePlayer = ({
                       lineHeight: 48,
                       fontSize: 10,
                       fontWeight: '700',
-                      color: currentTime >= duration - 30 ? colors.muted : colors.text,
+                      color: currentTime >= mediaDuration - 30 ? colors.muted : colors.text,
                     }}
                   >
                     30
