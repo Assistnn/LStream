@@ -199,23 +199,25 @@ export const EpisodePlayer = ({
           <View style={{ flex: 1, justifyContent: 'space-between' }}>
             <View style={{ gap: spacing.xl }}>
               {/* Artwork or Video slot (PlayerVideo overlays this at MainScreen level) */}
-              <View
-                ref={slotRef}
-                onLayout={measureSlot}
-                collapsable={false}
-                style={{
-                  width: '100%',
-                  aspectRatio: 16 / 9,
-                  backgroundColor: currentContent.isVideo ? '#000' : 'transparent',
-                }}
-              >
-                {!currentContent.isVideo && thumbnail && (
-                  <Image
-                    source={{ uri: thumbnail }}
-                    style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
-                    resizeMode='cover'
-                  />
-                )}
+              <View style={{ paddingVertical: spacing.xl, backgroundColor: '#000' }}>
+                <View
+                  ref={slotRef}
+                  onLayout={measureSlot}
+                  collapsable={false}
+                  style={{
+                    width: '100%',
+                    aspectRatio: 16 / 9,
+                    backgroundColor: currentContent.isVideo ? '#000' : 'transparent',
+                  }}
+                >
+                  {!currentContent.isVideo && thumbnail && (
+                    <Image
+                      source={{ uri: thumbnail }}
+                      style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+                      resizeMode='cover'
+                    />
+                  )}
+                </View>
               </View>
               {/* Episode Info */}
               <View
