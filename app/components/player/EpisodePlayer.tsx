@@ -45,7 +45,7 @@ export const EpisodePlayer = ({
   const {
     currentContent,
     state: { playbackState, currentTime },
-    controls: { pause, resume, seek, skipForward, skipBackward },
+    controls: { pause, resume, skipForward, skipBackward, startSliding, stopSliding, updateSlidingTime },
     navigation: { playNextEpisode, playPreviousEpisode, playNextUnit, playPreviousUnit, selectEpisode },
     view: { setPlayerExpanded, setExpandedSlot },
     settings: {
@@ -236,12 +236,10 @@ export const EpisodePlayer = ({
                   <Text style={[styles.text2xl, { textAlign: 'center' }]} numberOfLines={2}>
                     {currentUnit ? currentUnit.title : episode.title}
                   </Text>
-                  {currentUnit && (
-                    <Text style={[styles.bodyTiny, { textAlign: 'center' }]} numberOfLines={1}>
-                      <Text>Ep.{currentEpisodeIndex + 1}</Text>
-                      <Text> {episode.title}</Text>
-                    </Text>
-                  )}
+                  <Text style={[styles.bodyTiny, { textAlign: 'center' }]} numberOfLines={1}>
+                    <Text>{currentUnit ? `Ep.${currentEpisodeIndex + 1}` : ''}</Text>
+                    <Text> {currentUnit ? episode.title : ''}</Text>
+                  </Text>
                 </View>
                 {/* Favorite button in top right */}
                 <FavoriteButton
@@ -264,7 +262,9 @@ export const EpisodePlayer = ({
                   minimumValue={0}
                   maximumValue={duration || 1}
                   value={currentTime}
-                  onSlidingComplete={seek}
+                  onSlidingStart={startSliding}
+                  onValueChange={updateSlidingTime}
+                  onSlidingComplete={stopSliding}
                   minimumTrackTintColor={colors.tabBarActive}
                   maximumTrackTintColor={colors.muted}
                   thumbTintColor={colors.tabBarActive}

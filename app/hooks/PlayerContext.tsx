@@ -137,6 +137,9 @@ const PlayerContext = createContext<
         seek: (time: number) => void
         skipForward: (seconds: number) => void
         skipBackward: (seconds: number) => void
+        startSliding: () => void
+        stopSliding: (time: number) => void
+        updateSlidingTime: (time: number) => void
       }
     }
   | undefined
@@ -161,7 +164,10 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
   // state
   const [state, setState] = useState({ playbackState: 'idle' as PlaybackState, currentTime: 0 })
   const updateState = (patch: Partial<typeof state>) => setState((prev) => ({ ...prev, ...patch }))
+  const seekTargetRef = useRef<number | null>(null)
+  const isSlidingRef = useRef(false)
   const doSeek = (time: number) => {
+    seekTargetRef.current = time
     videoRef.current?.seek(time)
     updateState({ currentTime: time })
   }
@@ -233,7 +239,17 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
   }
 
   const handleProgress = useCallback((currentTime: number) => {
-    setState((prev) => ({ ...prev, currentTime }))
+    setState((prev) => {
+      if (prev.playbackState === 'loading' || isSlidingRef.current) return prev
+      if (seekTargetRef.current !== null) {
+        if (Math.abs(currentTime - seekTargetRef.current) < 1) {
+          seekTargetRef.current = null
+        } else {
+          return prev
+        }
+      }
+      return { ...prev, currentTime }
+    })
   }, [])
 
   const handleLoad = useCallback(() => {
@@ -272,7 +288,6 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
       return
     }
     setState((prev) => ({ ...prev, playbackState: 'ended' }))
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
   return (
     <PlayerContext.Provider
@@ -294,6 +309,16 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
           seek: doSeek,
           skipForward: (seconds) => doSeek(Math.min(state.currentTime + seconds, currentContent?.duration ?? 0)),
           skipBackward: (seconds) => doSeek(Math.max(state.currentTime - seconds, 0)),
+          startSliding: () => {
+            isSlidingRef.current = true
+          },
+          stopSliding: (time: number) => {
+            isSlidingRef.current = false
+            doSeek(time)
+          },
+          updateSlidingTime: (time: number) => {
+            updateState({ currentTime: time })
+          },
         },
         navigation: {
           playEpisode: (series, episodeId?, unitId?) => {
@@ -391,10 +416,7 @@ export const PlayerVideo = ({ style }: { style?: ViewStyle }) => {
   } = usePlayer()
   const mediaUrl = currentContent?.mediaUrl
   const source = useMemo(() => (mediaUrl ? { uri: mediaUrl } : undefined), [mediaUrl])
-  const onProgress = useCallback(
-    (data: { currentTime: number }) => handleProgress(data.currentTime),
-    [handleProgress],
-  )
+  const onProgress = useCallback((data: { currentTime: number }) => handleProgress(data.currentTime), [handleProgress])
   const onPipStatusChanged = useCallback(
     ({ isActive }: { isActive: boolean }) => setPipActive(isActive),
     [setPipActive],

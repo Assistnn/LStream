@@ -16,7 +16,7 @@ export const FullscreenControls = () => {
   const {
     currentContent,
     state: { playbackState, currentTime },
-    controls: { pause, resume, seek, skipForward, skipBackward },
+    controls: { pause, resume, skipForward, skipBackward, startSliding, stopSliding, updateSlidingTime },
     settings: { isFullscreen, setIsFullscreen },
   } = usePlayer()
 
@@ -162,7 +162,9 @@ export const FullscreenControls = () => {
                     minimumValue={0}
                     maximumValue={duration || 1}
                     value={currentTime}
-                    onSlidingComplete={seek}
+                    onSlidingStart={startSliding}
+                    onValueChange={updateSlidingTime}
+                    onSlidingComplete={stopSliding}
                     minimumTrackTintColor='#3B82F6'
                     maximumTrackTintColor='rgba(255,255,255,0.3)'
                     thumbTintColor='#FFFFFF'
