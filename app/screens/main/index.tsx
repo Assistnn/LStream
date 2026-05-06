@@ -2,7 +2,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
 import { Clock, Heart, Home, Library, ListMusic, Settings } from 'lucide-react-native'
 import { useEffect, useRef, useState } from 'react'
-import { Animated, BackHandler, Easing, Image, useWindowDimensions, View } from 'react-native'
+import { ActivityIndicator, Animated, BackHandler, Easing, Image, useWindowDimensions, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { EpisodePlayer } from '../../components/player/EpisodePlayer'
@@ -127,7 +127,8 @@ export const MainScreen = () => {
   const { styles, colors } = useTheme()
   const {
     currentContent,
-    view: { compactSlot, expandedSlot },
+    state: { playbackState },
+    view: { compactSlot, expandedSlot, isBuffering },
     settings: { isFullscreen, setIsFullscreen },
   } = usePlayer()
   const [showPlayerModal, setShowPlayerModal] = useState(false)
@@ -349,6 +350,21 @@ export const MainScreen = () => {
               style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
               resizeMode='cover'
             />
+          )}
+          {(playbackState === 'loading' || isBuffering) && (
+            <View
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                justifyContent: 'center',
+                alignItems: 'center',
+              }}
+            >
+              <ActivityIndicator size='large' color='#FFFFFF' />
+            </View>
           )}
         </Animated.View>
       )}

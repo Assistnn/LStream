@@ -273,6 +273,7 @@
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = LStream/LStream.entitlements;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = NS4F7Q2Y5S;
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = LStream/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.4;
@@ -286,7 +287,6 @@
 					"-ObjC",
 					"-lc++",
 				);
-				DEVELOPMENT_TEAM = NS4F7Q2Y5S;
 				PRODUCT_BUNDLE_IDENTIFIER = com.metadirection.lseed;
 				PRODUCT_NAME = LStream;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -306,6 +306,7 @@
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = LStream/LStream.entitlements;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = NS4F7Q2Y5S;
 				INFOPLIST_FILE = LStream/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.4;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -318,7 +319,6 @@
 					"-ObjC",
 					"-lc++",
 				);
-				DEVELOPMENT_TEAM = NS4F7Q2Y5S;
 				PRODUCT_BUNDLE_IDENTIFIER = com.metadirection.lseed;
 				PRODUCT_NAME = LStream;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";

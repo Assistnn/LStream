@@ -114,6 +114,8 @@ const PlayerContext = createContext<
         handleProgress: (currentTime: number) => void
         handleLoad: () => void
         handleEnd: () => void
+        handleBuffer: (isBuffering: boolean) => void
+        isBuffering: boolean
         compactSlot: Rect | null
         setCompactSlot: (rect: Rect | null) => void
         expandedSlot: Rect | null
@@ -238,6 +240,11 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
     setState((prev) => (prev.playbackState === 'loading' ? { ...prev, playbackState: 'playing' } : prev))
   }, [])
 
+  const [isBuffering, setIsBuffering] = useState(false)
+  const handleBuffer = useCallback((buffering: boolean) => {
+    setIsBuffering(buffering)
+  }, [])
+
   const handleEnd = useCallback(() => {
     const s = settingsRef.current
     const content = currentContentRef.current
@@ -351,6 +358,8 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
           handleProgress,
           handleLoad,
           handleEnd,
+          handleBuffer,
+          isBuffering,
         },
         settings: {
           playbackRate: settings.playbackRate,
@@ -378,7 +387,7 @@ export const PlayerVideo = ({ style }: { style?: ViewStyle }) => {
     currentContent,
     state: { playbackState },
     settings: { playbackRate, volume },
-    view: { videoRef, handleProgress, handleLoad, handleEnd, setPipActive },
+    view: { videoRef, handleProgress, handleLoad, handleEnd, handleBuffer, setPipActive },
   } = usePlayer()
   const mediaUrl = currentContent?.mediaUrl
   const source = useMemo(() => (mediaUrl ? { uri: mediaUrl } : undefined), [mediaUrl])
@@ -389,6 +398,10 @@ export const PlayerVideo = ({ style }: { style?: ViewStyle }) => {
   const onPipStatusChanged = useCallback(
     ({ isActive }: { isActive: boolean }) => setPipActive(isActive),
     [setPipActive],
+  )
+  const onBuffer = useCallback(
+    ({ isBuffering: buffering }: { isBuffering: boolean }) => handleBuffer(buffering),
+    [handleBuffer],
   )
   const enterPip = !!currentContent?.isVideo
   if (!currentContent || !source) return null
@@ -404,6 +417,7 @@ export const PlayerVideo = ({ style }: { style?: ViewStyle }) => {
       onProgress={onProgress}
       onLoad={handleLoad}
       onEnd={handleEnd}
+      onBuffer={onBuffer}
       playInBackground={true}
       playWhenInactive={true}
       ignoreSilentSwitch='ignore'
