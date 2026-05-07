@@ -483,7 +483,7 @@ export const PlaylistDetailScreen = ({ route }: Props) => {
           updatePlaylist(playlist.id, {
             name: payload.name,
             description: payload.description,
-            gradient: payload.gradient,
+            coverImage: payload.coverImage,
             alarm: payload.alarm,
           })
           setEditOpen(false)

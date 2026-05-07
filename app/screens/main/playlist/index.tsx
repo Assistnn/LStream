@@ -141,7 +141,7 @@ export const PlaylistTabScreen = () => {
             updatePlaylist(editing.id, {
               name: payload.name,
               description: payload.description,
-              gradient: payload.gradient,
+              coverImage: payload.coverImage,
               alarm: payload.alarm,
             })
           } else {

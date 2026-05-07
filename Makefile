@@ -40,7 +40,7 @@ open:
 	fi
 dev-ios: open
 	open -a Simulator
-	cd app && pnpm run ios
+	cd app && npx react-native run-ios --udid "$$(xcrun simctl list devices booted -j | python3 -c "import sys,json; ds=json.load(sys.stdin)['devices']; print(next(u['udid'] for r in ds.values() for u in r if u['state']=='Booted'))")"
 dev-android: open
 	cd app && JAVA_HOME=/opt/homebrew/opt/openjdk@17 pnpm run android
 logs:

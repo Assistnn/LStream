@@ -5,9 +5,6 @@ import { createContext, useContext, useEffect, useMemo, useRef, useState } from 
 import type { SeriesMedia } from '../repositories/api/IApiRepository'
 import { usePlayer } from './PlayerContext'
 
-// NOTE: image upload (coverImage) is not implemented yet — playlists currently rely on gradient keys
-// TODO: integrate react-native-image-picker or similar for cover image selection
-
 export type DayKey = 'sun' | 'mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat'
 
 export type AlarmSettings = {
@@ -48,7 +45,13 @@ type PlaylistContextValue = {
   activeSwipeRowId: string | null
   setActiveSwipeRowId: (id: string | null) => void
 
-  createPlaylist: (input: { name: string; description: string; gradient?: string; alarm?: AlarmSettings }) => string
+  createPlaylist: (input: {
+    name: string
+    description: string
+    gradient?: string
+    coverImage?: string
+    alarm?: AlarmSettings
+  }) => string
   updatePlaylist: (id: string, patch: Partial<Omit<Playlist, 'id' | 'createdAt'>>) => void
   deletePlaylist: (id: string) => void
   togglePin: (id: string) => void
@@ -163,6 +166,7 @@ export const PlaylistProvider = ({ children }: { children: ReactNode }) => {
           items: [],
           alarm: input.alarm,
           gradient: input.gradient,
+          coverImage: input.coverImage,
           createdAt: new Date().toISOString(),
           isPinned: false,
         }

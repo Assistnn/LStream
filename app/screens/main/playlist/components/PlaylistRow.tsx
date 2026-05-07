@@ -47,13 +47,13 @@ export const PlaylistRow = ({
 
   const panResponder = useRef(
     PanResponder.create({
-      onMoveShouldSetPanResponder: (_, g) => Math.abs(g.dx) > Math.abs(g.dy) * 2 && Math.abs(g.dx) > 6,
+      onStartShouldSetPanResponder: () => false,
+      onMoveShouldSetPanResponder: (_, g) => Math.abs(g.dx) > Math.abs(g.dy) * 3 && Math.abs(g.dx) > 15,
       onPanResponderGrant: () => {
         setActiveSwipeRowId(playlist.id)
       },
       onPanResponderMove: (_, g) => {
-        const base = currentXRef.current
-        const next = Math.max(SWIPE_LEFT_OPEN, Math.min(SWIPE_RIGHT_OPEN, base + g.dx))
+        const next = Math.max(SWIPE_LEFT_OPEN, Math.min(SWIPE_RIGHT_OPEN, currentXRef.current + g.dx))
         translateX.setValue(next)
       },
       onPanResponderRelease: (_, g) => {
