@@ -1,15 +1,14 @@
+import { sha256 } from 'js-sha256'
 import { useCallback, useState } from 'react'
 import { NativeModules, TurboModuleRegistry } from 'react-native'
-import { sha256 } from 'js-sha256'
 
 import { apiClient } from '../repositories/api/core/client'
 import { useAuth } from './AuthContext'
 
-const WebAuthSessionModule =
-  TurboModuleRegistry.get<{ openAuthSession: (url: string, host: string, path: string) => Promise<string> }>(
-    'WebAuthSessionModule',
-  ) ?? NativeModules.WebAuthSessionModule
-
+const WebAuthSessionModule = (TurboModuleRegistry.get('WebAuthSessionModule') ??
+  NativeModules.WebAuthSessionModule) as {
+  openAuthSession: (url: string, host: string, path: string) => Promise<string>
+}
 
 const generateRandom = (length: number) => {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'

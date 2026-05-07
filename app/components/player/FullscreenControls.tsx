@@ -15,8 +15,8 @@ const formatTime = (seconds: number): string => {
 export const FullscreenControls = () => {
   const {
     currentContent,
-    state: { playbackState, currentTime },
-    controls: { pause, resume, seek, skipForward, skipBackward },
+    state: { playbackState, currentTime, duration },
+    controls: { pause, resume, skipForward, skipBackward, startSliding, stopSliding, updateSlidingTime },
     settings: { isFullscreen, setIsFullscreen },
   } = usePlayer()
 
@@ -45,17 +45,30 @@ export const FullscreenControls = () => {
       StatusBar.setHidden(true, 'fade')
     } else if (!isFullscreen && isLockedRef.current) {
       isLockedRef.current = false
-      Orientation.unlockAllOrientations()
+      Orientation.lockToPortrait()
       StatusBar.setHidden(false, 'fade')
+      setTimeout(() => Orientation.unlockAllOrientations(), 500)
     }
     return () => {
       if (isLockedRef.current) {
         isLockedRef.current = false
-        Orientation.unlockAllOrientations()
+        Orientation.lockToPortrait()
         StatusBar.setHidden(false, 'fade')
+        setTimeout(() => Orientation.unlockAllOrientations(), 500)
       }
     }
   }, [isFullscreen])
+
+  useEffect(() => {
+    if (!currentContent || isFullscreen) return
+    const listener = (orientation: string) => {
+      if (orientation === 'LANDSCAPE-LEFT' || orientation === 'LANDSCAPE-RIGHT') {
+        setIsFullscreen(true)
+      }
+    }
+    Orientation.addDeviceOrientationListener(listener)
+    return () => Orientation.removeDeviceOrientationListener(listener)
+  }, [currentContent, isFullscreen, setIsFullscreen])
 
   useEffect(() => {
     if (isFullscreen) resetHideTimer()
@@ -66,7 +79,6 @@ export const FullscreenControls = () => {
 
   if (!isFullscreen || !currentContent) return null
 
-  const duration = currentContent.duration
   const title = currentContent.unit?.title || currentContent.episode.title
 
   return (
@@ -100,7 +112,7 @@ export const FullscreenControls = () => {
                   alignItems: 'center',
                   justifyContent: 'space-between',
                   paddingHorizontal: 20,
-                  paddingTop: Platform.OS === 'ios' ? 50 : 20,
+                  paddingTop: 20,
                   paddingBottom: 20,
                 }}
               >
@@ -162,7 +174,9 @@ export const FullscreenControls = () => {
                     minimumValue={0}
                     maximumValue={duration || 1}
                     value={currentTime}
-                    onSlidingComplete={seek}
+                    onSlidingStart={startSliding}
+                    onValueChange={updateSlidingTime}
+                    onSlidingComplete={stopSliding}
                     minimumTrackTintColor='#3B82F6'
                     maximumTrackTintColor='rgba(255,255,255,0.3)'
                     thumbTintColor='#FFFFFF'

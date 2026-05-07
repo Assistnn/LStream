@@ -3,18 +3,22 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import type { ViewStyle } from 'react-native'
 import Video, { type VideoRef } from 'react-native-video'
 
+import { apiRepository } from '../repositories/api'
 import type { SeriesMedia, SeriesResponse } from '../repositories/api/IApiRepository'
+import type { LoopMode } from '../repositories/storage'
+import { StorageRepository } from '../repositories/storage'
 
 type PlaybackState = 'idle' | 'loading' | 'playing' | 'paused' | 'ended' | 'error'
-type LoopMode = 'off' | 'single' | 'all'
 type Rect = { x: number; y: number; width: number; height: number }
 
 class CurrentContent {
+  readonly seriesId: number
   readonly episodes: SeriesMedia[]
   readonly episodeId: number
   readonly unitId?: number
 
-  constructor(episodes: SeriesMedia[], episodeId: number, unitId?: number) {
+  constructor(seriesId: number, episodes: SeriesMedia[], episodeId: number, unitId?: number) {
+    this.seriesId = seriesId
     this.episodes = episodes
     this.episodeId = episodeId
     this.unitId = unitId
@@ -53,11 +57,11 @@ class CurrentContent {
   }
 
   withEpisode(epId: number, uId?: number) {
-    return new CurrentContent(this.episodes, epId, uId)
+    return new CurrentContent(this.seriesId, this.episodes, epId, uId)
   }
 
   withUnit(uId: number) {
-    return new CurrentContent(this.episodes, this.episodeId, uId)
+    return new CurrentContent(this.seriesId, this.episodes, this.episodeId, uId)
   }
 
   get hasNextEpisode() {
@@ -88,9 +92,11 @@ class CurrentContent {
 const PlayerContext = createContext<
   | {
       currentContent: CurrentContent | undefined
+      playedItemIds: Set<number>
       state: {
         playbackState: PlaybackState
         currentTime: number
+        duration: number
       }
       settings: {
         playbackRate: number
@@ -112,7 +118,7 @@ const PlayerContext = createContext<
         setPlayerExpanded: (expanded: boolean) => void
         closePlayer: () => void
         handleProgress: (currentTime: number) => void
-        handleLoad: () => void
+        handleLoad: (duration: number) => void
         handleEnd: () => void
         handleBuffer: (isBuffering: boolean) => void
         isBuffering: boolean
@@ -137,6 +143,9 @@ const PlayerContext = createContext<
         seek: (time: number) => void
         skipForward: (seconds: number) => void
         skipBackward: (seconds: number) => void
+        startSliding: () => void
+        stopSliding: (time: number) => void
+        updateSlidingTime: (time: number) => void
       }
     }
   | undefined
@@ -153,15 +162,26 @@ export const usePlayer = () => {
 export const PlayerProvider = ({ children }: { children: ReactNode }) => {
   // currentContent
   const [currentContent, setCurrentContent] = useState<CurrentContent>()
+  const [playedItemIds, setPlayedItemIds] = useState<Set<number>>(new Set())
+
+  useEffect(() => {
+    StorageRepository.getPlayedItemIds().then((ids) => setPlayedItemIds(new Set(ids)))
+  }, [])
+
   const switchContent = (content: CurrentContent) => {
     setCurrentContent(content)
-    updateState({ playbackState: 'loading', currentTime: 0 })
+    updateState({ playbackState: 'loading', currentTime: 0, duration: 0 })
+    lastProgressReportRef.current = 0
+    playEndSentRef.current = false
   }
 
   // state
-  const [state, setState] = useState({ playbackState: 'idle' as PlaybackState, currentTime: 0 })
+  const [state, setState] = useState({ playbackState: 'idle' as PlaybackState, currentTime: 0, duration: 0 })
   const updateState = (patch: Partial<typeof state>) => setState((prev) => ({ ...prev, ...patch }))
+  const seekTargetRef = useRef<number | null>(null)
+  const isSlidingRef = useRef(false)
   const doSeek = (time: number) => {
+    seekTargetRef.current = time
     videoRef.current?.seek(time)
     updateState({ currentTime: time })
   }
@@ -200,6 +220,24 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
       }
     }
   }, [settings.sleepTimer, state.playbackState])
+
+  // persist player settings
+  const isSettingsLoadedRef = useRef(false)
+  useEffect(() => {
+    StorageRepository.getPlayerSettings().then((saved) => {
+      updateSettings(saved)
+      isSettingsLoadedRef.current = true
+    })
+  }, [])
+  useEffect(() => {
+    if (!isSettingsLoadedRef.current) return
+    StorageRepository.savePlayerSettings({
+      playbackRate: settings.playbackRate,
+      loopMode: settings.loopMode,
+      isShuffleOn: settings.isShuffleOn,
+    })
+  }, [settings.playbackRate, settings.loopMode, settings.isShuffleOn])
+
   // view
   const videoRef = useRef<VideoRef>(null)
   const [isPlayerExpanded, setPlayerExpanded] = useState(true)
@@ -232,12 +270,57 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
     }
   }
 
-  const handleProgress = useCallback((currentTime: number) => {
-    setState((prev) => ({ ...prev, currentTime }))
+  // play tracking
+  const lastProgressReportRef = useRef(0)
+  const playEndSentRef = useRef(false)
+
+  const markPlayed = useCallback((itemId: number) => {
+    setPlayedItemIds((prev) => {
+      if (prev.has(itemId)) return prev
+      const next = new Set(prev)
+      next.add(itemId)
+      StorageRepository.addPlayedItemId(itemId)
+      return next
+    })
   }, [])
 
-  const handleLoad = useCallback(() => {
-    setState((prev) => (prev.playbackState === 'loading' ? { ...prev, playbackState: 'playing' } : prev))
+  const handleProgress = useCallback((currentTime: number) => {
+    setState((prev) => {
+      if (prev.playbackState === 'loading' || isSlidingRef.current) return prev
+      if (seekTargetRef.current !== null) {
+        if (Math.abs(currentTime - seekTargetRef.current) < 1) {
+          seekTargetRef.current = null
+        } else {
+          return prev
+        }
+      }
+      return { ...prev, currentTime }
+    })
+
+    const content = currentContentRef.current
+    if (!content) return
+    const dur = content.duration
+    if (dur <= 0) return
+    const itemId = content.unitId ?? content.episodeId
+    const progressPercent = Math.round((currentTime / dur) * 100)
+
+    const now = Date.now()
+    if (now - lastProgressReportRef.current >= 5000) {
+      lastProgressReportRef.current = now
+      apiRepository
+        .updatePlayProgress({ series_id: content.seriesId, item_id: itemId, progress: progressPercent })
+        .catch(() => {})
+    }
+
+    if (!playEndSentRef.current && progressPercent >= 95) {
+      playEndSentRef.current = true
+      apiRepository.updatePlayEnd({ series_id: content.seriesId, item_id: itemId }).catch(() => {})
+      markPlayed(itemId)
+    }
+  }, [markPlayed])
+
+  const handleLoad = useCallback((duration: number) => {
+    setState((prev) => (prev.playbackState === 'loading' ? { ...prev, playbackState: 'playing', duration } : prev))
   }, [])
 
   const [isBuffering, setIsBuffering] = useState(false)
@@ -253,6 +336,10 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
       setState((prev) => ({ ...prev, currentTime: 0, playbackState: 'playing' }))
       return
     }
+    if (s.isShuffleOn && content) {
+      playNextEpisodeInternal()
+      return
+    }
     if (s.loopMode === 'all' && content) {
       if (content.unitId) {
         const allUnits = content.units
@@ -263,7 +350,7 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
         }
       }
       const epIdx = content.episodeIndex
-      if (epIdx < content.episodes.length - 1 || s.isShuffleOn) {
+      if (epIdx < content.episodes.length - 1) {
         playNextEpisodeInternal()
       } else {
         const firstEp = content.episodes[0]
@@ -272,12 +359,12 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
       return
     }
     setState((prev) => ({ ...prev, playbackState: 'ended' }))
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
   return (
     <PlayerContext.Provider
       value={{
         currentContent,
+        playedItemIds,
         state,
         controls: {
           pause: () => {
@@ -292,8 +379,18 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
             }
           },
           seek: doSeek,
-          skipForward: (seconds) => doSeek(Math.min(state.currentTime + seconds, currentContent?.duration ?? 0)),
+          skipForward: (seconds) => doSeek(Math.min(state.currentTime + seconds, state.duration)),
           skipBackward: (seconds) => doSeek(Math.max(state.currentTime - seconds, 0)),
+          startSliding: () => {
+            isSlidingRef.current = true
+          },
+          stopSliding: (time: number) => {
+            isSlidingRef.current = false
+            doSeek(time)
+          },
+          updateSlidingTime: (time: number) => {
+            updateState({ currentTime: time })
+          },
         },
         navigation: {
           playEpisode: (series, episodeId?, unitId?) => {
@@ -301,7 +398,8 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
               ? (series.episodes.find((e) => e.item_id === episodeId) ?? series.episodes[0])
               : series.episodes[0]
 
-            switchContent(new CurrentContent(series.episodes, ep.item_id, unitId ?? ep.units?.[0]?.item_id))
+            switchContent(new CurrentContent(series.series_id, series.episodes, ep.item_id, unitId ?? ep.units?.[0]?.item_id))
+            setPlayerExpanded(true)
           },
           playNextEpisode: playNextEpisodeInternal,
           playPreviousEpisode: () => {
@@ -335,15 +433,7 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
         view: {
           closePlayer: () => {
             setCurrentContent(undefined)
-            updateState({ playbackState: 'idle', currentTime: 0 })
-            setSettings({
-              playbackRate: 1.0,
-              isFullscreen: false,
-              volume: 75,
-              sleepTimer: undefined,
-              loopMode: 'off',
-              isShuffleOn: false,
-            })
+            updateState({ playbackState: 'idle', currentTime: 0, duration: 0 })
             setPlayerExpanded(true)
           },
           isPlayerExpanded,
@@ -391,14 +481,12 @@ export const PlayerVideo = ({ style }: { style?: ViewStyle }) => {
   } = usePlayer()
   const mediaUrl = currentContent?.mediaUrl
   const source = useMemo(() => (mediaUrl ? { uri: mediaUrl } : undefined), [mediaUrl])
-  const onProgress = useCallback(
-    (data: { currentTime: number }) => handleProgress(data.currentTime),
-    [handleProgress],
-  )
+  const onProgress = useCallback((data: { currentTime: number }) => handleProgress(data.currentTime), [handleProgress])
   const onPipStatusChanged = useCallback(
     ({ isActive }: { isActive: boolean }) => setPipActive(isActive),
     [setPipActive],
   )
+  const onLoad = useCallback((data: { duration: number }) => handleLoad(data.duration), [handleLoad])
   const onBuffer = useCallback(
     ({ isBuffering: buffering }: { isBuffering: boolean }) => handleBuffer(buffering),
     [handleBuffer],
@@ -411,11 +499,11 @@ export const PlayerVideo = ({ style }: { style?: ViewStyle }) => {
       source={source}
       style={style}
       resizeMode='cover'
-      paused={playbackState !== 'playing'}
+      paused={playbackState !== 'playing' && playbackState !== 'loading'}
       rate={playbackRate}
       volume={volume / 100}
       onProgress={onProgress}
-      onLoad={handleLoad}
+      onLoad={onLoad}
       onEnd={handleEnd}
       onBuffer={onBuffer}
       playInBackground={true}

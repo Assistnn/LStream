@@ -128,7 +128,7 @@ export const MainScreen = () => {
   const {
     currentContent,
     state: { playbackState },
-    view: { compactSlot, expandedSlot, isBuffering },
+    view: { compactSlot, expandedSlot, isBuffering, isPlayerExpanded, setPlayerExpanded },
     settings: { isFullscreen, setIsFullscreen },
   } = usePlayer()
   const [showPlayerModal, setShowPlayerModal] = useState(false)
@@ -141,10 +141,10 @@ export const MainScreen = () => {
   useInitFavorites()
 
   useEffect(() => {
-    if (currentContent) {
+    if (currentContent && isPlayerExpanded) {
       setShowPlayerModal(true)
     }
-  }, [currentContent])
+  }, [currentContent, isPlayerExpanded])
 
   useEffect(() => {
     Animated.timing(slideAnim, {
@@ -164,6 +164,7 @@ export const MainScreen = () => {
       if (showPlayerModal) {
         setShowPlayerModal(false)
         setShowEpisodeList(false)
+        setPlayerExpanded(false)
         return true
       }
       return false
@@ -180,7 +181,7 @@ export const MainScreen = () => {
   const effectiveCompact = compactSlot ?? {
     x: 0,
     y: screenHeight - 49 - insets.bottom - 56,
-    width: 80,
+    width: 56 * (16 / 9),
     height: 56,
   }
 
@@ -318,7 +319,7 @@ export const MainScreen = () => {
         </View>
       )}
 
-      {currentContent && (
+      {currentContent && !isFullscreen && (
         <Animated.View
           style={{
             position: 'absolute',
@@ -336,20 +337,40 @@ export const MainScreen = () => {
             onClose={() => {
               setShowPlayerModal(false)
               setShowEpisodeList(false)
+              setPlayerExpanded(false)
             }}
           />
         </Animated.View>
       )}
 
       {showVideoWrapper && (
-        <Animated.View style={videoWrapperStyle} pointerEvents='none'>
-          <PlayerVideo style={{ width: '100%', height: '100%' }} />
-          {!currentContent.isVideo && thumbnail && (
-            <Image
-              source={{ uri: thumbnail }}
-              style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
-              resizeMode='cover'
-            />
+        <Animated.View
+          style={
+            isFullscreen
+              ? {
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: screenWidth,
+                  height: screenHeight,
+                  zIndex: 60,
+                  backgroundColor: '#000',
+                  transformOrigin: '0% 0%' as const,
+                  transform: [{ translateX: 0 }, { translateY: 0 }, { scaleX: 1 }, { scaleY: 1 }],
+                }
+              : videoWrapperStyle
+          }
+          pointerEvents='none'
+        >
+          {currentContent.isVideo ? (
+            <PlayerVideo style={{ width: '100%', height: '100%' }} />
+          ) : (
+            <>
+              <PlayerVideo style={{ position: 'absolute', width: 0, height: 0, opacity: 0 }} />
+              {thumbnail && (
+                <Image source={{ uri: thumbnail }} style={{ width: '100%', height: '100%' }} resizeMode='cover' />
+              )}
+            </>
           )}
           {(playbackState === 'loading' || isBuffering) && (
             <View
