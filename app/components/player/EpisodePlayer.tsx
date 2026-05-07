@@ -25,6 +25,7 @@ import { Defs, LinearGradient, Rect, Stop, Svg } from 'react-native-svg'
 import { usePlayer } from '../../hooks/PlayerContext'
 import { useTheme } from '../../hooks/ThemeContext'
 import type { LoopMode } from '../../repositories/storage'
+import { EpisodeMediaList } from '../listitem/EpisodeMediaList'
 import { FavoriteButton } from '../ui/FavoriteButton'
 
 const formatTime = (seconds: number): string => {
@@ -69,7 +70,7 @@ export const EpisodePlayer = ({
   const [showTimerMenu, setShowTimerMenu] = useState(false)
   const [showVolumeMenu, setShowVolumeMenu] = useState(false)
   const [showEpisodeList, setShowEpisodeList] = useState(initialShowEpisodeList)
-  const [expandedEpisodes, setExpandedEpisodes] = useState<Set<number>>(new Set())
+  const [showChapterList, setShowChapterList] = useState(false)
   const [filterType, setFilterType] = useState<'all' | 'unplayed'>('all')
   const [sortOrder, setSortOrder] = useState<'default' | 'newest' | 'oldest'>('default')
   const outerRef = useRef<View>(null)
@@ -132,18 +133,6 @@ export const EpisodePlayer = ({
     if (!sleepTimer) return 'し'
     if (sleepTimer < 60) return `${sleepTimer}分`
     return `${sleepTimer / 60}時間`
-  }
-
-  const toggleEpisodeExpansion = (episodeId: number) => {
-    setExpandedEpisodes((prev) => {
-      const newSet = new Set(prev)
-      if (newSet.has(episodeId)) {
-        newSet.delete(episodeId)
-      } else {
-        newSet.add(episodeId)
-      }
-      return newSet
-    })
   }
 
   const getSortedEpisodes = () => {
@@ -566,7 +555,8 @@ export const EpisodePlayer = ({
 
                 <View style={{ position: 'relative' }}>
                   <TouchableOpacity
-                    onPress={() => setShowEpisodeList(!showEpisodeList)}
+                    onPress={() => hasUnits && setShowChapterList(!showChapterList)}
+                    disabled={!hasUnits}
                     hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                     style={{
                       width: 40,
@@ -574,10 +564,11 @@ export const EpisodePlayer = ({
                       borderRadius: 20,
                       justifyContent: 'center',
                       alignItems: 'center',
-                      backgroundColor: showEpisodeList ? colors.text : 'rgba(255, 255, 255, 0.08)',
+                      backgroundColor: showChapterList ? colors.text : 'rgba(255, 255, 255, 0.08)',
+                      opacity: hasUnits ? 1 : 0.3,
                     }}
                   >
-                    <List size={20} color={showEpisodeList ? colors.background : colors.text} />
+                    <List size={20} color={showChapterList ? colors.background : colors.text} />
                   </TouchableOpacity>
                 </View>
 
@@ -863,135 +854,15 @@ export const EpisodePlayer = ({
 
           {/* Episode List */}
           <ScrollView style={{ flex: 1 }}>
-            {getSortedEpisodes().map((ep, index) => {
-              const isCurrentEpisode = ep.item_id === episode.item_id
-              const isExpanded = expandedEpisodes.has(ep.item_id)
-              const hasUnits = ep.units && ep.units.length > 0
-
-              return (
-                <View key={ep.item_id}>
-                  {/* Episode Row */}
-                  <TouchableOpacity
-                    onPress={() => {
-                      if (hasUnits) {
-                        toggleEpisodeExpansion(ep.item_id)
-                      } else if (ep.item_id !== episode.item_id) {
-                        selectEpisode(ep.item_id)
-                      }
-                    }}
-                    style={{
-                      flexDirection: 'row',
-                      gap: spacing.md,
-                      paddingHorizontal: spacing.lg,
-                      paddingVertical: spacing.md,
-                      borderBottomWidth: 1,
-                      borderBottomColor: colors.border,
-                      backgroundColor: isCurrentEpisode && !currentUnit ? colors.muted : colors.background,
-                    }}
-                  >
-                    <Image
-                      source={{ uri: ep.img }}
-                      style={{ width: 56, height: 56, borderRadius: spacing.xs }}
-                      resizeMode='cover'
-                    />
-                    <View style={{ flex: 1, justifyContent: 'center' }}>
-                      <Text
-                        style={[
-                          styles.textDefault,
-                          {
-                            fontWeight: '600',
-                            marginBottom: 4,
-                            color: isCurrentEpisode && !currentUnit ? colors.primary : colors.text,
-                          },
-                        ]}
-                        numberOfLines={1}
-                      >
-                        <Text style={[styles.bodyTiny, { color: colors.textSecondary }]}>Ep.{index + 1}</Text>{' '}
-                        {ep.title}
-                      </Text>
-
-                      {hasUnits && ep.units && (
-                        <Text style={[styles.bodyTiny, { marginBottom: 4 }]}>
-                          {ep.units.length} Chapters{' '}
-                          <Text style={[styles.bodyTiny, { color: colors.text, fontWeight: '500' }]}>
-                            {formatTime(ep.duration)}
-                          </Text>
-                        </Text>
-                      )}
-
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, height: 20 }}>
-                        {!hasUnits && (
-                          <Text style={[styles.bodyTiny, { color: colors.text, fontWeight: '600' }]}>
-                            {formatTime(ep.duration)}
-                          </Text>
-                        )}
-                        {isCurrentEpisode && !currentUnit && (
-                          <Text style={[styles.bodyTiny, { color: colors.primary, fontWeight: '700' }]}>再生中</Text>
-                        )}
-                        {hasUnits && (
-                          <ChevronDown
-                            size={16}
-                            color={colors.textSecondary}
-                            style={{
-                              transform: [{ rotate: isExpanded ? '180deg' : '0deg' }],
-                              marginLeft: 'auto',
-                            }}
-                          />
-                        )}
-                      </View>
-                    </View>
-                  </TouchableOpacity>
-
-                  {/* Chapters List */}
-                  {hasUnits && isExpanded && ep.units && (
-                    <View style={{ marginLeft: spacing['5xl'] }}>
-                      {ep.units.map((unit, unitIndex) => {
-                        const isCurrentUnit = currentUnit?.item_id === unit.item_id
-
-                        return (
-                          <TouchableOpacity
-                            key={unit.item_id}
-                            onPress={() => {
-                              selectEpisode(ep.item_id, unit.item_id)
-                            }}
-                            style={{
-                              paddingVertical: spacing.md,
-                              paddingRight: spacing.lg,
-                              borderBottomWidth: 1,
-                              borderBottomColor: colors.border,
-                              backgroundColor: isCurrentUnit ? colors.muted : colors.background,
-                            }}
-                          >
-                            <Text
-                              style={[
-                                styles.textDefault,
-                                {
-                                  fontWeight: '500',
-                                  marginBottom: 4,
-                                  color: isCurrentUnit ? colors.primary : colors.text,
-                                },
-                              ]}
-                              numberOfLines={1}
-                            >
-                              <Text style={[styles.bodyTiny, { color: colors.textSecondary }]}>Un.{unitIndex + 1}</Text>{' '}
-                              {unit.title}
-                            </Text>
-                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
-                              <Text style={[styles.bodyTiny, { fontWeight: '600' }]}>{formatTime(unit.duration)}</Text>
-                              {isCurrentUnit && (
-                                <Text style={[styles.bodyTiny, { color: colors.primary, fontWeight: '700' }]}>
-                                  再生中
-                                </Text>
-                              )}
-                            </View>
-                          </TouchableOpacity>
-                        )
-                      })}
-                    </View>
-                  )}
-                </View>
-              )
-            })}
+            <EpisodeMediaList
+              episodes={getSortedEpisodes()}
+              onEpisodePress={(ep) => {
+                if (ep.item_id !== episode.item_id) {
+                  selectEpisode(ep.item_id)
+                }
+              }}
+              onUnitPress={(ep, unit) => selectEpisode(ep.item_id, unit.item_id)}
+            />
           </ScrollView>
         </View>
       )}
@@ -1110,6 +981,99 @@ export const EpisodePlayer = ({
               />
             </View>
             <Text style={[styles.bodyTiny, { width: 40, textAlign: 'right' }]}>{Math.floor(volume)}%</Text>
+          </View>
+        </View>
+      )}
+
+      {showChapterList && (
+        <View
+          style={{
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            top: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            justifyContent: 'flex-end',
+            zIndex: 30,
+          }}
+        >
+          <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={() => setShowChapterList(false)} />
+          <View
+            style={{
+              backgroundColor: colors.card,
+              borderTopLeftRadius: 24,
+              borderTopRightRadius: 24,
+              maxHeight: '70%',
+            }}
+          >
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                paddingHorizontal: spacing.lg,
+                paddingVertical: spacing.lg,
+                borderBottomWidth: 1,
+                borderBottomColor: colors.border,
+              }}
+            >
+              <Text style={styles.titleLarge}>チャプター</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+                <TouchableOpacity
+                  onPress={() => setShowChapterList(false)}
+                  style={{
+                    width: 32,
+                    height: 32,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    borderRadius: 16,
+                  }}
+                >
+                  <Text style={[styles.textDefault, { fontSize: 20 }]}>×</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <ScrollView>
+              <View style={{ paddingHorizontal: spacing.lg, paddingVertical: spacing.sm }}>
+                <Text style={[styles.bodySmall, { fontWeight: '600' }]}>チャプター</Text>
+              </View>
+              {units.map((unit, unitIndex) => {
+                const startTime = units.slice(0, unitIndex).reduce((sum, u) => sum + u.duration, 0)
+                const isCurrentUnit = currentUnit?.item_id === unit.item_id
+
+                return (
+                  <TouchableOpacity
+                    key={unit.item_id}
+                    onPress={() => {
+                      selectEpisode(episode.item_id, unit.item_id)
+                      setShowChapterList(false)
+                    }}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: spacing.md,
+                      paddingHorizontal: spacing.lg,
+                      paddingVertical: spacing.md,
+                      borderBottomWidth: 1,
+                      borderBottomColor: colors.border,
+                    }}
+                  >
+                    <Text style={[styles.bodySmall, { width: 40 }]}>{formatTime(startTime)}</Text>
+                    <Text
+                      style={[styles.textDefault, { flex: 1, color: isCurrentUnit ? colors.primary : colors.text }]}
+                      numberOfLines={1}
+                    >
+                      {unit.title}
+                    </Text>
+                    {isCurrentUnit && (
+                      <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: colors.primary }} />
+                    )}
+                  </TouchableOpacity>
+                )
+              })}
+            </ScrollView>
           </View>
         </View>
       )}

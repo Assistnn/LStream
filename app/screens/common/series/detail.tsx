@@ -1,9 +1,10 @@
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
-import { ChevronDown, ChevronUp, CircleDot, CirclePlay, Heart, Play } from 'lucide-react-native'
+import { ChevronDown, CirclePlay, Heart, Play } from 'lucide-react-native'
 import { useRef, useState } from 'react'
 import { Image, ScrollView, Text, TouchableOpacity, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
+import { EpisodeMediaList } from '../../../components/listitem/EpisodeMediaList'
 import { Button } from '../../../components/ui/Button'
 import { ContextMenu } from '../../../components/ui/ContextMenu'
 import { LoadingSpinner } from '../../../components/ui/LoadingSpinner'
@@ -33,7 +34,6 @@ export const SeriesDetailScreen = ({
 
   const [filterType, setFilterType] = useState<'all' | 'notStarted'>('all')
   const [sortOrder, setSortOrder] = useState<'default' | 'newest' | 'oldest'>('default')
-  const [expandedEpisodes, setExpandedEpisodes] = useState<Set<number>>(new Set())
 
   const [sortMenuVisible, setSortMenuVisible] = useState(false)
   const [sortMenuAnchorY, setSortMenuAnchorY] = useState<number | undefined>(undefined)
@@ -258,200 +258,57 @@ export const SeriesDetailScreen = ({
           </View>
         </View>
 
-        <View style={{ paddingTop: spacing.md }}>
-          {sortedEpisodes.map((episode, index) => {
-            const hasUnits = episode.units && episode.units.length > 0
-            const totalPlayCount = hasUnits && episode.units ? episode.units.reduce((sum) => sum + 0, 0) : 0
-            const isExpanded = expandedEpisodes.has(episode.item_id)
-            return (
-              <View key={index}>
-                <TouchableOpacity
+        <EpisodeMediaList
+          episodes={sortedEpisodes}
+          renderThumbnailOverlay={(ep) => (
+            <>
+              {isFavoriteEpisode(seriesId, ep.item_id) && (
+                <View
                   style={{
-                    paddingHorizontal: spacing.lg,
-                    paddingVertical: spacing.lg,
-                    flexDirection: 'row',
-                    gap: spacing.md,
-                    borderTopWidth: 1,
-                    borderTopColor: colors.border,
-                  }}
-                  onPress={() => {
-                    if (hasUnits) {
-                      setExpandedEpisodes((prev) => {
-                        const next = new Set(prev)
-                        if (next.has(episode.item_id)) {
-                          next.delete(episode.item_id)
-                        } else {
-                          next.add(episode.item_id)
-                        }
-                        return next
-                      })
-                    }
+                    position: 'absolute',
+                    top: -4,
+                    left: -4,
+                    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                    borderRadius: 12,
+                    padding: 4,
                   }}
                 >
-                  <View style={{ position: 'relative', width: 64, height: 64 }}>
-                    <Image
-                      source={{ uri: episode.img }}
-                      style={{
-                        width: 64,
-                        height: 64,
-                        borderRadius: borderRadius.lg,
-                      }}
-                    />
-                    {isFavoriteEpisode(seriesId, episode.item_id) && (
-                      <View
-                        style={{
-                          position: 'absolute',
-                          top: -4,
-                          left: -4,
-                          backgroundColor: 'rgba(255, 255, 255, 0.9)',
-                          borderRadius: 12,
-                          padding: 4,
-                        }}
-                      >
-                        <Heart size={12} color='#ef4444' fill='#ef4444' strokeWidth={0} />
-                      </View>
-                    )}
-                    {totalPlayCount === 0 && (
-                      <View
-                        style={{
-                          position: 'absolute',
-                          top: -4,
-                          right: -4,
-                          backgroundColor: colors.primary,
-                          borderRadius: 12,
-                          padding: 4,
-                        }}
-                      >
-                        <CircleDot size={12} color='white' strokeWidth={3} />
-                      </View>
-                    )}
-                  </View>
-
-                  <View style={{ flex: 1, flexDirection: 'column', gap: spacing.xs }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
-                      <Text style={styles.bodySmall}>Ep.{index + 1} </Text>
-                      <Text style={styles.titleLarge} numberOfLines={1}>
-                        {episode.title}
-                      </Text>
-                    </View>
-
-                    {hasUnits && episode.units && (
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
-                        <Text style={styles.bodyTiny}>{episode.units.length} Units</Text>
-                        <Text style={[styles.bodyTiny, { color: colors.text }]}>
-                          {Math.floor(episode.duration / 60)}:{(episode.duration % 60).toString().padStart(2, '0')}
-                        </Text>
-                      </View>
-                    )}
-
-                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
-                        {!hasUnits && (
-                          <Text style={[styles.bodyTiny, { color: colors.text }]}>
-                            {Math.floor(episode.duration / 60)}:{(episode.duration % 60).toString().padStart(2, '0')}
-                          </Text>
-                        )}
-                        {totalPlayCount > 0 && (
-                          <View
-                            style={{
-                              paddingHorizontal: spacing.sm,
-                              paddingVertical: 2,
-                              backgroundColor: colors.muted,
-                              borderRadius: borderRadius.sm,
-                            }}
-                          >
-                            <Text style={styles.bodyTiny}>{totalPlayCount.toLocaleString()}回再生</Text>
-                          </View>
-                        )}
-                      </View>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}>
-                        {hasUnits ? (
-                          <View
-                            style={{
-                              width: 20,
-                              height: 20,
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                            }}
-                          >
-                            {isExpanded ? (
-                              <ChevronUp size={16} color={colors.textSecondary} />
-                            ) : (
-                              <ChevronDown size={16} color={colors.textSecondary} />
-                            )}
-                          </View>
-                        ) : (
-                          <MediaMenuButton
-                            seriesId={data.series_id}
-                            mediaId={episode.item_id}
-                            mediaType='episode'
-                            size={16}
-                            mediaInfo={{
-                              title: episode.title,
-                              seriesTitle: data.title,
-                              thumbnail: episode.img,
-                              duration: episode.duration,
-                            }}
-                          />
-                        )}
-                      </View>
-                    </View>
-                  </View>
-                </TouchableOpacity>
-
-                {hasUnits && isExpanded && episode.units && (
-                  <View style={{ paddingLeft: spacing.lg, borderTopWidth: 1, borderTopColor: colors.border }}>
-                    {episode.units.map((unit, unitIndex) => (
-                      <View key={unit.item_id}>
-                        <TouchableOpacity
-                          style={{
-                            flexDirection: 'row',
-                            alignItems: 'center',
-                            paddingVertical: spacing.md,
-                            paddingRight: spacing.sm,
-                            gap: 0,
-                            borderTopWidth: unitIndex === 0 ? 0 : 1,
-                            borderTopColor: colors.border,
-                          }}
-                          onPress={() => {}}
-                        >
-                          <View style={{ width: 20, alignItems: 'center', justifyContent: 'center', paddingLeft: 2 }} />
-
-                          <View style={{ flex: 1, minWidth: 0, paddingVertical: 2.5, paddingRight: 2 }}>
-                            <Text style={styles.titleMedium} numberOfLines={1}>
-                              <Text style={styles.bodySmall}>UN.{unitIndex + 1} </Text>
-                              {unit.title}
-                            </Text>
-                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 }}>
-                              <Text style={styles.bodyTiny}>
-                                {Math.floor(unit.duration / 60)}:{(unit.duration % 60).toString().padStart(2, '0')}
-                              </Text>
-                            </View>
-                          </View>
-
-                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingRight: 8 }}>
-                            <MediaMenuButton
-                              seriesId={data.series_id}
-                              mediaId={unit.item_id}
-                              mediaType='unit'
-                              size={16}
-                              mediaInfo={{
-                                title: unit.title,
-                                seriesTitle: data.title,
-                                thumbnail: unit.img,
-                                duration: unit.duration,
-                              }}
-                            />
-                          </View>
-                        </TouchableOpacity>
-                      </View>
-                    ))}
-                  </View>
-                )}
-              </View>
-            )
-          })}
-        </View>
+                  <Heart size={12} color='#ef4444' fill='#ef4444' strokeWidth={0} />
+                </View>
+              )}
+            </>
+          )}
+          renderEpisodeActions={(ep, hasUnits) =>
+            !hasUnits ? (
+              <MediaMenuButton
+                seriesId={data.series_id}
+                mediaId={ep.item_id}
+                mediaType='episode'
+                size={16}
+                mediaInfo={{
+                  title: ep.title,
+                  seriesTitle: data.title,
+                  thumbnail: ep.img,
+                  duration: ep.duration,
+                }}
+              />
+            ) : null
+          }
+          renderUnitActions={(ep, unit) => (
+            <MediaMenuButton
+              seriesId={data.series_id}
+              mediaId={unit.item_id}
+              mediaType='unit'
+              size={16}
+              mediaInfo={{
+                title: unit.title,
+                seriesTitle: data.title,
+                thumbnail: unit.img,
+                duration: unit.duration,
+              }}
+            />
+          )}
+        />
       </ScrollView>
     </View>
   )
