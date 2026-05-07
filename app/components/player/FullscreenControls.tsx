@@ -45,17 +45,30 @@ export const FullscreenControls = () => {
       StatusBar.setHidden(true, 'fade')
     } else if (!isFullscreen && isLockedRef.current) {
       isLockedRef.current = false
-      Orientation.unlockAllOrientations()
+      Orientation.lockToPortrait()
       StatusBar.setHidden(false, 'fade')
+      setTimeout(() => Orientation.unlockAllOrientations(), 500)
     }
     return () => {
       if (isLockedRef.current) {
         isLockedRef.current = false
-        Orientation.unlockAllOrientations()
+        Orientation.lockToPortrait()
         StatusBar.setHidden(false, 'fade')
+        setTimeout(() => Orientation.unlockAllOrientations(), 500)
       }
     }
   }, [isFullscreen])
+
+  useEffect(() => {
+    if (!currentContent || isFullscreen) return
+    const listener = (orientation: string) => {
+      if (orientation === 'LANDSCAPE-LEFT' || orientation === 'LANDSCAPE-RIGHT') {
+        setIsFullscreen(true)
+      }
+    }
+    Orientation.addDeviceOrientationListener(listener)
+    return () => Orientation.removeDeviceOrientationListener(listener)
+  }, [currentContent, isFullscreen, setIsFullscreen])
 
   useEffect(() => {
     if (isFullscreen) resetHideTimer()

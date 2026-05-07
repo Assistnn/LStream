@@ -255,7 +255,7 @@ export const EpisodePlayer = ({
                 size={20}
                 buttonStyle={{
                   position: 'absolute',
-                  top: 0,
+                  top: spacing.xl,
                   right: spacing.lg,
                   padding: spacing.sm,
                   zIndex: 10,

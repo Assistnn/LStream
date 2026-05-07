@@ -355,6 +355,8 @@ export const MainScreen = () => {
                   height: screenHeight,
                   zIndex: 60,
                   backgroundColor: '#000',
+                  transformOrigin: '0% 0%' as const,
+                  transform: [{ translateX: 0 }, { translateY: 0 }, { scaleX: 1 }, { scaleY: 1 }],
                 }
               : videoWrapperStyle
           }
