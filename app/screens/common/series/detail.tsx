@@ -260,6 +260,8 @@ export const SeriesDetailScreen = ({
 
         <EpisodeMediaList
           episodes={sortedEpisodes}
+          onEpisodePress={(ep) => playEpisode(data, ep.item_id)}
+          onUnitPress={(ep, unit) => playEpisode(data, ep.item_id, unit.item_id)}
           renderThumbnailOverlay={(ep) => (
             <>
               {isFavoriteEpisode(seriesId, ep.item_id) && (
