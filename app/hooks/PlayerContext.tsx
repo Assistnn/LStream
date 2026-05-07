@@ -386,14 +386,6 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
           closePlayer: () => {
             setCurrentContent(undefined)
             updateState({ playbackState: 'idle', currentTime: 0, duration: 0 })
-            setSettings({
-              playbackRate: 1.0,
-              isFullscreen: false,
-              volume: 75,
-              sleepTimer: undefined,
-              loopMode: 'off',
-              isShuffleOn: false,
-            })
             setPlayerExpanded(true)
           },
           isPlayerExpanded,

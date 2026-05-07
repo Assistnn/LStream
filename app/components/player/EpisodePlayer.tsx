@@ -196,67 +196,70 @@ export const EpisodePlayer = ({
       {!showEpisodeList ? (
         <>
           {/* Full Player View */}
-          <View style={{ flex: 1, justifyContent: 'space-between' }}>
-            <View style={{ gap: spacing.xl }}>
-              {/* Artwork or Video slot (PlayerVideo overlays this at MainScreen level) */}
-              <View style={{ paddingVertical: spacing.xl, backgroundColor: '#000' }}>
-                <View
-                  ref={slotRef}
-                  onLayout={measureSlot}
-                  collapsable={false}
-                  style={{
-                    width: '100%',
-                    aspectRatio: 16 / 9,
-                    backgroundColor: currentContent.isVideo ? '#000' : 'transparent',
-                  }}
-                >
-                  {!currentContent.isVideo && thumbnail && (
-                    <Image
-                      source={{ uri: thumbnail }}
-                      style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
-                      resizeMode='cover'
-                    />
-                  )}
-                </View>
-              </View>
-              {/* Episode Info */}
+          <View style={{ flex: 1 }}>
+            {/* Artwork or Video slot (PlayerVideo overlays this at MainScreen level) */}
+            <View style={{ paddingVertical: spacing.xl, backgroundColor: '#000' }}>
               <View
+                ref={slotRef}
+                onLayout={measureSlot}
+                collapsable={false}
                 style={{
-                  paddingHorizontal: spacing.lg,
-                  justifyContent: 'center',
-                  position: 'relative',
+                  width: '100%',
+                  aspectRatio: 16 / 9,
+                  backgroundColor: currentContent.isVideo ? '#000' : 'transparent',
                 }}
               >
-                <View style={{ gap: 4 }}>
-                  {currentUnit ? (
-                    <Text style={[styles.bodyText, { textAlign: 'center' }]}>
-                      Unit.{units.findIndex((ch) => ch.item_id === currentUnit?.item_id) + 1}
-                    </Text>
-                  ) : (
-                    <Text style={[styles.bodyText, { textAlign: 'center' }]}>Episode.{currentEpisodeIndex + 1}</Text>
-                  )}
-                  <Text style={[styles.text2xl, { textAlign: 'center' }]} numberOfLines={2}>
-                    {currentUnit ? currentUnit.title : episode.title}
-                  </Text>
-                  <Text style={[styles.bodyTiny, { textAlign: 'center' }]} numberOfLines={1}>
-                    <Text>{currentUnit ? `Ep.${currentEpisodeIndex + 1}` : ''}</Text>
-                    <Text> {currentUnit ? episode.title : ''}</Text>
-                  </Text>
-                </View>
-                {/* Favorite button in top right */}
-                <FavoriteButton
-                  itemId={unitId ?? episodeId}
-                  size={20}
-                  buttonStyle={{
-                    position: 'absolute',
-                    top: 0,
-                    right: spacing.lg,
-                    padding: spacing.sm,
-                    zIndex: 10,
-                  }}
-                />
+                {!currentContent.isVideo && thumbnail && (
+                  <Image
+                    source={{ uri: thumbnail }}
+                    style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+                    resizeMode='cover'
+                  />
+                )}
               </View>
+            </View>
+            {/* Episode Info */}
+            <View
+              style={{
+                paddingHorizontal: spacing.lg,
+                justifyContent: 'center',
+                position: 'relative',
+                paddingTop: spacing.xl,
+              }}
+            >
+              <View style={{ gap: 4 }}>
+                {currentUnit ? (
+                  <Text style={[styles.bodyText, { textAlign: 'center' }]}>
+                    Unit.{units.findIndex((ch) => ch.item_id === currentUnit?.item_id) + 1}
+                  </Text>
+                ) : (
+                  <Text style={[styles.bodyText, { textAlign: 'center' }]}>Episode.{currentEpisodeIndex + 1}</Text>
+                )}
+                <Text style={[styles.text2xl, { textAlign: 'center' }]} numberOfLines={2}>
+                  {currentUnit ? currentUnit.title : episode.title}
+                </Text>
+                <Text style={[styles.bodyTiny, { textAlign: 'center' }]} numberOfLines={1}>
+                  <Text>{currentUnit ? `Ep.${currentEpisodeIndex + 1}` : ''}</Text>
+                  <Text> {currentUnit ? episode.title : ''}</Text>
+                </Text>
+              </View>
+              {/* Favorite button in top right */}
+              <FavoriteButton
+                itemId={unitId ?? episodeId}
+                size={20}
+                buttonStyle={{
+                  position: 'absolute',
+                  top: 0,
+                  right: spacing.lg,
+                  padding: spacing.sm,
+                  zIndex: 10,
+                }}
+              />
+            </View>
 
+            <View style={{ flex: 1 }} />
+
+            <View style={{ gap: spacing.xl }}>
               {/* Progress bar */}
               <View style={{ paddingHorizontal: spacing['3xl'] }}>
                 <Slider
@@ -548,7 +551,7 @@ export const EpisodePlayer = ({
                         }}
                       >
                         <Text style={{ fontSize: 8, fontWeight: '600', textAlign: 'center', color: colors.background }}>
-                          {volume}%
+                          {Math.floor(volume)}%
                         </Text>
                       </View>
                     )}
@@ -637,7 +640,7 @@ export const EpisodePlayer = ({
                 style={{
                   paddingHorizontal: spacing.md,
                   paddingBottom: spacing.lg,
-                  marginTop: spacing.lg,
+                  marginTop: spacing['3xl'] * 2,
                 }}
               >
                 <View
@@ -1076,7 +1079,7 @@ export const EpisodePlayer = ({
                 thumbTintColor={colors.tabBarActive}
               />
             </View>
-            <Text style={[styles.bodyTiny, { width: 40, textAlign: 'right' }]}>{volume}%</Text>
+            <Text style={[styles.bodyTiny, { width: 40, textAlign: 'right' }]}>{Math.floor(volume)}%</Text>
           </View>
         </View>
       )}
