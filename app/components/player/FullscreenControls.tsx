@@ -99,7 +99,7 @@ export const FullscreenControls = () => {
                   alignItems: 'center',
                   justifyContent: 'space-between',
                   paddingHorizontal: 20,
-                  paddingTop: Platform.OS === 'ios' ? 50 : 20,
+                  paddingTop: 20,
                   paddingBottom: 20,
                 }}
               >

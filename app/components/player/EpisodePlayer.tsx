@@ -45,6 +45,7 @@ export const EpisodePlayer = ({
   const { colors, styles, spacing } = useTheme()
   const {
     currentContent,
+    playedItemIds,
     state: { playbackState, currentTime, duration: mediaDuration },
     controls: { pause, resume, skipForward, skipBackward, startSliding, stopSliding, updateSlidingTime },
     navigation: { playNextEpisode, playPreviousEpisode, playNextUnit, playPreviousUnit, selectEpisode },
@@ -149,7 +150,12 @@ export const EpisodePlayer = ({
     let filtered = [...episodes]
 
     if (filterType === 'unplayed') {
-      filtered = filtered.filter((ep) => ep.progress < ep.duration)
+      filtered = filtered.filter((ep) => {
+        if (ep.units && ep.units.length > 0) {
+          return ep.units.some((u) => !playedItemIds.has(u.item_id))
+        }
+        return !playedItemIds.has(ep.item_id)
+      })
     }
 
     if (sortOrder === 'newest') {
@@ -633,114 +639,142 @@ export const EpisodePlayer = ({
               </View>
             </View>
           </View>
-          <View>
+          <View
+            style={{
+              paddingHorizontal: spacing.md,
+              paddingBottom: spacing.lg,
+              marginTop: spacing['3xl'],
+            }}
+          >
             {/* Next Episode Display */}
-            {hasNextEpisode && (
+            <View
+              style={{
+                opacity: hasNextEpisode ? 1 : 0,
+                backgroundColor: colors.card,
+                borderRadius: 999,
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: hasNextEpisode ? 0.1 : 0,
+                shadowRadius: 8,
+                elevation: hasNextEpisode ? 4 : 0,
+                borderWidth: 1,
+                borderColor: hasNextEpisode ? colors.border : 'transparent',
+              }}
+            >
               <View
                 style={{
-                  paddingHorizontal: spacing.md,
-                  paddingBottom: spacing.lg,
-                  marginTop: spacing['3xl'] * 2,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: spacing.sm,
+                  paddingVertical: spacing.sm,
+                  paddingHorizontal: spacing.lg,
                 }}
               >
-                <View
-                  style={{
-                    backgroundColor: colors.card,
-                    borderRadius: 999,
-                    shadowColor: '#000',
-                    shadowOffset: { width: 0, height: 2 },
-                    shadowOpacity: 0.1,
-                    shadowRadius: 8,
-                    elevation: 4,
-                    borderWidth: 1,
-                    borderColor: colors.border,
-                  }}
-                >
-                  <TouchableOpacity
-                    onPress={playNextEpisode}
-                    style={{
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      gap: spacing.sm,
-                      paddingVertical: spacing.sm,
-                      paddingHorizontal: spacing.lg,
-                    }}
-                  >
-                    <View
-                      style={{
-                        width: 40,
-                        height: 40,
-                        borderRadius: 20,
-                        overflow: 'hidden',
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                      }}
-                    >
-                      <Svg width='40' height='40' style={{ position: 'absolute' }}>
-                        <Defs>
-                          <LinearGradient id='greenGradient' x1='0' y1='0' x2='1' y2='1'>
-                            <Stop offset='0' stopColor='#10b981' stopOpacity='1' />
-                            <Stop offset='1' stopColor='#059669' stopOpacity='1' />
-                          </LinearGradient>
-                        </Defs>
-                        <Rect width='40' height='40' fill='url(#greenGradient)' />
-                      </Svg>
-                      <Text style={{ fontSize: 18, fontWeight: '700', color: '#FFFFFF' }}>
-                        {currentEpisodeIndex + 2}
-                      </Text>
-                    </View>
-                    <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
-                      <Text style={[styles.bodyTiny, { fontSize: 9, letterSpacing: 0.5, fontWeight: '500' }]}>
-                        次のエピソード
-                      </Text>
-                      <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 4 }}>
-                        <Text style={[styles.bodySmall, { color: colors.text }]}>Ep.{currentEpisodeIndex + 2}</Text>
-                        <Text style={styles.titleMedium} numberOfLines={1}>
-                          {episodes[currentEpisodeIndex + 1]?.title}
-                        </Text>
-                      </View>
-                      <Text style={styles.bodyTiny}>
-                        {Math.floor(episodes[currentEpisodeIndex + 1]?.duration / 60)}:
-                        {(episodes[currentEpisodeIndex + 1]?.duration % 60).toString().padStart(2, '0')}
-                      </Text>
-                    </View>
-                    <ChevronRight size={16} color={colors.textSecondary} />
-                  </TouchableOpacity>
+                <View style={{ width: 40, height: 40 }} />
+                <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+                  <Text style={[styles.bodyTiny, { fontSize: 9 }]}> </Text>
+                  <Text style={styles.bodySmall}> </Text>
+                  <Text style={styles.bodyTiny}> </Text>
                 </View>
               </View>
-            )}
+              {hasNextEpisode && (
+                <TouchableOpacity
+                  onPress={playNextEpisode}
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: spacing.sm,
+                    paddingVertical: spacing.sm,
+                    paddingHorizontal: spacing.lg,
+                  }}
+                >
+                  <View
+                    style={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: 20,
+                      overflow: 'hidden',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                    }}
+                  >
+                    <Svg width='40' height='40' style={{ position: 'absolute' }}>
+                      <Defs>
+                        <LinearGradient id='greenGradient' x1='0' y1='0' x2='1' y2='1'>
+                          <Stop offset='0' stopColor='#10b981' stopOpacity='1' />
+                          <Stop offset='1' stopColor='#059669' stopOpacity='1' />
+                        </LinearGradient>
+                      </Defs>
+                      <Rect width='40' height='40' fill='url(#greenGradient)' />
+                    </Svg>
+                    <Text style={{ fontSize: 18, fontWeight: '700', color: '#FFFFFF' }}>{currentEpisodeIndex + 2}</Text>
+                  </View>
+                  <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+                    <Text style={[styles.bodyTiny, { fontSize: 9, letterSpacing: 0.5, fontWeight: '500' }]}>
+                      次のエピソード
+                    </Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 4 }}>
+                      <Text style={[styles.bodySmall, { color: colors.text }]}>Ep.{currentEpisodeIndex + 2}</Text>
+                      <Text style={styles.titleMedium} numberOfLines={1}>
+                        {episodes[currentEpisodeIndex + 1]?.title}
+                      </Text>
+                    </View>
+                    <Text style={styles.bodyTiny}>
+                      {Math.floor(episodes[currentEpisodeIndex + 1]?.duration / 60)}:
+                      {(episodes[currentEpisodeIndex + 1]?.duration % 60).toString().padStart(2, '0')}
+                    </Text>
+                  </View>
+                  <ChevronRight size={16} color={colors.textSecondary} />
+                </TouchableOpacity>
+              )}
+            </View>
           </View>
         </>
       ) : (
         /* Episode List View */
         <View style={{ flex: 1, backgroundColor: colors.background }}>
-          {/* Mini Player at top */}
-          <View
-            style={{
-              flexDirection: 'row',
-              gap: spacing.md,
-              padding: spacing['2xs'],
-              borderBottomWidth: 1,
-              borderBottomColor: colors.border,
-            }}
-          >
-            <Image
-              source={{ uri: thumbnail }}
-              style={{ width: 56, height: 56, borderRadius: spacing.xs }}
-              resizeMode='cover'
-            />
-            <View style={{ flex: 1, justifyContent: 'center' }}>
-              <Text style={[styles.bodyTiny, { marginBottom: 2 }]}>
-                {currentUnit
-                  ? `Unit.${units.findIndex((ch) => ch.item_id === currentUnit?.item_id) + 1}`
-                  : `Episode.${currentEpisodeIndex + 1}`}
-              </Text>
-              <Text style={[styles.textDefault, { fontWeight: '500' }]} numberOfLines={1}>
-                {currentUnit ? currentUnit.title : episode.title}
-              </Text>
-              {currentUnit && (
-                <Text style={styles.bodyTiny} numberOfLines={1}>
-                  Ep.{currentEpisodeIndex + 1} {episode.title}
+          {/* Full-width Thumbnail/Video */}
+          <View style={{ paddingVertical: spacing.xl, backgroundColor: '#000' }}>
+            <View
+              ref={slotRef}
+              onLayout={measureSlot}
+              collapsable={false}
+              style={{
+                width: '100%',
+                aspectRatio: 16 / 9,
+                backgroundColor: currentContent.isVideo ? '#000' : 'transparent',
+              }}
+            >
+              {!currentContent.isVideo && thumbnail && (
+                <Image
+                  source={{ uri: thumbnail }}
+                  style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+                  resizeMode='cover'
+                />
+              )}
+            </View>
+          </View>
+
+          {/* Episode Info */}
+          <View style={{ padding: spacing.lg, borderBottomWidth: 1, borderBottomColor: colors.border }}>
+            <View style={{ gap: 2 }}>
+              {currentUnit ? (
+                <>
+                  <Text style={[styles.bodySmall, { fontWeight: '600' }]} numberOfLines={1}>
+                    Unit.{units.findIndex((ch) => ch.item_id === currentUnit?.item_id) + 1} {currentUnit.title}
+                  </Text>
+                  <Text style={styles.bodyTiny} numberOfLines={1}>
+                    Ep.{currentEpisodeIndex + 1} {episode.title}
+                  </Text>
+                </>
+              ) : (
+                <Text style={[styles.bodySmall, { fontWeight: '600' }]} numberOfLines={1}>
+                  Episode.{currentEpisodeIndex + 1} {episode.title}
                 </Text>
               )}
             </View>
@@ -841,11 +875,8 @@ export const EpisodePlayer = ({
                     onPress={() => {
                       if (hasUnits) {
                         toggleEpisodeExpansion(ep.item_id)
-                      } else {
-                        if (ep.item_id !== episode.item_id) {
-                          selectEpisode(ep.item_id)
-                        }
-                        setShowEpisodeList(false)
+                      } else if (ep.item_id !== episode.item_id) {
+                        selectEpisode(ep.item_id)
                       }
                     }}
                     style={{
@@ -922,7 +953,6 @@ export const EpisodePlayer = ({
                             key={unit.item_id}
                             onPress={() => {
                               selectEpisode(ep.item_id, unit.item_id)
-                              setShowEpisodeList(false)
                             }}
                             style={{
                               paddingVertical: spacing.md,

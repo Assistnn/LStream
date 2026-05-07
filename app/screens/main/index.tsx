@@ -319,7 +319,7 @@ export const MainScreen = () => {
         </View>
       )}
 
-      {currentContent && (
+      {currentContent && !isFullscreen && (
         <Animated.View
           style={{
             position: 'absolute',
@@ -344,7 +344,22 @@ export const MainScreen = () => {
       )}
 
       {showVideoWrapper && (
-        <Animated.View style={videoWrapperStyle} pointerEvents='none'>
+        <Animated.View
+          style={
+            isFullscreen
+              ? {
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: screenWidth,
+                  height: screenHeight,
+                  zIndex: 60,
+                  backgroundColor: '#000',
+                }
+              : videoWrapperStyle
+          }
+          pointerEvents='none'
+        >
           {currentContent.isVideo ? (
             <PlayerVideo style={{ width: '100%', height: '100%' }} />
           ) : (

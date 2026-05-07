@@ -3,6 +3,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import type { ViewStyle } from 'react-native'
 import Video, { type VideoRef } from 'react-native-video'
 
+import { apiRepository } from '../repositories/api'
 import type { SeriesMedia, SeriesResponse } from '../repositories/api/IApiRepository'
 import type { LoopMode } from '../repositories/storage'
 import { StorageRepository } from '../repositories/storage'
@@ -11,11 +12,13 @@ type PlaybackState = 'idle' | 'loading' | 'playing' | 'paused' | 'ended' | 'erro
 type Rect = { x: number; y: number; width: number; height: number }
 
 class CurrentContent {
+  readonly seriesId: number
   readonly episodes: SeriesMedia[]
   readonly episodeId: number
   readonly unitId?: number
 
-  constructor(episodes: SeriesMedia[], episodeId: number, unitId?: number) {
+  constructor(seriesId: number, episodes: SeriesMedia[], episodeId: number, unitId?: number) {
+    this.seriesId = seriesId
     this.episodes = episodes
     this.episodeId = episodeId
     this.unitId = unitId
@@ -54,11 +57,11 @@ class CurrentContent {
   }
 
   withEpisode(epId: number, uId?: number) {
-    return new CurrentContent(this.episodes, epId, uId)
+    return new CurrentContent(this.seriesId, this.episodes, epId, uId)
   }
 
   withUnit(uId: number) {
-    return new CurrentContent(this.episodes, this.episodeId, uId)
+    return new CurrentContent(this.seriesId, this.episodes, this.episodeId, uId)
   }
 
   get hasNextEpisode() {
@@ -89,6 +92,7 @@ class CurrentContent {
 const PlayerContext = createContext<
   | {
       currentContent: CurrentContent | undefined
+      playedItemIds: Set<number>
       state: {
         playbackState: PlaybackState
         currentTime: number
@@ -158,9 +162,17 @@ export const usePlayer = () => {
 export const PlayerProvider = ({ children }: { children: ReactNode }) => {
   // currentContent
   const [currentContent, setCurrentContent] = useState<CurrentContent>()
+  const [playedItemIds, setPlayedItemIds] = useState<Set<number>>(new Set())
+
+  useEffect(() => {
+    StorageRepository.getPlayedItemIds().then((ids) => setPlayedItemIds(new Set(ids)))
+  }, [])
+
   const switchContent = (content: CurrentContent) => {
     setCurrentContent(content)
     updateState({ playbackState: 'loading', currentTime: 0, duration: 0 })
+    lastProgressReportRef.current = 0
+    playEndSentRef.current = false
   }
 
   // state
@@ -258,6 +270,20 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
     }
   }
 
+  // play tracking
+  const lastProgressReportRef = useRef(0)
+  const playEndSentRef = useRef(false)
+
+  const markPlayed = useCallback((itemId: number) => {
+    setPlayedItemIds((prev) => {
+      if (prev.has(itemId)) return prev
+      const next = new Set(prev)
+      next.add(itemId)
+      StorageRepository.addPlayedItemId(itemId)
+      return next
+    })
+  }, [])
+
   const handleProgress = useCallback((currentTime: number) => {
     setState((prev) => {
       if (prev.playbackState === 'loading' || isSlidingRef.current) return prev
@@ -270,7 +296,28 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
       }
       return { ...prev, currentTime }
     })
-  }, [])
+
+    const content = currentContentRef.current
+    if (!content) return
+    const dur = content.duration
+    if (dur <= 0) return
+    const itemId = content.unitId ?? content.episodeId
+    const progressPercent = Math.round((currentTime / dur) * 100)
+
+    const now = Date.now()
+    if (now - lastProgressReportRef.current >= 5000) {
+      lastProgressReportRef.current = now
+      apiRepository
+        .updatePlayProgress({ series_id: content.seriesId, item_id: itemId, progress: progressPercent })
+        .catch(() => {})
+    }
+
+    if (!playEndSentRef.current && progressPercent >= 95) {
+      playEndSentRef.current = true
+      apiRepository.updatePlayEnd({ series_id: content.seriesId, item_id: itemId }).catch(() => {})
+      markPlayed(itemId)
+    }
+  }, [markPlayed])
 
   const handleLoad = useCallback((duration: number) => {
     setState((prev) => (prev.playbackState === 'loading' ? { ...prev, playbackState: 'playing', duration } : prev))
@@ -317,6 +364,7 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
     <PlayerContext.Provider
       value={{
         currentContent,
+        playedItemIds,
         state,
         controls: {
           pause: () => {
@@ -350,7 +398,7 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
               ? (series.episodes.find((e) => e.item_id === episodeId) ?? series.episodes[0])
               : series.episodes[0]
 
-            switchContent(new CurrentContent(series.episodes, ep.item_id, unitId ?? ep.units?.[0]?.item_id))
+            switchContent(new CurrentContent(series.series_id, series.episodes, ep.item_id, unitId ?? ep.units?.[0]?.item_id))
             setPlayerExpanded(true)
           },
           playNextEpisode: playNextEpisodeInternal,

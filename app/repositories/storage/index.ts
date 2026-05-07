@@ -13,6 +13,7 @@ const KEYS = {
   PLAYBACK_RATE: 'playbackRate',
   LOOP_MODE: 'loopMode',
   IS_SHUFFLE_ON: 'isShuffleOn',
+  PLAYED_ITEM_IDS: 'playedItemIds',
 } as const
 
 export const StorageRepository = {
@@ -160,6 +161,30 @@ export const StorageRepository = {
       await AsyncStorage.setItem(KEYS.IS_SHUFFLE_ON, JSON.stringify(value))
     } catch (error) {
       console.error('Failed to set isShuffleOn:', error)
+    }
+  },
+
+  async getPlayedItemIds(): Promise<number[]> {
+    try {
+      const value = await AsyncStorage.getItem(KEYS.PLAYED_ITEM_IDS)
+      return value ? (JSON.parse(value) as number[]) : []
+    } catch (error) {
+      console.error('Failed to get playedItemIds:', error)
+      return []
+    }
+  },
+
+  async addPlayedItemId(itemId: number) {
+    try {
+      const ids = await this.getPlayedItemIds()
+      if (!ids.includes(itemId)) {
+        ids.push(itemId)
+        await AsyncStorage.setItem(KEYS.PLAYED_ITEM_IDS, JSON.stringify(ids))
+      }
+      return ids
+    } catch (error) {
+      console.error('Failed to add playedItemId:', error)
+      return []
     }
   },
 
