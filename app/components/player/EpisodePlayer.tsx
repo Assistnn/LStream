@@ -9,7 +9,9 @@ import {
   List,
   Maximize,
   Pause,
+  Pencil,
   Play,
+  Plus,
   Repeat,
   RotateCcw,
   RotateCw,
@@ -17,14 +19,17 @@ import {
   SkipBack,
   SkipForward,
   Volume2,
+  X,
 } from 'lucide-react-native'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Image, Platform, ScrollView, Text, TouchableOpacity, View } from 'react-native'
+import { Image, Platform, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Defs, LinearGradient, Rect, Stop, Svg } from 'react-native-svg'
 
 import { usePlayer } from '../../hooks/PlayerContext'
 import { useTheme } from '../../hooks/ThemeContext'
-import type { LoopMode } from '../../repositories/storage'
+import { StorageRepository } from '../../repositories/storage'
+import type { LoopMode, MyChapter } from '../../repositories/storage'
 import { EpisodeMediaList } from '../listitem/EpisodeMediaList'
 import { FavoriteButton } from '../ui/FavoriteButton'
 
@@ -44,11 +49,12 @@ export const EpisodePlayer = ({
   onClose: () => void
 }) => {
   const { colors, styles, spacing } = useTheme()
+  const insets = useSafeAreaInsets()
   const {
     currentContent,
     playedItemIds,
     state: { playbackState, currentTime, duration: mediaDuration },
-    controls: { pause, resume, skipForward, skipBackward, startSliding, stopSliding, updateSlidingTime },
+    controls: { pause, resume, seek, skipForward, skipBackward, startSliding, stopSliding, updateSlidingTime },
     navigation: { playNextEpisode, playPreviousEpisode, playNextUnit, playPreviousUnit, selectEpisode },
     view: { setPlayerExpanded, setExpandedSlot },
     settings: {
@@ -71,6 +77,9 @@ export const EpisodePlayer = ({
   const [showVolumeMenu, setShowVolumeMenu] = useState(false)
   const [showEpisodeList, setShowEpisodeList] = useState(initialShowEpisodeList)
   const [showChapterList, setShowChapterList] = useState(false)
+  const [myChapters, setMyChapters] = useState<MyChapter[]>([])
+  const [editingChapterId, setEditingChapterId] = useState<string | null>(null)
+  const [editingChapterName, setEditingChapterName] = useState('')
   const [filterType, setFilterType] = useState<'all' | 'unplayed'>('all')
   const [sortOrder, setSortOrder] = useState<'default' | 'newest' | 'oldest'>('default')
   const outerRef = useRef<View>(null)
@@ -97,6 +106,23 @@ export const EpisodePlayer = ({
   useEffect(() => {
     setPlayerExpanded(visible)
   }, [visible, setPlayerExpanded])
+
+  const currentMediaId = currentContent?.unitId ?? currentContent?.episodeId
+  useEffect(() => {
+    if (currentMediaId) {
+      StorageRepository.getMyChapters(currentMediaId).then(setMyChapters)
+    }
+  }, [currentMediaId])
+
+  const saveMyChapters = useCallback(
+    (chapters: MyChapter[]) => {
+      setMyChapters(chapters)
+      if (currentMediaId) {
+        StorageRepository.setMyChapters(currentMediaId, chapters)
+      }
+    },
+    [currentMediaId],
+  )
 
   const isPlaying = playbackState === 'playing'
 
@@ -555,8 +581,7 @@ export const EpisodePlayer = ({
 
                 <View style={{ position: 'relative' }}>
                   <TouchableOpacity
-                    onPress={() => hasUnits && setShowChapterList(!showChapterList)}
-                    disabled={!hasUnits}
+                    onPress={() => setShowChapterList(!showChapterList)}
                     hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                     style={{
                       width: 40,
@@ -565,7 +590,6 @@ export const EpisodePlayer = ({
                       justifyContent: 'center',
                       alignItems: 'center',
                       backgroundColor: showChapterList ? colors.text : 'rgba(255, 255, 255, 0.08)',
-                      opacity: hasUnits ? 1 : 0.3,
                     }}
                   >
                     <List size={20} color={showChapterList ? colors.background : colors.text} />
@@ -1021,58 +1045,129 @@ export const EpisodePlayer = ({
               <Text style={styles.titleLarge}>チャプター</Text>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
                 <TouchableOpacity
-                  onPress={() => setShowChapterList(false)}
+                  onPress={() => {
+                    const newChapter: MyChapter = {
+                      id: `my-chapter-${Date.now()}`,
+                      time: currentTime,
+                    }
+                    saveMyChapters([...myChapters, newChapter])
+                  }}
                   style={{
-                    width: 32,
-                    height: 32,
-                    alignItems: 'center',
-                    justifyContent: 'center',
+                    padding: spacing.sm,
+                    borderRadius: spacing.sm,
+                    borderWidth: 1,
+                    borderColor: colors.border,
+                  }}
+                >
+                  <Plus size={20} color={colors.text} />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => {
+                    setShowChapterList(false)
+                    setEditingChapterId(null)
+                  }}
+                  style={{
+                    padding: spacing.sm,
                     borderRadius: 16,
                   }}
                 >
-                  <Text style={[styles.textDefault, { fontSize: 20 }]}>×</Text>
+                  <X size={20} color={colors.textSecondary} />
                 </TouchableOpacity>
               </View>
             </View>
 
-            <ScrollView>
-              <View style={{ paddingHorizontal: spacing.lg, paddingVertical: spacing.sm }}>
-                <Text style={[styles.bodySmall, { fontWeight: '600' }]}>チャプター</Text>
-              </View>
-              {units.map((unit, unitIndex) => {
-                const startTime = units.slice(0, unitIndex).reduce((sum, u) => sum + u.duration, 0)
-                const isCurrentUnit = currentUnit?.item_id === unit.item_id
-
-                return (
-                  <TouchableOpacity
-                    key={unit.item_id}
-                    onPress={() => {
-                      selectEpisode(episode.item_id, unit.item_id)
-                      setShowChapterList(false)
-                    }}
+            <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom }}>
+              {myChapters.length > 0 && (
+                <View style={{ borderBottomWidth: 1, borderBottomColor: colors.border }}>
+                  <View
                     style={{
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      gap: spacing.md,
                       paddingHorizontal: spacing.lg,
-                      paddingVertical: spacing.md,
-                      borderBottomWidth: 1,
-                      borderBottomColor: colors.border,
+                      paddingVertical: spacing.sm,
+                      backgroundColor: colors.muted,
                     }}
                   >
-                    <Text style={[styles.bodySmall, { width: 40 }]}>{formatTime(startTime)}</Text>
-                    <Text
-                      style={[styles.textDefault, { flex: 1, color: isCurrentUnit ? colors.primary : colors.text }]}
-                      numberOfLines={1}
+                    <Text style={[styles.bodySmall, { fontWeight: '600' }]}>マイチャプター</Text>
+                  </View>
+                  {myChapters.map((myChapter, index) => (
+                    <TouchableOpacity
+                      key={myChapter.id}
+                      onPress={() => {
+                        if (editingChapterId !== myChapter.id) {
+                          seek(myChapter.time)
+                          setShowChapterList(false)
+                        }
+                      }}
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        gap: spacing.md,
+                        paddingHorizontal: spacing.lg,
+                        paddingVertical: spacing.md,
+                        borderBottomWidth: 1,
+                        borderBottomColor: colors.border,
+                      }}
                     >
-                      {unit.title}
-                    </Text>
-                    {isCurrentUnit && (
-                      <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: colors.primary }} />
-                    )}
-                  </TouchableOpacity>
-                )
-              })}
+                      <Text style={[styles.bodySmall, { width: 48 }]}>{formatTime(myChapter.time)}</Text>
+                      {editingChapterId === myChapter.id ? (
+                        <TextInput
+                          style={[
+                            styles.textDefault,
+                            {
+                              flex: 1,
+                              borderBottomWidth: 1,
+                              borderBottomColor: colors.primary,
+                              paddingVertical: 2,
+                              color: colors.text,
+                            },
+                          ]}
+                          value={editingChapterName}
+                          onChangeText={setEditingChapterName}
+                          onBlur={() => {
+                            saveMyChapters(
+                              myChapters.map((ch) =>
+                                ch.id === myChapter.id ? { ...ch, name: editingChapterName || undefined } : ch,
+                              ),
+                            )
+                            setEditingChapterId(null)
+                            setEditingChapterName('')
+                          }}
+                          onSubmitEditing={() => {
+                            saveMyChapters(
+                              myChapters.map((ch) =>
+                                ch.id === myChapter.id ? { ...ch, name: editingChapterName || undefined } : ch,
+                              ),
+                            )
+                            setEditingChapterId(null)
+                            setEditingChapterName('')
+                          }}
+                          autoFocus
+                          placeholder={`マイチャプター${index + 1}`}
+                          placeholderTextColor={colors.textSecondary}
+                        />
+                      ) : (
+                        <Text style={[styles.textDefault, { flex: 1 }]} numberOfLines={1}>
+                          {myChapter.name || `マイチャプター${index + 1}`}
+                        </Text>
+                      )}
+                      <TouchableOpacity
+                        onPress={() => {
+                          setEditingChapterId(myChapter.id)
+                          setEditingChapterName(myChapter.name || '')
+                        }}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      >
+                        <Pencil size={16} color={colors.textSecondary} />
+                      </TouchableOpacity>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+
+              {myChapters.length === 0 && (
+                <View style={{ paddingHorizontal: spacing.lg, paddingVertical: spacing['3xl'], alignItems: 'center' }}>
+                  <Text style={styles.bodySmall}>チャプターがありません</Text>
+                </View>
+              )}
             </ScrollView>
           </View>
         </View>

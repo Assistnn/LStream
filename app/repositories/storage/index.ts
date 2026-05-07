@@ -4,6 +4,12 @@ import type { ThemeMode } from '../../hooks/ThemeContext'
 
 export type LoopMode = 'off' | 'single' | 'all'
 
+export type MyChapter = {
+  id: string
+  time: number
+  name?: string
+}
+
 const KEYS = {
   THEME_MODE: 'themeMode',
   SHOW_NEXT_EPISODE: 'showNextEpisode',
@@ -14,6 +20,7 @@ const KEYS = {
   LOOP_MODE: 'loopMode',
   IS_SHUFFLE_ON: 'isShuffleOn',
   PLAYED_ITEM_IDS: 'playedItemIds',
+  MY_CHAPTERS: 'myChapters',
 } as const
 
 export const StorageRepository = {
@@ -218,6 +225,24 @@ export const StorageRepository = {
       historyRetentionDays,
       notificationsEnabled,
       mobileDataEnabled,
+    }
+  },
+
+  async getMyChapters(mediaId: number): Promise<MyChapter[]> {
+    try {
+      const value = await AsyncStorage.getItem(`${KEYS.MY_CHAPTERS}_${mediaId}`)
+      return value ? (JSON.parse(value) as MyChapter[]) : []
+    } catch (error) {
+      console.error('Failed to get myChapters:', error)
+      return []
+    }
+  },
+
+  async setMyChapters(mediaId: number, chapters: MyChapter[]) {
+    try {
+      await AsyncStorage.setItem(`${KEYS.MY_CHAPTERS}_${mediaId}`, JSON.stringify(chapters))
+    } catch (error) {
+      console.error('Failed to set myChapters:', error)
     }
   },
 }
