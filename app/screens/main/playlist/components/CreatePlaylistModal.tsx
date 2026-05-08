@@ -191,7 +191,7 @@ export const CreatePlaylistModal = ({
                   <View style={{ borderRadius: borderRadius.lg, overflow: 'hidden' }}>
                     <Image
                       source={{ uri: coverImage }}
-                      style={{ width: '100%', height: 128 }}
+                      style={{ width: '100%', height: 160 }}
                       resizeMode='cover'
                     />
                     <TouchableOpacity
