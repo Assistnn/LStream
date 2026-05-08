@@ -3,7 +3,6 @@ import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-n
 import {
   ChevronDown,
   ChevronLeft,
-  ChevronRight,
   Clock,
   List,
   MoreVertical,
@@ -16,7 +15,6 @@ import {
 import { useMemo, useRef, useState } from 'react'
 import { Alert, Animated, ScrollView, Text, TouchableOpacity, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-
 import { ContextMenu, type ContextMenuItem } from '../../../components/ui/ContextMenu'
 import { EmptyState } from '../../../components/ui/EmptyState'
 import { usePlayer } from '../../../hooks/PlayerContext'
@@ -201,10 +199,14 @@ export const PlaylistDetailScreen = ({ route }: Props) => {
   }
 
   const playPrev = () => {
-    if (isPlayingThisPlaylist) playerNav.playPreviousEpisode()
+    if (itemsCount === 0) return
+    const prev = currentPlayingIndex > 0 ? currentPlayingIndex - 1 : itemsCount - 1
+    playPlaylistFrom(playlist.id, prev)
   }
   const playNext = () => {
-    if (isPlayingThisPlaylist) playerNav.playNextEpisode()
+    if (itemsCount === 0) return
+    const next = currentPlayingIndex < itemsCount - 1 ? currentPlayingIndex + 1 : 0
+    playPlaylistFrom(playlist.id, next)
   }
 
   // Build the display list preserving order, but shifting the dragging item visually to targetIndex
@@ -231,23 +233,17 @@ export const PlaylistDetailScreen = ({ route }: Props) => {
             bottom: 0,
           }}
         />
-        <View style={{ paddingTop: insets.top + spacing.xs, paddingBottom: spacing.lg, paddingHorizontal: spacing.lg }}>
+        <View style={{ paddingTop: insets.top, paddingHorizontal: '5%' }}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-            <TouchableOpacity
-              onPress={() => navigation.goBack()}
-              style={{ padding: spacing.xs, backgroundColor: 'rgba(0,0,0,0.35)', borderRadius: 999 }}
-            >
-              <ChevronDown size={22} color='#FFFFFF' />
+            <TouchableOpacity onPress={() => navigation.goBack()} style={{ padding: 8 }}>
+              <ChevronDown size={24} color='#FFFFFF' />
             </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => setHeaderMenuVisible(true)}
-              style={{ padding: spacing.xs, backgroundColor: 'rgba(0,0,0,0.35)', borderRadius: 999 }}
-            >
-              <MoreVertical size={22} color='#FFFFFF' />
+            <TouchableOpacity onPress={() => setHeaderMenuVisible(true)} style={{ padding: 8 }}>
+              <MoreVertical size={24} color='#FFFFFF' />
             </TouchableOpacity>
           </View>
 
-          <View style={{ marginTop: spacing['3xl'], gap: spacing.xs }}>
+          <View>
             <Text
               style={{
                 fontSize: 24,
@@ -264,45 +260,76 @@ export const PlaylistDetailScreen = ({ route }: Props) => {
             {playlist.description.length > 0 && (
               <Text
                 style={{
-                  fontSize: 13,
+                  fontSize: 14,
                   color: 'rgba(255,255,255,0.9)',
-                  textShadowColor: 'rgba(0,0,0,0.5)',
-                  textShadowRadius: 4,
+                  textShadowColor: 'rgba(0,0,0,0.6)',
+                  textShadowOffset: { width: 0, height: 1 },
+                  textShadowRadius: 8,
+                  marginTop: 4,
                 }}
                 numberOfLines={2}
               >
                 {playlist.description}
               </Text>
             )}
-            <View style={{ flexDirection: 'row', gap: spacing.sm, alignItems: 'center' }}>
-              <Text style={{ color: 'rgba(255,255,255,0.85)', fontSize: 12 }}>
-                {itemsCount}メディア ・ 合計 {formatTotalDuration(total)}
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 4,
+                marginTop: 15,
+              }}
+            >
+              <Text
+                style={{
+                  color: 'rgba(255,255,255,0.6)',
+                  fontSize: 12,
+                  textShadowColor: 'rgba(0,0,0,0.6)',
+                  textShadowOffset: { width: 0, height: 1 },
+                  textShadowRadius: 8,
+                }}
+              >
+                {itemsCount}メディア
               </Text>
-              {playlist.alarm?.enabled && (
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                  <Clock size={12} color='#FFFFFF' />
-                  <Text style={{ color: '#FFFFFF', fontSize: 12 }}>{formatAlarmTime(playlist.alarm)}</Text>
-                </View>
-              )}
+              <Text
+                style={{
+                  color: 'rgba(255,255,255,0.6)',
+                  fontSize: 12,
+                  textShadowColor: 'rgba(0,0,0,0.6)',
+                  textShadowOffset: { width: 0, height: 1 },
+                  textShadowRadius: 8,
+                }}
+              >
+                合計{formatTotalDuration(total)}
+              </Text>
             </View>
+            {playlist.alarm?.enabled && (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 }}>
+                <Clock size={12} color='#FFFFFF' />
+                <Text style={{ color: '#FFFFFF', fontSize: 12 }}>{formatAlarmTime(playlist.alarm)}</Text>
+              </View>
+            )}
           </View>
+        </View>
 
-          {itemsCount > 0 && (
-            <View style={{ flexDirection: 'row', gap: spacing.sm, alignItems: 'center', marginTop: spacing.lg }}>
+        {itemsCount > 0 && (
+          <View style={{ paddingHorizontal: '5%', paddingBottom: 16 }}>
+            <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
               <TouchableOpacity
                 onPress={playPrev}
-                disabled={!isPlayingThisPlaylist}
+                disabled={currentPlayingIndex <= 0 && !loopActive}
                 style={{
                   width: 40,
                   height: 40,
                   borderRadius: 20,
                   alignItems: 'center',
                   justifyContent: 'center',
-                  backgroundColor: 'rgba(255,255,255,0.25)',
-                  opacity: isPlayingThisPlaylist ? 1 : 0.5,
+                  backgroundColor: currentPlayingIndex <= 0 && !loopActive
+                    ? 'rgba(17,24,39,0.2)'
+                    : 'rgba(17,24,39,0.3)',
                 }}
               >
-                <ChevronLeft size={22} color='#FFFFFF' />
+                <ChevronDown size={16} color={currentPlayingIndex <= 0 && !loopActive ? 'rgba(255,255,255,0.4)' : '#FFFFFF'} style={{ transform: [{ rotate: '90deg' }] }} />
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -314,32 +341,35 @@ export const PlaylistDetailScreen = ({ route }: Props) => {
                   alignItems: 'center',
                   justifyContent: 'center',
                   flexDirection: 'row',
-                  gap: spacing.xs,
-                  backgroundColor: '#FFFFFF',
+                  gap: 6,
+                  backgroundColor: isActuallyPlaying ? '#111827' : 'rgba(17,24,39,0.3)',
                 }}
               >
                 {isActuallyPlaying ? (
-                  <Pause size={18} color='#111827' fill='#111827' />
+                  <Pause size={16} color='#FFFFFF' fill='#FFFFFF' />
                 ) : (
-                  <Play size={18} color='#111827' fill='#111827' />
+                  <Play size={16} color='#FFFFFF' fill='#FFFFFF' />
                 )}
-                <Text style={{ color: '#111827', fontWeight: '700' }}>{isActuallyPlaying ? '停止' : '再生'}</Text>
+                <Text style={{ color: '#FFFFFF', fontWeight: '600', fontSize: 14 }}>
+                  {isActuallyPlaying ? '停止' : '再生'}
+                </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
                 onPress={playNext}
-                disabled={!isPlayingThisPlaylist}
+                disabled={currentPlayingIndex >= itemsCount - 1 && !loopActive}
                 style={{
                   width: 40,
                   height: 40,
                   borderRadius: 20,
                   alignItems: 'center',
                   justifyContent: 'center',
-                  backgroundColor: 'rgba(255,255,255,0.25)',
-                  opacity: isPlayingThisPlaylist ? 1 : 0.5,
+                  backgroundColor: currentPlayingIndex >= itemsCount - 1 && !loopActive
+                    ? 'rgba(17,24,39,0.2)'
+                    : 'rgba(17,24,39,0.3)',
                 }}
               >
-                <ChevronRight size={22} color='#FFFFFF' />
+                <ChevronDown size={16} color={currentPlayingIndex >= itemsCount - 1 && !loopActive ? 'rgba(255,255,255,0.4)' : '#FFFFFF'} style={{ transform: [{ rotate: '-90deg' }] }} />
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -350,10 +380,10 @@ export const PlaylistDetailScreen = ({ route }: Props) => {
                   borderRadius: 20,
                   alignItems: 'center',
                   justifyContent: 'center',
-                  backgroundColor: settings.isShuffleOn ? '#FFFFFF' : 'rgba(255,255,255,0.25)',
+                  backgroundColor: settings.isShuffleOn ? '#111827' : 'rgba(17,24,39,0.3)',
                 }}
               >
-                <Shuffle size={18} color={settings.isShuffleOn ? '#111827' : '#FFFFFF'} />
+                <Shuffle size={16} color='#FFFFFF' />
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -364,27 +394,15 @@ export const PlaylistDetailScreen = ({ route }: Props) => {
                   borderRadius: 20,
                   alignItems: 'center',
                   justifyContent: 'center',
-                  backgroundColor: loopActive ? '#FFFFFF' : 'rgba(255,255,255,0.25)',
+                  backgroundColor: loopActive ? '#111827' : 'rgba(17,24,39,0.3)',
                 }}
               >
-                <LoopIcon size={18} color={loopActive ? '#111827' : '#FFFFFF'} />
+                <LoopIcon size={16} color='#FFFFFF' />
               </TouchableOpacity>
             </View>
-          )}
-        </View>
+          </View>
+        )}
 
-        {/* Dark overlay at the bottom to improve contrast */}
-        <View
-          style={{
-            position: 'absolute',
-            left: 0,
-            right: 0,
-            bottom: 0,
-            height: 80,
-            backgroundColor: 'rgba(0,0,0,0.35)',
-          }}
-          pointerEvents='none'
-        />
       </View>
 
       {/* Items */}

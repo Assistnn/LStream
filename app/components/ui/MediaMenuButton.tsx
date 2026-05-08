@@ -46,9 +46,9 @@ export const MediaMenuButton = ({
 
   const isFavorited = isFavoriteEpisode(seriesId, mediaType === 'series' ? 0 : mediaId)
 
-  const canAddToCollection = !!mediaInfo && mediaType !== 'series'
+  const canAddToCollection = !!mediaInfo || mediaType === 'series'
   const itemForCollection =
-    canAddToCollection && mediaInfo
+    canAddToCollection && mediaInfo && mediaType !== 'series'
       ? {
           seriesId,
           episodeId: mediaType === 'unit' ? 0 : mediaId,
@@ -65,7 +65,7 @@ export const MediaMenuButton = ({
       label: 'プレイリストに追加',
       disabled: !canAddToCollection,
       onPress: () => {
-        if (itemForCollection) setAddToPlaylistOpen(true)
+        if (canAddToCollection) setAddToPlaylistOpen(true)
       },
     },
     {
@@ -167,6 +167,7 @@ export const MediaMenuButton = ({
       <AddToPlaylistModal
         visible={addToPlaylistOpen}
         item={itemForCollection}
+        seriesId={mediaType === 'series' ? seriesId : undefined}
         onClose={() => setAddToPlaylistOpen(false)}
       />
     </View>

@@ -2,6 +2,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 import type { ReactNode } from 'react'
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react'
 
+import { syncAllAlarms } from './alarmService'
+
 import type { SeriesMedia } from '../repositories/api/IApiRepository'
 import { usePlayer } from './PlayerContext'
 
@@ -56,6 +58,7 @@ type PlaylistContextValue = {
   deletePlaylist: (id: string) => void
   togglePin: (id: string) => void
   addItemToPlaylist: (id: string, item: Omit<PlaylistItem, 'id'>) => void
+  addItemsToPlaylist: (id: string, items: Omit<PlaylistItem, 'id'>[]) => void
   removeItemFromPlaylist: (id: string, itemId: string) => void
   reorderPlaylistItems: (id: string, fromIndex: number, toIndex: number) => void
 
@@ -136,6 +139,7 @@ export const PlaylistProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     if (!isLoadedRef.current) return
     void AsyncStorage.setItem(STORAGE_KEYS.playlists, JSON.stringify(playlists))
+    void syncAllAlarms(playlists)
   }, [playlists])
 
   useEffect(() => {
@@ -185,6 +189,13 @@ export const PlaylistProvider = ({ children }: { children: ReactNode }) => {
       addItemToPlaylist: (id, item) => {
         setPlaylists((prev) =>
           prev.map((p) => (p.id === id ? { ...p, items: [...p.items, { ...item, id: uid() }] } : p)),
+        )
+      },
+      addItemsToPlaylist: (id, items) => {
+        setPlaylists((prev) =>
+          prev.map((p) =>
+            p.id === id ? { ...p, items: [...p.items, ...items.map((item) => ({ ...item, id: uid() }))] } : p,
+          ),
         )
       },
       removeItemFromPlaylist: (id, itemId) => {

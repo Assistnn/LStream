@@ -11,7 +11,7 @@ import { AudioIndicator } from './AudioIndicator'
 const SWIPE_OPEN = -96
 const THRESHOLD = 40
 
-export const ITEM_HEIGHT = 76
+export const ITEM_HEIGHT = 72
 
 export const PlaylistItemRow = ({
   item,
@@ -147,13 +147,13 @@ export const PlaylistItemRow = ({
           style={{
             flexDirection: 'row',
             alignItems: 'center',
-            gap: spacing.sm,
-            paddingVertical: spacing.md,
-            paddingHorizontal: spacing.lg,
+            gap: 12,
+            paddingVertical: 8,
+            paddingHorizontal: '5%',
             height: ITEM_HEIGHT,
           }}
         >
-          <View {...dragResponder.panHandlers} style={{ padding: spacing.xs }}>
+          <View {...dragResponder.panHandlers}>
             <GripVertical size={20} color={colors.textTertiary} />
           </View>
 
