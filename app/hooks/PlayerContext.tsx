@@ -366,22 +366,10 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [settings.sleepTimer, state.playbackState])
 
-  // persist player settings
-  const isSettingsLoadedRef = useRef(false)
-  useEffect(() => {
-    StorageRepository.getPlayerSettings().then((saved) => {
-      updateSettings(saved)
-      isSettingsLoadedRef.current = true
-    })
-  }, [])
-  useEffect(() => {
-    if (!isSettingsLoadedRef.current) return
-    StorageRepository.savePlayerSettings({
-      playbackRate: settings.playbackRate,
-      loopMode: settings.loopMode,
-      isShuffleOn: settings.isShuffleOn,
-    })
-  }, [settings.playbackRate, settings.loopMode, settings.isShuffleOn])
+  const applyDefaultSettings = async () => {
+    const saved = await StorageRepository.getPlayerSettings()
+    updateSettings(saved)
+  }
 
   // view
   const videoRef = useRef<VideoRef>(null)
@@ -564,6 +552,7 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
             setPlayingPlaylistId(null)
             switchContent(new CurrentContent(sourceId, tracks, t.id, childId ?? t.children?.[0]?.id))
             setPlayerExpanded(true)
+            void applyDefaultSettings()
           },
           nextTrack: nextTrackInternal,
           prevTrack: () => {
@@ -598,6 +587,7 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
             setPlayingPlaylistId(options?.playlistId ?? null)
             setPlayerExpanded(false)
             switchContent(new CurrentContent(0, tracks, trackId, childId), options?.keepPlaybackState)
+            void applyDefaultSettings()
           },
         },
         queueActions: {

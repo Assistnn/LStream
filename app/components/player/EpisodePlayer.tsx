@@ -82,6 +82,7 @@ export const EpisodePlayer = ({
   const [editingChapterName, setEditingChapterName] = useState('')
   const [filterType, setFilterType] = useState<'all' | 'unplayed'>('all')
   const [sortOrder, setSortOrder] = useState<'default' | 'newest' | 'oldest'>('default')
+  const [showNextEpisode, setShowNextEpisode] = useState(true)
   const outerRef = useRef<View>(null)
   const slotRef = useRef<View>(null)
 
@@ -105,6 +106,9 @@ export const EpisodePlayer = ({
 
   useEffect(() => {
     setPlayerExpanded(visible)
+    if (visible) {
+      StorageRepository.getShowNextEpisode().then(setShowNextEpisode)
+    }
   }, [visible, setPlayerExpanded])
 
   const currentMediaId = currentContent?.unitId ?? currentContent?.episodeId
@@ -664,16 +668,16 @@ export const EpisodePlayer = ({
             {/* Next Episode Display */}
             <View
               style={{
-                opacity: hasNextEpisode ? 1 : 0,
+                opacity: hasNextEpisode && showNextEpisode ? 1 : 0,
                 backgroundColor: colors.card,
                 borderRadius: 999,
                 shadowColor: '#000',
                 shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: hasNextEpisode ? 0.1 : 0,
+                shadowOpacity: hasNextEpisode && showNextEpisode ? 0.1 : 0,
                 shadowRadius: 8,
-                elevation: hasNextEpisode ? 4 : 0,
+                elevation: hasNextEpisode && showNextEpisode ? 4 : 0,
                 borderWidth: 1,
-                borderColor: hasNextEpisode ? colors.border : 'transparent',
+                borderColor: hasNextEpisode && showNextEpisode ? colors.border : 'transparent',
               }}
             >
               <View
@@ -692,7 +696,7 @@ export const EpisodePlayer = ({
                   <Text style={styles.bodyTiny}> </Text>
                 </View>
               </View>
-              {hasNextEpisode && (
+              {hasNextEpisode && showNextEpisode && (
                 <TouchableOpacity
                   onPress={nextTrack}
                   style={{

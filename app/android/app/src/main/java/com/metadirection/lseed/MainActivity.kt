@@ -1,6 +1,7 @@
 package com.metadirection.lseed
 
 import android.app.PictureInPictureParams
+import android.content.Intent
 import android.content.res.Configuration
 import android.os.Build
 import android.util.Rational
@@ -41,5 +42,13 @@ class MainActivity : ReactActivity() {
 
   override fun onPictureInPictureModeChanged(isInPictureInPictureMode: Boolean, newConfig: Configuration) {
     super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
+  }
+
+  override fun onNewIntent(intent: Intent) {
+    super.onNewIntent(intent)
+    val uri = intent.data ?: return
+    val modules = reactInstanceManager?.currentReactContext
+        ?.getNativeModule(WebAuthSessionModule::class.java)
+    modules?.handleCallback(uri)
   }
 }

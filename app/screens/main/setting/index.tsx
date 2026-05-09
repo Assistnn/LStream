@@ -15,15 +15,21 @@ import {
   Trash2,
   Wifi,
 } from 'lucide-react-native'
+import notifee, { AuthorizationStatus } from '@notifee/react-native'
 import { useEffect, useState } from 'react'
-import { Alert, Linking, Modal, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native'
+import { Alert, Linking, Modal, NativeModules, Platform, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { PageTitle } from '../../../components/ui/PageTitle'
+import { syncAllAlarms } from '../../../hooks/alarmService'
 import type { ThemeMode } from '../../../hooks/ThemeContext'
 import { useTheme } from '../../../hooks/ThemeContext'
 import packageJson from '../../../package.json'
+import { PlaylistRepository } from '../../../repositories/playlist'
+import type { LoopMode } from '../../../repositories/storage'
 import { StorageRepository } from '../../../repositories/storage'
+import { clearFavoritesCache } from '../../../usecases/useGetFavorites'
+import { clearSettingsCache } from '../../../usecases/useSettings'
 
 const ICON_SIZE = 20
 const ICON_BG_SIZE = 32
@@ -53,15 +59,28 @@ export const SettingsTabScreen = () => {
   const [showHistoryRetentionMenu, setShowHistoryRetentionMenu] = useState(false)
   const [historyRetentionDays, setHistoryRetentionDays] = useState(30)
   const [notificationsEnabled, setNotificationsEnabled] = useState(false)
-  const [mobileDataEnabled, setMobileDataEnabled] = useState(false)
+  const [mobileDataEnabled, setMobileDataEnabled] = useState(true)
+  const [showSpeedMenu, setShowSpeedMenu] = useState(false)
+  const [showLoopMenu, setShowLoopMenu] = useState(false)
+  const [showTimerMenu, setShowTimerMenu] = useState(false)
+  const [playbackRate, setPlaybackRate] = useState(1.0)
+  const [loopMode, setLoopMode] = useState<LoopMode>('off')
+  const [sleepTimer, setSleepTimer] = useState<number | undefined>(undefined)
 
   useEffect(() => {
     const loadSettings = async () => {
       const settings = await StorageRepository.getAllSettings()
       setShowNextEpisode(settings.showNextEpisode)
       setHistoryRetentionDays(settings.historyRetentionDays)
-      setNotificationsEnabled(settings.notificationsEnabled)
       setMobileDataEnabled(settings.mobileDataEnabled)
+      const playerSettings = await StorageRepository.getPlayerSettings()
+      setPlaybackRate(playerSettings.playbackRate)
+      setLoopMode(playerSettings.loopMode)
+      const notifSettings = await notifee.getNotificationSettings()
+      const isAuthorized =
+        notifSettings.authorizationStatus === AuthorizationStatus.AUTHORIZED ||
+        notifSettings.authorizationStatus === AuthorizationStatus.PROVISIONAL
+      setNotificationsEnabled(isAuthorized && settings.notificationsEnabled)
     }
     void loadSettings()
   }, [])
@@ -72,8 +91,35 @@ export const SettingsTabScreen = () => {
   }
 
   const toggleNotifications = async (value: boolean) => {
+    if (value) {
+      const notifSettings = await notifee.getNotificationSettings()
+      if (
+        notifSettings.authorizationStatus === AuthorizationStatus.DENIED ||
+        notifSettings.authorizationStatus === AuthorizationStatus.NOT_DETERMINED
+      ) {
+        const permission = await notifee.requestPermission()
+        if (permission.authorizationStatus === AuthorizationStatus.DENIED) {
+          Alert.alert('通知が許可されていません', '端末の設定から通知を有効にしてください', [
+            { text: 'キャンセル', style: 'cancel' },
+            {
+              text: '設定を開く',
+              onPress: () => {
+                if (Platform.OS === 'ios') {
+                  void Linking.openURL('app-settings:')
+                } else {
+                  void Linking.openSettings()
+                }
+              },
+            },
+          ])
+          return
+        }
+      }
+    }
     setNotificationsEnabled(value)
     await StorageRepository.setNotificationsEnabled(value)
+    const playlists = await PlaylistRepository.getPlaylists()
+    await syncAllAlarms(playlists)
   }
 
   const toggleMobileData = async (value: boolean) => {
@@ -93,8 +139,15 @@ export const SettingsTabScreen = () => {
       {
         text: '実行',
         style: 'destructive',
-        onPress: () => {
-          Alert.alert('完了', 'キャッシュを削除しました')
+        onPress: async () => {
+          try {
+            await NativeModules.CacheManagerModule.clearHttpCache()
+            clearSettingsCache()
+            clearFavoritesCache()
+            Alert.alert('完了', 'キャッシュを削除しました')
+          } catch {
+            Alert.alert('エラー', 'キャッシュの削除に失敗しました')
+          }
         },
       },
     ])
@@ -127,6 +180,47 @@ export const SettingsTabScreen = () => {
     { value: 75, label: '75日' },
     { value: 90, label: '90日' },
   ]
+
+  const speedOptions = [
+    { value: 0.75, label: '0.75x' },
+    { value: 1.0, label: '1.0x' },
+    { value: 1.25, label: '1.25x' },
+    { value: 1.5, label: '1.5x' },
+    { value: 2.0, label: '2.0x' },
+  ]
+
+  const loopOptions: Array<{ value: LoopMode; label: string }> = [
+    { value: 'off', label: 'オフ' },
+    { value: 'single', label: '1メディアリピート' },
+    { value: 'all', label: '全メディアリピート' },
+  ]
+
+  const timerOptions = [
+    { value: undefined as number | undefined, label: 'なし' },
+    { value: 15, label: '15分' },
+    { value: 30, label: '30分' },
+    { value: 60, label: '1時間' },
+    { value: 120, label: '2時間' },
+    { value: 240, label: '4時間' },
+  ]
+
+  const updatePlaybackRate = async (rate: number) => {
+    setPlaybackRate(rate)
+    setShowSpeedMenu(false)
+    await StorageRepository.setPlaybackRate(rate)
+  }
+
+  const updateLoopMode = async (mode: LoopMode) => {
+    setLoopMode(mode)
+    setShowLoopMenu(false)
+    await StorageRepository.setLoopMode(mode)
+  }
+
+  const updateSleepTimer = async (value: number | undefined) => {
+    setSleepTimer(value)
+    setShowTimerMenu(false)
+    await StorageRepository.setDefaultSleepTimer(value)
+  }
 
   const getThemeLabel = () => {
     return themeOptions.find((opt) => opt.value === themeMode)?.label || 'システムに合わせる'
@@ -176,17 +270,20 @@ export const SettingsTabScreen = () => {
         {
           icon: Gauge,
           label: 'デフォルト再生速度',
-          value: '1.0x',
+          value: `${playbackRate}x`,
+          onPress: () => setShowSpeedMenu(true),
         },
         {
           icon: Repeat,
-          label: 'デフォルトループ回数',
-          value: '1回',
+          label: 'デフォルトループ',
+          value: loopOptions.find((o) => o.value === loopMode)?.label ?? 'オフ',
+          onPress: () => setShowLoopMenu(true),
         },
         {
           icon: Clock,
           label: 'デフォルトタイマー',
-          value: 'なし',
+          value: timerOptions.find((o) => o.value === sleepTimer)?.label ?? 'なし',
+          onPress: () => setShowTimerMenu(true),
         },
       ],
     },
@@ -376,6 +473,96 @@ export const SettingsTabScreen = () => {
             </View>
             <View style={[localStyles.modalFooter, { borderTopColor: colors.border }]}>
               <TouchableOpacity style={localStyles.cancelButton} onPress={() => setShowHistoryRetentionMenu(false)}>
+                <Text style={styles.bodySmall}>キャンセル</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      <Modal visible={showSpeedMenu} transparent animationType='fade' onRequestClose={() => setShowSpeedMenu(false)}>
+        <TouchableOpacity style={localStyles.modalOverlay} activeOpacity={1} onPress={() => setShowSpeedMenu(false)}>
+          <View style={[localStyles.modalContent, { backgroundColor: colors.card }]}>
+            <View style={localStyles.modalHeader}>
+              <Text style={[styles.titleLarge, { marginBottom: 0 }]}>デフォルト再生速度</Text>
+            </View>
+            <View style={{ padding: spacing.sm }}>
+              {speedOptions.map((option) => {
+                const isActive = playbackRate === option.value
+                return (
+                  <TouchableOpacity
+                    key={option.value}
+                    style={[localStyles.modalItem, isActive && { backgroundColor: colors.primary }]}
+                    onPress={() => updatePlaybackRate(option.value)}
+                  >
+                    <Text style={styles.textDefault}>{option.label}</Text>
+                    {isActive && <Check color={colors.primary} size={20} />}
+                  </TouchableOpacity>
+                )
+              })}
+            </View>
+            <View style={localStyles.modalFooter}>
+              <TouchableOpacity style={localStyles.cancelButton} onPress={() => setShowSpeedMenu(false)}>
+                <Text style={styles.bodySmall}>キャンセル</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      <Modal visible={showLoopMenu} transparent animationType='fade' onRequestClose={() => setShowLoopMenu(false)}>
+        <TouchableOpacity style={localStyles.modalOverlay} activeOpacity={1} onPress={() => setShowLoopMenu(false)}>
+          <View style={[localStyles.modalContent, { backgroundColor: colors.card }]}>
+            <View style={localStyles.modalHeader}>
+              <Text style={[styles.titleLarge, { marginBottom: 0 }]}>デフォルトループ</Text>
+            </View>
+            <View style={{ padding: spacing.sm }}>
+              {loopOptions.map((option) => {
+                const isActive = loopMode === option.value
+                return (
+                  <TouchableOpacity
+                    key={option.value}
+                    style={[localStyles.modalItem, isActive && { backgroundColor: colors.primary }]}
+                    onPress={() => updateLoopMode(option.value)}
+                  >
+                    <Text style={styles.textDefault}>{option.label}</Text>
+                    {isActive && <Check color={colors.primary} size={20} />}
+                  </TouchableOpacity>
+                )
+              })}
+            </View>
+            <View style={localStyles.modalFooter}>
+              <TouchableOpacity style={localStyles.cancelButton} onPress={() => setShowLoopMenu(false)}>
+                <Text style={styles.bodySmall}>キャンセル</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      <Modal visible={showTimerMenu} transparent animationType='fade' onRequestClose={() => setShowTimerMenu(false)}>
+        <TouchableOpacity style={localStyles.modalOverlay} activeOpacity={1} onPress={() => setShowTimerMenu(false)}>
+          <View style={[localStyles.modalContent, { backgroundColor: colors.card }]}>
+            <View style={localStyles.modalHeader}>
+              <Text style={[styles.titleLarge, { marginBottom: 0 }]}>デフォルトタイマー</Text>
+            </View>
+            <View style={{ padding: spacing.sm }}>
+              {timerOptions.map((option) => {
+                const isActive = sleepTimer === option.value
+                return (
+                  <TouchableOpacity
+                    key={String(option.value)}
+                    style={[localStyles.modalItem, isActive && { backgroundColor: colors.primary }]}
+                    onPress={() => updateSleepTimer(option.value)}
+                  >
+                    <Text style={styles.textDefault}>{option.label}</Text>
+                    {isActive && <Check color={colors.primary} size={20} />}
+                  </TouchableOpacity>
+                )
+              })}
+            </View>
+            <View style={localStyles.modalFooter}>
+              <TouchableOpacity style={localStyles.cancelButton} onPress={() => setShowTimerMenu(false)}>
                 <Text style={styles.bodySmall}>キャンセル</Text>
               </TouchableOpacity>
             </View>

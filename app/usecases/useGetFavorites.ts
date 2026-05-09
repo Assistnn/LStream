@@ -42,6 +42,11 @@ export const useInitFavorites = () => {
 
 export const refetchFavorites = () => fetchFavorites(false)
 
+export const clearFavoritesCache = () => {
+  cachedFavorites = null
+  lastFetchTime = null
+}
+
 export const isFavoriteEpisode = (seriesId: number, episodeId: number): boolean => {
   if (!cachedFavorites?.episodes) return false
   return cachedFavorites.episodes.some((ep) => ep.series_id === seriesId && ep.item_id === episodeId)

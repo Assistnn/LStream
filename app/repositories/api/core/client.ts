@@ -1,6 +1,9 @@
+import NetInfo from '@react-native-community/netinfo'
 import AsyncStorage from '@react-native-async-storage/async-storage'
+import { Alert } from 'react-native'
 import DeviceInfo from 'react-native-device-info'
 
+import { StorageRepository } from '../../storage'
 import { API_CONFIG, getDeviceHeaders } from './config'
 import type { ApiResponse } from './errors'
 import { ApiException, ApiResponseException, ApiResultCode, AppVersionException, createApiError } from './errors'
@@ -70,6 +73,15 @@ class ApiClient {
 
   async request<T>(endpoint: string, config: RequestConfig = {}): Promise<T> {
     const { method = 'GET', headers = {}, body, requiresAuth = true } = config
+
+    const mobileDataEnabled = await StorageRepository.getMobileDataEnabled()
+    if (!mobileDataEnabled) {
+      const state = await NetInfo.fetch()
+      if (state.type === 'cellular') {
+        Alert.alert('モバイルデータ通信', 'Wi-Fi接続時のみ利用できます。設定からモバイルデータの使用を有効にしてください。')
+        throw new ApiException({ message: 'Mobile data is disabled', code: 'MOBILE_DATA_DISABLED' })
+      }
+    }
 
     const url = `${this.baseURL}${endpoint}`
     const deviceHeaders = await getDeviceHeaders()

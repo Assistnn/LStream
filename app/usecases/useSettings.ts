@@ -41,3 +41,8 @@ export const useInitSettings = () => {
 }
 
 export const refetchSettings = () => fetchSettings(false)
+
+export const clearSettingsCache = () => {
+  cachedSettings = null
+  lastFetchTime = null
+}
