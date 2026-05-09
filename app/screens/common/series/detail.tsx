@@ -15,6 +15,7 @@ import { usePlayer } from '../../../hooks/PlayerContext'
 import { useTheme } from '../../../hooks/ThemeContext'
 import { isFavoriteEpisode } from '../../../usecases/useGetFavorites'
 import { useGetSeries } from '../../../usecases/useGetSeries'
+import { seriesMediaToTrack } from '../../main/playlist/utils'
 
 export const SeriesDetailScreen = ({
   route,
@@ -29,7 +30,8 @@ export const SeriesDetailScreen = ({
   const { styles, colors, spacing, borderRadius } = useTheme()
   const { data, loading, refetch } = useGetSeries(seriesId)
   const {
-    navigation: { playEpisode },
+    navigation: { play },
+    queueActions: { addToQueue },
   } = usePlayer()
 
   const [filterType, setFilterType] = useState<'all' | 'notStarted'>('all')
@@ -51,10 +53,14 @@ export const SeriesDetailScreen = ({
     return null
   }
 
+  const playableTracks = data.episodes.map(seriesMediaToTrack)
+
   const filteredEpisodes =
     filterType === 'all'
-      ? data.episodes
-      : data.episodes.filter((ep) => ep.progress === 0 || (ep.units && ep.units.some((unit) => unit.progress === 0)))
+      ? playableTracks
+      : playableTracks.filter(
+          (ep) => ep.progress === 0 || (ep.children && ep.children.some((unit) => unit.progress === 0)),
+        )
 
   const sortedEpisodes =
     sortOrder === 'default'
@@ -107,6 +113,34 @@ export const SeriesDetailScreen = ({
                   alignItems: 'center',
                   justifyContent: 'center',
                 }}
+                onAddAllToQueue={() => {
+                  for (const ep of data.episodes) {
+                    if (ep.units && ep.units.length > 0) {
+                      for (const u of ep.units) {
+                        addToQueue({
+                          trackId: ep.item_id,
+                          childId: u.item_id,
+                          title: u.title,
+                          parentTitle: ep.title,
+                          thumbnail: u.img || ep.img,
+                          duration: u.duration,
+                          url: u.url,
+                          mediaType: u.type_media,
+                        })
+                      }
+                    } else {
+                      addToQueue({
+                        trackId: ep.item_id,
+                        title: ep.title,
+                        parentTitle: data.title,
+                        thumbnail: ep.img,
+                        duration: ep.duration,
+                        url: ep.url,
+                        mediaType: ep.type_media,
+                      })
+                    }
+                  }
+                }}
               />
             </View>
 
@@ -133,7 +167,7 @@ export const SeriesDetailScreen = ({
                     fillIcon
                     onPress={() => {
                       if (resumeEpisode) {
-                        playEpisode(data, resumeEpisode.item_id)
+                        play(data.series_id, playableTracks, resumeEpisode.item_id)
                       }
                     }}
                   >
@@ -144,7 +178,7 @@ export const SeriesDetailScreen = ({
                     icon={<CirclePlay size={20} />}
                     onPress={() => {
                       if (data.episodes[0]) {
-                        playEpisode(data)
+                        play(data.series_id, playableTracks)
                       }
                     }}
                   >
@@ -156,7 +190,7 @@ export const SeriesDetailScreen = ({
                   variant='primary'
                   onPress={() => {
                     if (data.episodes[0]) {
-                      playEpisode(data)
+                      play(data.series_id, playableTracks)
                     }
                   }}
                 >
@@ -167,7 +201,7 @@ export const SeriesDetailScreen = ({
                   variant='primary'
                   icon={<Play size={20} />}
                   onPress={() => {
-                    playEpisode(data)
+                    play(data.series_id, playableTracks)
                   }}
                 >
                   最初から再生 (Episode 1)
@@ -260,9 +294,11 @@ export const SeriesDetailScreen = ({
 
         <EpisodeMediaList
           episodes={sortedEpisodes}
+          onEpisodePress={(ep) => play(data.series_id, playableTracks, ep.id)}
+          onUnitPress={(ep, unit) => play(data.series_id, playableTracks, ep.id, unit.id)}
           renderThumbnailOverlay={(ep) => (
             <>
-              {isFavoriteEpisode(seriesId, ep.item_id) && (
+              {isFavoriteEpisode(seriesId, ep.id) && (
                 <View
                   style={{
                     position: 'absolute',
@@ -282,7 +318,7 @@ export const SeriesDetailScreen = ({
             !hasUnits ? (
               <MediaMenuButton
                 seriesId={data.series_id}
-                mediaId={ep.item_id}
+                mediaId={ep.id}
                 mediaType='episode'
                 size={16}
                 mediaInfo={{
@@ -290,14 +326,16 @@ export const SeriesDetailScreen = ({
                   seriesTitle: data.title,
                   thumbnail: ep.img,
                   duration: ep.duration,
+                  url: ep.url,
+                  contentMediaType: ep.mediaType,
                 }}
               />
             ) : null
           }
-          renderUnitActions={(ep, unit) => (
+          renderUnitActions={(unit) => (
             <MediaMenuButton
               seriesId={data.series_id}
-              mediaId={unit.item_id}
+              mediaId={unit.id}
               mediaType='unit'
               size={16}
               mediaInfo={{
@@ -305,6 +343,8 @@ export const SeriesDetailScreen = ({
                 seriesTitle: data.title,
                 thumbnail: unit.img,
                 duration: unit.duration,
+                url: unit.url,
+                contentMediaType: unit.mediaType,
               }}
             />
           )}

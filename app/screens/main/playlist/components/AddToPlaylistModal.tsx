@@ -1,45 +1,93 @@
 import { List, Plus, X } from 'lucide-react-native'
 import { useState } from 'react'
 import { Modal, Pressable, ScrollView, Text, TouchableOpacity, View } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { EmptyState } from '../../../../components/ui/EmptyState'
-import type { PlaylistItem } from '../../../../hooks/PlaylistContext'
-import { usePlaylist } from '../../../../hooks/PlaylistContext'
 import { useTheme } from '../../../../hooks/ThemeContext'
+import { apiRepository } from '../../../../repositories/api'
+import type { SeriesMedia } from '../../../../repositories/api/IApiRepository'
+import type { PlaylistItem } from '../../../../repositories/playlist'
+import { PlaylistRepository } from '../../../../repositories/playlist'
+import { usePlaylists } from '../usePlaylists'
 import { CreatePlaylistModal } from './CreatePlaylistModal'
 import { PlaylistCover } from './PlaylistCover'
+
+const seriesToPlaylistItems = (
+  seriesId: number,
+  seriesTitle: string,
+  episodes: SeriesMedia[],
+): Omit<PlaylistItem, 'id'>[] =>
+  episodes.flatMap((ep) =>
+    ep.units && ep.units.length > 0
+      ? ep.units.map((unit) => ({
+          seriesId,
+          episodeId: ep.item_id,
+          unitId: unit.item_id,
+          title: unit.title,
+          seriesTitle,
+          thumbnail: unit.img || ep.img,
+          duration: unit.duration,
+          url: unit.url,
+          mediaType: unit.type_media,
+        }))
+      : [
+          {
+            seriesId,
+            episodeId: ep.item_id,
+            title: ep.title,
+            seriesTitle,
+            thumbnail: ep.img,
+            duration: ep.duration,
+            url: ep.url,
+            mediaType: ep.type_media,
+          },
+        ],
+  )
 
 export const AddToPlaylistModal = ({
   visible,
   onClose,
   item,
+  seriesId,
 }: {
   visible: boolean
   onClose: () => void
   item: Omit<PlaylistItem, 'id'> | null
+  seriesId?: number
 }) => {
   const { colors, spacing, borderRadius, styles } = useTheme()
-  const { playlists, addItemToPlaylist, createPlaylist } = usePlaylist()
+  const insets = useSafeAreaInsets()
+  const { playlists, setPlaylists } = usePlaylists()
   const [createOpen, setCreateOpen] = useState(false)
 
+  const addToPlaylist = async (playlistId: string) => {
+    if (seriesId) {
+      const series = await apiRepository.getSeries(seriesId)
+      const items = seriesToPlaylistItems(seriesId, series.title, series.episodes)
+      setPlaylists(PlaylistRepository.addItemsToPlaylist(playlists, playlistId, items))
+    } else if (item) {
+      setPlaylists(PlaylistRepository.addItemToPlaylist(playlists, playlistId, item))
+    }
+  }
+
   const handleSelect = (playlistId: string) => {
-    if (!item) return
-    addItemToPlaylist(playlistId, item)
+    void addToPlaylist(playlistId)
     onClose()
   }
 
   return (
     <>
       <Modal visible={visible} transparent animationType='fade' onRequestClose={onClose}>
-        <Pressable style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center' }} onPress={onClose}>
-          <Pressable
-            onPress={(e) => e.stopPropagation()}
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
+          <Pressable style={{ flex: 1 }} onPress={onClose} />
+          <View
             style={{
-              marginHorizontal: spacing.lg,
               backgroundColor: colors.background,
-              borderRadius: borderRadius['2xl'],
+              borderTopLeftRadius: borderRadius['2xl'],
+              borderTopRightRadius: borderRadius['2xl'],
               maxHeight: '70%',
-              overflow: 'hidden',
+              paddingBottom: insets.bottom,
             }}
           >
             <View
@@ -131,19 +179,18 @@ export const AddToPlaylistModal = ({
                 ))
               )}
             </ScrollView>
-          </Pressable>
-        </Pressable>
+          </View>
+        </View>
       </Modal>
 
       <CreatePlaylistModal
         visible={createOpen}
         onClose={() => setCreateOpen(false)}
         onSubmit={(payload) => {
-          const newId = createPlaylist(payload)
+          const { id: newId, playlists: next } = PlaylistRepository.createPlaylist(playlists, payload)
+          setPlaylists(next)
           setCreateOpen(false)
-          if (item) {
-            addItemToPlaylist(newId, item)
-          }
+          void addToPlaylist(newId)
           onClose()
         }}
       />

@@ -1,6 +1,8 @@
-import { Clock, Shuffle, X } from 'lucide-react-native'
+import { ChevronDown, Clock, ImageIcon, Shuffle, X } from 'lucide-react-native'
 import { useEffect, useState } from 'react'
 import {
+  FlatList,
+  Image,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -12,16 +14,17 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native'
+import { launchImageLibrary } from 'react-native-image-picker'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
-import type { AlarmSettings, DayKey, Playlist } from '../../../../hooks/PlaylistContext'
 import { useTheme } from '../../../../hooks/ThemeContext'
-import { DAY_LABELS, DAY_ORDER, GRADIENT_PRESETS } from '../utils'
-import { PlaylistCover } from './PlaylistCover'
+import type { AlarmSettings, DayKey, Playlist } from '../../../../repositories/playlist'
+import { DAY_LABELS, DAY_ORDER } from '../utils'
 
 type SubmitPayload = {
   name: string
   description: string
-  gradient: string
+  coverImage?: string
   alarm?: AlarmSettings
 }
 
@@ -39,13 +42,14 @@ export const CreatePlaylistModal = ({
   editing?: Playlist | null
 }) => {
   const { colors, spacing, borderRadius, styles, typography } = useTheme()
+  const insets = useSafeAreaInsets()
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
-  const [gradient, setGradient] = useState(GRADIENT_PRESETS[0].key)
+  const [coverImage, setCoverImage] = useState<string | undefined>(undefined)
   const [alarmEnabled, setAlarmEnabled] = useState(false)
   const [hour, setHour] = useState('07')
   const [minute, setMinute] = useState('00')
-  const [days, setDays] = useState<DayKey[]>(['mon', 'wed', 'fri'])
+  const [days, setDays] = useState<DayKey[]>([])
   const [random, setRandom] = useState(false)
 
   useEffect(() => {
@@ -53,7 +57,7 @@ export const CreatePlaylistModal = ({
     if (editing) {
       setName(editing.name)
       setDescription(editing.description)
-      setGradient(editing.gradient ?? GRADIENT_PRESETS[0].key)
+      setCoverImage(editing.coverImage)
       if (editing.alarm) {
         setAlarmEnabled(editing.alarm.enabled)
         const [h, m] = editing.alarm.time.split(':')
@@ -65,47 +69,41 @@ export const CreatePlaylistModal = ({
         setAlarmEnabled(false)
         setHour('07')
         setMinute('00')
-        setDays(['mon', 'wed', 'fri'])
+        setDays([])
         setRandom(false)
       }
     } else {
       setName('')
       setDescription('')
-      setGradient(GRADIENT_PRESETS[0].key)
+      setCoverImage(undefined)
       setAlarmEnabled(false)
       setHour('07')
       setMinute('00')
-      setDays(['mon', 'wed', 'fri'])
+      setDays([])
       setRandom(false)
     }
   }, [visible, editing])
 
-  const normalizeTimePart = (v: string, max: number) => {
-    const n = parseInt(v.replace(/[^0-9]/g, ''), 10)
-    if (isNaN(n)) return '00'
-    return Math.max(0, Math.min(max, n)).toString().padStart(2, '0')
-  }
+  const [selectOpen, setSelectOpen] = useState<'hour' | 'minute' | null>(null)
 
   const canSubmit = name.trim().length > 0
 
   const submit = () => {
     if (!canSubmit) return
-    const h = normalizeTimePart(hour, 23)
-    const m = normalizeTimePart(minute, 59)
     onSubmit({
       name: name.trim(),
       description: description.trim(),
-      gradient,
-      alarm: alarmEnabled ? { enabled: true, time: `${h}:${m}`, days, random } : undefined,
+      coverImage,
+      alarm: alarmEnabled ? { enabled: true, time: `${hour}:${minute}`, days, random } : undefined,
     })
   }
 
   return (
-    <Modal visible={visible} transparent animationType='slide' onRequestClose={onClose}>
-      <Pressable style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }} onPress={onClose}>
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-          <Pressable
-            onPress={(e) => e.stopPropagation()}
+    <Modal visible={visible} transparent animationType='fade' onRequestClose={onClose}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
+          <Pressable style={{ flex: 1 }} onPress={onClose} />
+          <View
             style={{
               backgroundColor: colors.background,
               borderTopLeftRadius: borderRadius['2xl'],
@@ -135,11 +133,6 @@ export const CreatePlaylistModal = ({
               contentContainerStyle={{ padding: spacing.lg, gap: spacing.xl }}
               keyboardShouldPersistTaps='handled'
             >
-              {/* Preview */}
-              <View style={{ alignItems: 'center' }}>
-                <PlaylistCover gradient={gradient} size={96} borderRadius={borderRadius.xl} />
-              </View>
-
               {/* Name */}
               <View style={{ gap: spacing.sm }}>
                 <Text style={styles.textBold}>プレイリスト名 *</Text>
@@ -170,25 +163,51 @@ export const CreatePlaylistModal = ({
                 />
               </View>
 
-              {/* Gradient picker */}
+              {/* Cover Image */}
               <View style={{ gap: spacing.sm }}>
-                <Text style={styles.textBold}>カバー（グラデーション）</Text>
-                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
-                  {GRADIENT_PRESETS.map((g) => (
+                <Text style={styles.textBold}>カバー画像（任意）</Text>
+                <TouchableOpacity
+                  onPress={() => {
+                    launchImageLibrary({ mediaType: 'photo', quality: 0.8 }, (res) => {
+                      if (res.assets?.[0]?.uri) setCoverImage(res.assets[0].uri)
+                    })
+                  }}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: spacing.sm,
+                    paddingVertical: spacing.md,
+                    borderWidth: 1,
+                    borderColor: colors.border,
+                    borderRadius: borderRadius.lg,
+                    backgroundColor: colors.card,
+                  }}
+                >
+                  <ImageIcon size={20} color={colors.textSecondary} />
+                  <Text style={styles.bodySmall}>{coverImage ? '画像を変更' : '写真フォルダから選択'}</Text>
+                </TouchableOpacity>
+                {coverImage && (
+                  <View style={{ borderRadius: borderRadius.lg, overflow: 'hidden' }}>
+                    <Image source={{ uri: coverImage }} style={{ width: '100%', height: 160 }} resizeMode='cover' />
                     <TouchableOpacity
-                      key={g.key}
-                      onPress={() => setGradient(g.key)}
+                      onPress={() => setCoverImage(undefined)}
                       style={{
-                        borderRadius: borderRadius.xl,
-                        padding: gradient === g.key ? 3 : 0,
-                        borderWidth: gradient === g.key ? 2 : 0,
-                        borderColor: colors.primary,
+                        position: 'absolute',
+                        top: 8,
+                        right: 8,
+                        width: 28,
+                        height: 28,
+                        borderRadius: borderRadius.full,
+                        backgroundColor: 'rgba(0,0,0,0.5)',
+                        alignItems: 'center',
+                        justifyContent: 'center',
                       }}
                     >
-                      <PlaylistCover gradient={g.key} size={44} borderRadius={borderRadius.lg} />
+                      <X size={16} color='#FFFFFF' />
                     </TouchableOpacity>
-                  ))}
-                </View>
+                  </View>
+                )}
               </View>
 
               {/* Alarm */}
@@ -211,23 +230,41 @@ export const CreatePlaylistModal = ({
                     <View style={{ gap: spacing.sm }}>
                       <Text style={styles.bodySmall}>開始時間</Text>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
-                        <TextInput
-                          value={hour}
-                          onChangeText={(v) => setHour(v.slice(0, 2))}
-                          onBlur={() => setHour(normalizeTimePart(hour, 23))}
-                          keyboardType='number-pad'
-                          maxLength={2}
-                          style={[styles.input, styles.inputText, { width: 64, textAlign: 'center' }]}
-                        />
+                        <TouchableOpacity
+                          onPress={() => setSelectOpen('hour')}
+                          style={{
+                            flex: 1,
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            paddingHorizontal: spacing.md,
+                            paddingVertical: spacing.md,
+                            borderWidth: 1,
+                            borderColor: colors.border,
+                            borderRadius: borderRadius.lg,
+                          }}
+                        >
+                          <Text style={styles.bodyText}>{hour}時</Text>
+                          <ChevronDown size={16} color={colors.textSecondary} />
+                        </TouchableOpacity>
                         <Text style={styles.textXl}>:</Text>
-                        <TextInput
-                          value={minute}
-                          onChangeText={(v) => setMinute(v.slice(0, 2))}
-                          onBlur={() => setMinute(normalizeTimePart(minute, 59))}
-                          keyboardType='number-pad'
-                          maxLength={2}
-                          style={[styles.input, styles.inputText, { width: 64, textAlign: 'center' }]}
-                        />
+                        <TouchableOpacity
+                          onPress={() => setSelectOpen('minute')}
+                          style={{
+                            flex: 1,
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            paddingHorizontal: spacing.md,
+                            paddingVertical: spacing.md,
+                            borderWidth: 1,
+                            borderColor: colors.border,
+                            borderRadius: borderRadius.lg,
+                          }}
+                        >
+                          <Text style={styles.bodyText}>{minute}分</Text>
+                          <ChevronDown size={16} color={colors.textSecondary} />
+                        </TouchableOpacity>
                       </View>
                     </View>
 
@@ -289,7 +326,9 @@ export const CreatePlaylistModal = ({
               style={{
                 flexDirection: 'row',
                 gap: spacing.md,
-                padding: spacing.lg,
+                paddingHorizontal: spacing.lg,
+                paddingTop: spacing.lg,
+                paddingBottom: spacing.lg + insets.bottom,
                 borderTopWidth: 1,
                 borderTopColor: colors.border,
               }}
@@ -323,9 +362,80 @@ export const CreatePlaylistModal = ({
                 </Text>
               </TouchableOpacity>
             </View>
-          </Pressable>
-        </KeyboardAvoidingView>
-      </Pressable>
+          </View>
+        </View>
+      </KeyboardAvoidingView>
+
+      {/* Select Modal */}
+      <Modal visible={selectOpen !== null} transparent animationType='fade' onRequestClose={() => setSelectOpen(null)}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
+          <Pressable style={{ flex: 1 }} onPress={() => setSelectOpen(null)} />
+          <View
+            style={{
+              backgroundColor: colors.background,
+              borderTopLeftRadius: borderRadius['2xl'],
+              borderTopRightRadius: borderRadius['2xl'],
+              maxHeight: '50%',
+              paddingBottom: insets.bottom,
+            }}
+          >
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: spacing.lg,
+                borderBottomWidth: 1,
+                borderBottomColor: colors.border,
+              }}
+            >
+              <Text style={styles.textBold}>{selectOpen === 'hour' ? '時' : '分'}を選択</Text>
+              <TouchableOpacity onPress={() => setSelectOpen(null)} style={{ padding: spacing.xs }}>
+                <X size={20} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+            <FlatList
+              data={
+                selectOpen === 'hour'
+                  ? Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, '0'))
+                  : Array.from({ length: 60 }, (_, i) => i.toString().padStart(2, '0'))
+              }
+              keyExtractor={(item) => item}
+              renderItem={({ item }) => {
+                const selected = selectOpen === 'hour' ? item === hour : item === minute
+                return (
+                  <TouchableOpacity
+                    onPress={() => {
+                      if (selectOpen === 'hour') setHour(item)
+                      else setMinute(item)
+                      setSelectOpen(null)
+                    }}
+                    style={{
+                      paddingHorizontal: spacing.lg,
+                      paddingVertical: spacing.md,
+                      backgroundColor: selected ? colors.primary + '20' : 'transparent',
+                    }}
+                  >
+                    <Text
+                      style={[
+                        styles.bodyText,
+                        selected && { color: colors.primary, fontWeight: typography.fontWeight.bold },
+                      ]}
+                    >
+                      {item}
+                      {selectOpen === 'hour' ? '時' : '分'}
+                    </Text>
+                  </TouchableOpacity>
+                )
+              }}
+              initialScrollIndex={
+                selectOpen === 'hour' ? Math.max(0, parseInt(hour, 10) - 2) : Math.max(0, parseInt(minute, 10) - 2)
+              }
+              getItemLayout={(_, index) => ({ length: 48, offset: 48 * index, index })}
+            />
+          </View>
+        </View>
+      </Modal>
     </Modal>
   )
 }

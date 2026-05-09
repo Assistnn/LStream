@@ -2,9 +2,8 @@ import { Clock, Pencil, Pin, Trash2 } from 'lucide-react-native'
 import { useEffect, useRef } from 'react'
 import { Animated, PanResponder, Text, TouchableOpacity, View } from 'react-native'
 
-import type { Playlist } from '../../../../hooks/PlaylistContext'
-import { usePlaylist } from '../../../../hooks/PlaylistContext'
 import { useTheme } from '../../../../hooks/ThemeContext'
+import type { Playlist } from '../../../../repositories/playlist'
 import { formatAlarmTime, formatTotalDuration, getTotalDuration } from '../utils'
 import { PlaylistCover } from './PlaylistCover'
 
@@ -17,14 +16,19 @@ export const PlaylistRow = ({
   onPress,
   onEdit,
   onDelete,
+  onTogglePin,
+  activeSwipeRowId,
+  setActiveSwipeRowId,
 }: {
   playlist: Playlist
   onPress: () => void
   onEdit: () => void
   onDelete: () => void
+  onTogglePin: () => void
+  activeSwipeRowId: string | null
+  setActiveSwipeRowId: (id: string | null) => void
 }) => {
   const { colors, spacing, borderRadius, styles } = useTheme()
-  const { togglePin, activeSwipeRowId, setActiveSwipeRowId } = usePlaylist()
   const translateX = useRef(new Animated.Value(0)).current
   const currentXRef = useRef(0)
 
@@ -47,13 +51,13 @@ export const PlaylistRow = ({
 
   const panResponder = useRef(
     PanResponder.create({
-      onMoveShouldSetPanResponder: (_, g) => Math.abs(g.dx) > Math.abs(g.dy) * 2 && Math.abs(g.dx) > 6,
+      onStartShouldSetPanResponder: () => false,
+      onMoveShouldSetPanResponder: (_, g) => Math.abs(g.dx) > Math.abs(g.dy) * 3 && Math.abs(g.dx) > 15,
       onPanResponderGrant: () => {
         setActiveSwipeRowId(playlist.id)
       },
       onPanResponderMove: (_, g) => {
-        const base = currentXRef.current
-        const next = Math.max(SWIPE_LEFT_OPEN, Math.min(SWIPE_RIGHT_OPEN, base + g.dx))
+        const next = Math.max(SWIPE_LEFT_OPEN, Math.min(SWIPE_RIGHT_OPEN, currentXRef.current + g.dx))
         translateX.setValue(next)
       },
       onPanResponderRelease: (_, g) => {
@@ -99,7 +103,7 @@ export const PlaylistRow = ({
       >
         <TouchableOpacity
           onPress={() => {
-            togglePin(playlist.id)
+            onTogglePin()
             snapTo(0)
             setActiveSwipeRowId(null)
           }}

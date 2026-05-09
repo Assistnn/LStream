@@ -39,8 +39,14 @@ open:
 		echo "DevContainer URI: $$DEVCONTAINER_URI"; \
 	fi
 dev-ios: open
-	open -a Simulator
-	cd app && pnpm run ios
+	@UDID=$$(xcrun simctl list devices booted -j | python3 -c "import sys,json; ds=json.load(sys.stdin)['devices']; print(next((u['udid'] for r in ds.values() for u in r if u['state']=='Booted'), ''))"); \
+	if [ -z "$$UDID" ]; then \
+		echo "No booted simulator found. Booting default iPhone..."; \
+		UDID=$$(xcrun simctl list devices available -j | python3 -c "import sys,json; ds=json.load(sys.stdin)['devices']; print(next(u['udid'] for r in ds.values() for u in r if u['state']=='Shutdown' and 'iPhone' in u['name']))"); \
+		xcrun simctl boot "$$UDID"; \
+	fi; \
+	open -a Simulator; \
+	cd app && npx react-native run-ios --udid "$$UDID"
 dev-android: open
 	cd app && JAVA_HOME=/opt/homebrew/opt/openjdk@17 pnpm run android
 logs:

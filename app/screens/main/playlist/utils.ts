@@ -1,4 +1,6 @@
-import type { AlarmSettings, DayKey, Playlist } from '../../../hooks/PlaylistContext'
+import type { PlayableChild, PlayableTrack, QueueItem } from '../../../hooks/PlayerContext'
+import type { SeriesMedia } from '../../../repositories/api/IApiRepository'
+import type { AlarmSettings, DayKey, Playlist, PlaylistItem } from '../../../repositories/playlist'
 
 export const GRADIENT_PRESETS: { key: string; colors: [string, string] }[] = [
   { key: 'blue', colors: ['#3B82F6', '#2563EB'] },
@@ -62,3 +64,65 @@ export const sortPlaylists = (playlists: Playlist[]): Playlist[] => {
     return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   })
 }
+
+export const toPlayableTrack = (item: Omit<PlaylistItem, 'id' | 'seriesId'> | Omit<QueueItem, 'id'>): PlayableTrack => {
+  const isPlaylist = 'episodeId' in item
+  const trackId = isPlaylist ? item.episodeId : item.trackId
+  const childId = isPlaylist ? item.unitId : item.childId
+  const parentTitle = isPlaylist ? item.seriesTitle : item.parentTitle
+  const url = item.url
+  const mType = item.mediaType
+  return {
+    id: trackId,
+    mediaType: mType,
+    url,
+    img: item.thumbnail,
+    title: item.title,
+    duration: item.duration,
+    progress: 0,
+    parentTitle,
+    ...(childId != null
+      ? {
+          children: [
+            {
+              id: childId,
+              mediaType: mType,
+              url,
+              img: item.thumbnail,
+              title: item.title,
+              duration: item.duration,
+              progress: 0,
+              parentTitle,
+            },
+          ],
+        }
+      : {}),
+  }
+}
+
+export const seriesMediaToTrack = (ep: SeriesMedia): PlayableTrack => ({
+  id: ep.item_id,
+  mediaType: ep.type_media,
+  url: ep.url,
+  img: ep.img,
+  title: ep.title,
+  duration: ep.duration,
+  progress: ep.progress,
+  parentTitle: ep.parentTitle,
+  ...(ep.units
+    ? {
+        children: ep.units.map(
+          (u): PlayableChild => ({
+            id: u.item_id,
+            mediaType: u.type_media,
+            url: u.url,
+            img: u.img,
+            title: u.title,
+            duration: u.duration,
+            progress: u.progress,
+            parentTitle: u.parentTitle,
+          }),
+        ),
+      }
+    : {}),
+})

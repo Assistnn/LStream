@@ -5,7 +5,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Clock,
-  List,
   MoreVertical,
   Pause,
   Play,
@@ -20,15 +19,16 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { ContextMenu, type ContextMenuItem } from '../../../components/ui/ContextMenu'
 import { EmptyState } from '../../../components/ui/EmptyState'
 import { usePlayer } from '../../../hooks/PlayerContext'
-import type { Playlist, PlaylistItem } from '../../../hooks/PlaylistContext'
-import { usePlaylist } from '../../../hooks/PlaylistContext'
 import { useTheme } from '../../../hooks/ThemeContext'
+import type { Playlist, PlaylistItem } from '../../../repositories/playlist'
+import { PlaylistRepository } from '../../../repositories/playlist'
 import { AddToPlaylistModal } from './components/AddToPlaylistModal'
 import { CreatePlaylistModal } from './components/CreatePlaylistModal'
 import { PlaylistCover } from './components/PlaylistCover'
 import { ITEM_HEIGHT, PlaylistItemRow } from './components/PlaylistItemRow'
 import type { PlaylistStackParamList } from './types'
-import { formatAlarmTime, formatTotalDuration, getTotalDuration } from './utils'
+import { usePlaylists } from './usePlaylists'
+import { formatAlarmTime, formatTotalDuration, getTotalDuration, toPlayableTrack } from './utils'
 
 type Props = NativeStackScreenProps<PlaylistStackParamList, 'PlaylistDetail'>
 
@@ -37,9 +37,16 @@ export const PlaylistDetailScreen = ({ route }: Props) => {
   const insets = useSafeAreaInsets()
   const navigation = useNavigation<NativeStackNavigationProp<PlaylistStackParamList>>()
   const { styles, colors, spacing, borderRadius } = useTheme()
-  const { playlists, updatePlaylist, deletePlaylist, reorderPlaylistItems, addToQueue, playPlaylistFrom } =
-    usePlaylist()
-  const { currentContent, state, controls, settings, navigation: playerNav } = usePlayer()
+  const { playlists, setPlaylists } = usePlaylists()
+  const {
+    currentContent,
+    state,
+    controls,
+    settings,
+    navigation: playerNav,
+    playingPlaylistId,
+    queueActions,
+  } = usePlayer()
 
   const playlist = useMemo<Playlist | undefined>(
     () => playlists.find((p) => p.id === playlistId),
@@ -52,6 +59,7 @@ export const PlaylistDetailScreen = ({ route }: Props) => {
   const [itemMenuTarget, setItemMenuTarget] = useState<PlaylistItem | null>(null)
   const [itemMenuAnchorY, setItemMenuAnchorY] = useState<number | undefined>(undefined)
   const [addToPlaylistItem, setAddToPlaylistItem] = useState<Omit<PlaylistItem, 'id'> | null>(null)
+  const [activeSwipeRowId, setActiveSwipeRowId] = useState<string | null>(null)
 
   // Drag-and-drop state
   const [draggingIndex, setDraggingIndex] = useState<number | null>(null)
@@ -85,7 +93,9 @@ export const PlaylistDetailScreen = ({ route }: Props) => {
       targetIndex !== null &&
       targetIndex !== dragStartIndexRef.current
     ) {
-      reorderPlaylistItems(playlist.id, dragStartIndexRef.current, targetIndex)
+      setPlaylists(
+        PlaylistRepository.reorderPlaylistItems(playlists, playlist.id, dragStartIndexRef.current, targetIndex),
+      )
     }
     setDraggingIndex(null)
     setTargetIndex(null)
@@ -110,15 +120,15 @@ export const PlaylistDetailScreen = ({ route }: Props) => {
   const total = getTotalDuration(playlist)
   const itemsCount = playlist.items.length
 
+  const isPlayingThisPlaylist = playingPlaylistId === playlist.id
+
   const currentPlayingIndex = (() => {
-    if (!currentContent) return -1
+    if (!currentContent || !isPlayingThisPlaylist) return -1
     return playlist.items.findIndex(
       (i) =>
         i.episodeId === currentContent.episodeId && (i.unitId ?? undefined) === (currentContent.unitId ?? undefined),
     )
   })()
-
-  const isPlayingThisPlaylist = currentPlayingIndex >= 0
   const isActuallyPlaying = isPlayingThisPlaylist && state.playbackState === 'playing'
 
   const headerMenuItems: ContextMenuItem[] = [
@@ -135,7 +145,7 @@ export const PlaylistDetailScreen = ({ route }: Props) => {
             text: '削除',
             style: 'destructive',
             onPress: () => {
-              deletePlaylist(playlist.id)
+              setPlaylists(PlaylistRepository.deletePlaylist(playlists, playlist.id))
               navigation.goBack()
             },
           },
@@ -155,14 +165,15 @@ export const PlaylistDetailScreen = ({ route }: Props) => {
         {
           label: '再生キューに追加',
           onPress: () => {
-            addToQueue({
-              seriesId: itemMenuTarget.seriesId,
-              episodeId: itemMenuTarget.episodeId,
-              unitId: itemMenuTarget.unitId,
+            queueActions.addToQueue({
+              trackId: itemMenuTarget.episodeId,
+              childId: itemMenuTarget.unitId,
               title: itemMenuTarget.title,
-              seriesTitle: itemMenuTarget.seriesTitle,
+              parentTitle: itemMenuTarget.seriesTitle,
               thumbnail: itemMenuTarget.thumbnail,
               duration: itemMenuTarget.duration,
+              url: itemMenuTarget.url,
+              mediaType: itemMenuTarget.mediaType,
             })
           },
         },
@@ -177,7 +188,15 @@ export const PlaylistDetailScreen = ({ route }: Props) => {
               seriesTitle: itemMenuTarget.seriesTitle,
               thumbnail: itemMenuTarget.thumbnail,
               duration: itemMenuTarget.duration,
+              url: itemMenuTarget.url,
+              mediaType: itemMenuTarget.mediaType,
             })
+          },
+        },
+        {
+          label: 'プレイリストから削除',
+          onPress: () => {
+            setPlaylists(PlaylistRepository.removeItemFromPlaylist(playlists, playlist.id, itemMenuTarget.id))
           },
         },
       ]
@@ -190,10 +209,17 @@ export const PlaylistDetailScreen = ({ route }: Props) => {
     settings.setLoopMode(next)
   }
 
+  const tracks = useMemo(() => playlist.items.map(toPlayableTrack), [playlist.items])
+
+  const playItemAt = (index: number, keepPlaybackState = false) => {
+    const target = playlist.items[index]
+    playerNav.playFromList(tracks, target.episodeId, target.unitId, { playlistId: playlist.id, keepPlaybackState })
+  }
+
   const playOrPause = () => {
     if (itemsCount === 0) return
     if (!isPlayingThisPlaylist) {
-      playPlaylistFrom(playlist.id, Math.max(0, currentPlayingIndex))
+      playItemAt(Math.max(0, currentPlayingIndex))
       return
     }
     if (isActuallyPlaying) controls.pause()
@@ -201,10 +227,12 @@ export const PlaylistDetailScreen = ({ route }: Props) => {
   }
 
   const playPrev = () => {
-    if (isPlayingThisPlaylist) playerNav.playPreviousEpisode()
+    if (itemsCount === 0 || !isPlayingThisPlaylist) return
+    playItemAt(currentPlayingIndex > 0 ? currentPlayingIndex - 1 : itemsCount - 1, true)
   }
   const playNext = () => {
-    if (isPlayingThisPlaylist) playerNav.playNextEpisode()
+    if (itemsCount === 0 || !isPlayingThisPlaylist) return
+    playItemAt(currentPlayingIndex < itemsCount - 1 ? currentPlayingIndex + 1 : 0, true)
   }
 
   // Build the display list preserving order, but shifting the dragging item visually to targetIndex
@@ -231,23 +259,17 @@ export const PlaylistDetailScreen = ({ route }: Props) => {
             bottom: 0,
           }}
         />
-        <View style={{ paddingTop: insets.top + spacing.xs, paddingBottom: spacing.lg, paddingHorizontal: spacing.lg }}>
+        <View style={{ paddingTop: insets.top, paddingHorizontal: '5%' }}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-            <TouchableOpacity
-              onPress={() => navigation.goBack()}
-              style={{ padding: spacing.xs, backgroundColor: 'rgba(0,0,0,0.35)', borderRadius: 999 }}
-            >
-              <ChevronDown size={22} color='#FFFFFF' />
+            <TouchableOpacity onPress={() => navigation.goBack()} style={{ padding: 8 }}>
+              <ChevronDown size={24} color='#FFFFFF' />
             </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => setHeaderMenuVisible(true)}
-              style={{ padding: spacing.xs, backgroundColor: 'rgba(0,0,0,0.35)', borderRadius: 999 }}
-            >
-              <MoreVertical size={22} color='#FFFFFF' />
+            <TouchableOpacity onPress={() => setHeaderMenuVisible(true)} style={{ padding: 8 }}>
+              <MoreVertical size={24} color='#FFFFFF' />
             </TouchableOpacity>
           </View>
 
-          <View style={{ marginTop: spacing['3xl'], gap: spacing.xs }}>
+          <View>
             <Text
               style={{
                 fontSize: 24,
@@ -261,48 +283,80 @@ export const PlaylistDetailScreen = ({ route }: Props) => {
             >
               {playlist.name}
             </Text>
-            {playlist.description.length > 0 && (
+            <Text
+              style={{
+                fontSize: 14,
+                color: 'rgba(255,255,255,0.9)',
+                textShadowColor: 'rgba(0,0,0,0.6)',
+                textShadowOffset: { width: 0, height: 1 },
+                textShadowRadius: 8,
+                marginTop: 4,
+              }}
+              numberOfLines={2}
+            >
+              {playlist.description || ' '}
+            </Text>
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 4,
+                marginTop: 15,
+              }}
+            >
               <Text
                 style={{
-                  fontSize: 13,
                   color: 'rgba(255,255,255,0.9)',
-                  textShadowColor: 'rgba(0,0,0,0.5)',
-                  textShadowRadius: 4,
+                  fontSize: 12,
+                  textShadowColor: 'rgba(0,0,0,0.8)',
+                  textShadowOffset: { width: 0, height: 1 },
+                  textShadowRadius: 8,
                 }}
-                numberOfLines={2}
               >
-                {playlist.description}
+                {itemsCount}メディア
               </Text>
-            )}
-            <View style={{ flexDirection: 'row', gap: spacing.sm, alignItems: 'center' }}>
-              <Text style={{ color: 'rgba(255,255,255,0.85)', fontSize: 12 }}>
-                {itemsCount}メディア ・ 合計 {formatTotalDuration(total)}
+              <Text
+                style={{
+                  color: 'rgba(255,255,255,0.9)',
+                  fontSize: 12,
+                  textShadowColor: 'rgba(0,0,0,0.8)',
+                  textShadowOffset: { width: 0, height: 1 },
+                  textShadowRadius: 8,
+                }}
+              >
+                合計{formatTotalDuration(total)}
               </Text>
-              {playlist.alarm?.enabled && (
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                  <Clock size={12} color='#FFFFFF' />
-                  <Text style={{ color: '#FFFFFF', fontSize: 12 }}>{formatAlarmTime(playlist.alarm)}</Text>
-                </View>
-              )}
             </View>
+            {playlist.alarm?.enabled && (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 }}>
+                <Clock size={12} color='#FFFFFF' />
+                <Text style={{ color: '#FFFFFF', fontSize: 12 }}>{formatAlarmTime(playlist.alarm)}</Text>
+              </View>
+            )}
           </View>
+          <View style={{ height: spacing.md }} />
+        </View>
 
-          {itemsCount > 0 && (
-            <View style={{ flexDirection: 'row', gap: spacing.sm, alignItems: 'center', marginTop: spacing.lg }}>
+        {itemsCount > 0 && (
+          <View style={{ paddingHorizontal: '5%', paddingBottom: 16 }}>
+            <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
               <TouchableOpacity
                 onPress={playPrev}
-                disabled={!isPlayingThisPlaylist}
+                disabled={currentPlayingIndex <= 0 && !loopActive}
                 style={{
                   width: 40,
                   height: 40,
                   borderRadius: 20,
                   alignItems: 'center',
                   justifyContent: 'center',
-                  backgroundColor: 'rgba(255,255,255,0.25)',
-                  opacity: isPlayingThisPlaylist ? 1 : 0.5,
+                  backgroundColor:
+                    currentPlayingIndex <= 0 && !loopActive ? 'rgba(17,24,39,0.2)' : 'rgba(17,24,39,0.3)',
                 }}
               >
-                <ChevronLeft size={22} color='#FFFFFF' />
+                <ChevronLeft
+                  size={16}
+                  color={currentPlayingIndex <= 0 && !loopActive ? 'rgba(255,255,255,0.4)' : '#FFFFFF'}
+                />
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -314,32 +368,37 @@ export const PlaylistDetailScreen = ({ route }: Props) => {
                   alignItems: 'center',
                   justifyContent: 'center',
                   flexDirection: 'row',
-                  gap: spacing.xs,
-                  backgroundColor: '#FFFFFF',
+                  gap: 6,
+                  backgroundColor: isActuallyPlaying ? '#111827' : 'rgba(17,24,39,0.3)',
                 }}
               >
                 {isActuallyPlaying ? (
-                  <Pause size={18} color='#111827' fill='#111827' />
+                  <Pause size={16} color='#FFFFFF' fill='#FFFFFF' />
                 ) : (
-                  <Play size={18} color='#111827' fill='#111827' />
+                  <Play size={16} color='#FFFFFF' fill='#FFFFFF' />
                 )}
-                <Text style={{ color: '#111827', fontWeight: '700' }}>{isActuallyPlaying ? '停止' : '再生'}</Text>
+                <Text style={{ color: '#FFFFFF', fontWeight: '600', fontSize: 14 }}>
+                  {isActuallyPlaying ? '停止' : '再生'}
+                </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
                 onPress={playNext}
-                disabled={!isPlayingThisPlaylist}
+                disabled={currentPlayingIndex >= itemsCount - 1 && !loopActive}
                 style={{
                   width: 40,
                   height: 40,
                   borderRadius: 20,
                   alignItems: 'center',
                   justifyContent: 'center',
-                  backgroundColor: 'rgba(255,255,255,0.25)',
-                  opacity: isPlayingThisPlaylist ? 1 : 0.5,
+                  backgroundColor:
+                    currentPlayingIndex >= itemsCount - 1 && !loopActive ? 'rgba(17,24,39,0.2)' : 'rgba(17,24,39,0.3)',
                 }}
               >
-                <ChevronRight size={22} color='#FFFFFF' />
+                <ChevronRight
+                  size={16}
+                  color={currentPlayingIndex >= itemsCount - 1 && !loopActive ? 'rgba(255,255,255,0.4)' : '#FFFFFF'}
+                />
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -350,10 +409,10 @@ export const PlaylistDetailScreen = ({ route }: Props) => {
                   borderRadius: 20,
                   alignItems: 'center',
                   justifyContent: 'center',
-                  backgroundColor: settings.isShuffleOn ? '#FFFFFF' : 'rgba(255,255,255,0.25)',
+                  backgroundColor: settings.isShuffleOn ? '#111827' : 'rgba(17,24,39,0.3)',
                 }}
               >
-                <Shuffle size={18} color={settings.isShuffleOn ? '#111827' : '#FFFFFF'} />
+                <Shuffle size={16} color='#FFFFFF' />
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -364,36 +423,23 @@ export const PlaylistDetailScreen = ({ route }: Props) => {
                   borderRadius: 20,
                   alignItems: 'center',
                   justifyContent: 'center',
-                  backgroundColor: loopActive ? '#FFFFFF' : 'rgba(255,255,255,0.25)',
+                  backgroundColor: loopActive ? '#111827' : 'rgba(17,24,39,0.3)',
                 }}
               >
-                <LoopIcon size={18} color={loopActive ? '#111827' : '#FFFFFF'} />
+                <LoopIcon size={16} color='#FFFFFF' />
               </TouchableOpacity>
             </View>
-          )}
-        </View>
-
-        {/* Dark overlay at the bottom to improve contrast */}
-        <View
-          style={{
-            position: 'absolute',
-            left: 0,
-            right: 0,
-            bottom: 0,
-            height: 80,
-            backgroundColor: 'rgba(0,0,0,0.35)',
-          }}
-          pointerEvents='none'
-        />
+          </View>
+        )}
       </View>
 
       {/* Items */}
       <ScrollView scrollEnabled={draggingIndex === null} contentContainerStyle={{ paddingBottom: spacing['4xl'] }}>
         {itemsCount === 0 ? (
           <EmptyState
-            icon={List}
+            icon={Play}
             title='プレイリストが空です'
-            description='各メディアの「...」から「プレイリストに追加」を選んでください'
+            description='エピソードやチャプターをプレイリストに追加してください'
           />
         ) : (
           <View style={{ position: 'relative' }}>
@@ -405,11 +451,16 @@ export const PlaylistDetailScreen = ({ route }: Props) => {
                 index={idx}
                 isPlaying={currentPlayingIndex === idx}
                 isDragging={draggingIndex === idx}
-                onPress={() => playPlaylistFrom(playlist.id, idx)}
+                onPress={() => playItemAt(idx)}
                 onMenuPress={() => openItemMenu(item, insets.top + 300 + idx * ITEM_HEIGHT)}
                 onDragStart={handleDragStart}
                 onDragMove={handleDragMove}
                 onDragEnd={handleDragEnd}
+                onRemove={() =>
+                  setPlaylists(PlaylistRepository.removeItemFromPlaylist(playlists, playlist.id, item.id))
+                }
+                activeSwipeRowId={activeSwipeRowId}
+                setActiveSwipeRowId={setActiveSwipeRowId}
               />
             ))}
 
@@ -446,6 +497,9 @@ export const PlaylistDetailScreen = ({ route }: Props) => {
                   onDragStart={() => {}}
                   onDragMove={() => {}}
                   onDragEnd={() => {}}
+                  onRemove={() => {}}
+                  activeSwipeRowId={null}
+                  setActiveSwipeRowId={() => {}}
                 />
               </Animated.View>
             )}
@@ -480,12 +534,14 @@ export const PlaylistDetailScreen = ({ route }: Props) => {
         editing={playlist}
         onClose={() => setEditOpen(false)}
         onSubmit={(payload) => {
-          updatePlaylist(playlist.id, {
-            name: payload.name,
-            description: payload.description,
-            gradient: payload.gradient,
-            alarm: payload.alarm,
-          })
+          setPlaylists(
+            PlaylistRepository.updatePlaylist(playlists, playlist.id, {
+              name: payload.name,
+              description: payload.description,
+              coverImage: payload.coverImage,
+              alarm: payload.alarm,
+            }),
+          )
           setEditOpen(false)
         }}
       />

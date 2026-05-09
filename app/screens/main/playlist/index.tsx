@@ -8,21 +8,25 @@ import Svg, { Defs, LinearGradient as SvgLinearGradient, Rect, Stop } from 'reac
 
 import { EmptyState } from '../../../components/ui/EmptyState'
 import { PageTitle } from '../../../components/ui/PageTitle'
-import type { Playlist } from '../../../hooks/PlaylistContext'
-import { usePlaylist } from '../../../hooks/PlaylistContext'
+import { usePlayer } from '../../../hooks/PlayerContext'
 import { useTheme } from '../../../hooks/ThemeContext'
+import type { Playlist } from '../../../repositories/playlist'
+import { PlaylistRepository } from '../../../repositories/playlist'
 import { CreatePlaylistModal } from './components/CreatePlaylistModal'
 import { PlaylistRow } from './components/PlaylistRow'
 import type { PlaylistStackParamList } from './types'
+import { usePlaylists } from './usePlaylists'
 import { formatTotalDuration, sortPlaylists } from './utils'
 
 export const PlaylistTabScreen = () => {
   const insets = useSafeAreaInsets()
   const { styles, colors, spacing, borderRadius } = useTheme()
   const navigation = useNavigation<NativeStackNavigationProp<PlaylistStackParamList>>()
-  const { playlists, queue, createPlaylist, updatePlaylist, deletePlaylist } = usePlaylist()
+  const { queue } = usePlayer()
+  const { playlists, setPlaylists } = usePlaylists()
   const [createOpen, setCreateOpen] = useState(false)
   const [editing, setEditing] = useState<Playlist | null>(null)
+  const [activeSwipeRowId, setActiveSwipeRowId] = useState<string | null>(null)
 
   const sorted = useMemo(() => sortPlaylists(playlists), [playlists])
   const queueTotal = useMemo(() => queue.reduce((s, i) => s + i.duration, 0), [queue])
@@ -123,9 +127,16 @@ export const PlaylistTabScreen = () => {
                 onDelete={() => {
                   Alert.alert('プレイリストを削除', `「${p.name}」を削除しますか？`, [
                     { text: 'キャンセル', style: 'cancel' },
-                    { text: '削除', style: 'destructive', onPress: () => deletePlaylist(p.id) },
+                    {
+                      text: '削除',
+                      style: 'destructive',
+                      onPress: () => setPlaylists(PlaylistRepository.deletePlaylist(playlists, p.id)),
+                    },
                   ])
                 }}
+                onTogglePin={() => setPlaylists(PlaylistRepository.togglePin(playlists, p.id))}
+                activeSwipeRowId={activeSwipeRowId}
+                setActiveSwipeRowId={setActiveSwipeRowId}
               />
             ))
           )}
@@ -138,14 +149,17 @@ export const PlaylistTabScreen = () => {
         editing={editing}
         onSubmit={(payload) => {
           if (editing) {
-            updatePlaylist(editing.id, {
-              name: payload.name,
-              description: payload.description,
-              gradient: payload.gradient,
-              alarm: payload.alarm,
-            })
+            setPlaylists(
+              PlaylistRepository.updatePlaylist(playlists, editing.id, {
+                name: payload.name,
+                description: payload.description,
+                coverImage: payload.coverImage,
+                alarm: payload.alarm,
+              }),
+            )
           } else {
-            createPlaylist(payload)
+            const { playlists: next } = PlaylistRepository.createPlaylist(playlists, payload)
+            setPlaylists(next)
           }
           setCreateOpen(false)
           setEditing(null)
