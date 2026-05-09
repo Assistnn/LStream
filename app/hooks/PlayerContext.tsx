@@ -1,91 +1,182 @@
+import AsyncStorage from '@react-native-async-storage/async-storage'
 import type { ReactNode } from 'react'
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import type { ViewStyle } from 'react-native'
 import Video, { type VideoRef } from 'react-native-video'
 
 import { apiRepository } from '../repositories/api'
-import type { SeriesMedia, SeriesResponse } from '../repositories/api/IApiRepository'
 import type { LoopMode } from '../repositories/storage'
 import { StorageRepository } from '../repositories/storage'
 
 type PlaybackState = 'idle' | 'loading' | 'playing' | 'paused' | 'ended' | 'error'
+
+export type PlayableChild = {
+  id: number
+  mediaType: number
+  url: string
+  img: string
+  title: string
+  duration: number
+  progress: number
+  parentTitle: string
+}
+
+export type PlayableTrack = PlayableChild & {
+  children?: PlayableChild[]
+}
+
+export type QueueItem = {
+  id: string
+  trackId: number
+  childId?: number
+  title: string
+  parentTitle: string
+  thumbnail: string
+  duration: number
+}
+
+const QUEUE_KEYS = {
+  queue: '@playlist/queue',
+  autoPlayNext: '@playlist/autoPlayNext',
+} as const
+
+const uid = () => `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
+
+const reorder = <T,>(arr: T[], from: number, to: number): T[] => {
+  if (from === to || from < 0 || from >= arr.length || to < 0 || to >= arr.length) return arr
+  const next = arr.slice()
+  const [moved] = next.splice(from, 1)
+  next.splice(to, 0, moved)
+  return next
+}
+
 type Rect = { x: number; y: number; width: number; height: number }
 
 class CurrentContent {
-  readonly seriesId: number
-  readonly episodes: SeriesMedia[]
-  readonly episodeId: number
-  readonly unitId?: number
+  readonly sourceId: number
+  readonly tracks: PlayableTrack[]
+  readonly trackId: number
+  readonly childId?: number
 
-  constructor(seriesId: number, episodes: SeriesMedia[], episodeId: number, unitId?: number) {
-    this.seriesId = seriesId
-    this.episodes = episodes
-    this.episodeId = episodeId
-    this.unitId = unitId
+  constructor(sourceId: number, tracks: PlayableTrack[], trackId: number, childId?: number) {
+    this.sourceId = sourceId
+    this.tracks = tracks
+    this.trackId = trackId
+    this.childId = childId
   }
 
-  get episode() {
-    return this.episodes.find((ep) => ep.item_id === this.episodeId) ?? this.episodes[0]
+  get track() {
+    return this.tracks.find((t) => t.id === this.trackId) ?? this.tracks[0]
   }
 
-  get unit() {
-    return this.unitId ? this.episode.units?.find((u) => u.item_id === this.unitId) : undefined
+  get child() {
+    return this.childId ? this.track.children?.find((c) => c.id === this.childId) : undefined
   }
 
   get mediaUrl() {
-    return this.unit?.url || this.episode?.url || ''
+    return this.child?.url || this.track?.url || ''
   }
 
   get isVideo() {
-    return (this.unit?.type_media ?? this.episode?.type_media) === 1
+    return (this.child?.mediaType ?? this.track?.mediaType) === 1
   }
 
   get thumbnail() {
-    return this.unit?.img || this.episode?.img
+    return this.child?.img || this.track?.img
   }
 
-  get episodeIndex() {
-    return this.episodes.findIndex((ep) => ep.item_id === this.episodeId)
+  get trackIndex() {
+    return this.tracks.findIndex((t) => t.id === this.trackId)
   }
 
-  get units() {
-    return this.episode?.units ?? []
+  get children() {
+    return this.track?.children ?? []
   }
 
-  get unitIndex() {
-    return this.unitId ? this.units.findIndex((u) => u.item_id === this.unitId) : -1
+  get childIndex() {
+    return this.childId ? this.children.findIndex((c) => c.id === this.childId) : -1
   }
 
-  withEpisode(epId: number, uId?: number) {
-    return new CurrentContent(this.seriesId, this.episodes, epId, uId)
+  withTrack(tId: number, cId?: number) {
+    return new CurrentContent(this.sourceId, this.tracks, tId, cId)
   }
 
-  withUnit(uId: number) {
-    return new CurrentContent(this.seriesId, this.episodes, this.episodeId, uId)
+  withChild(cId: number) {
+    return new CurrentContent(this.sourceId, this.tracks, this.trackId, cId)
   }
 
-  get hasNextEpisode() {
-    return this.episodeIndex < this.episodes.length - 1
+  get hasNextTrack() {
+    return this.trackIndex < this.tracks.length - 1
   }
 
-  get hasPrevEpisode() {
-    return this.episodeIndex > 0
+  get hasPrevTrack() {
+    return this.trackIndex > 0
   }
 
-  get hasNextUnit() {
-    return this.unitIndex >= 0 && this.unitIndex < this.units.length - 1
+  get hasNextChild() {
+    return this.childIndex >= 0 && this.childIndex < this.children.length - 1
   }
 
-  get hasPrevUnit() {
-    return this.unitIndex > 0
+  get hasPrevChild() {
+    return this.childIndex > 0
   }
 
-  get hasUnits() {
-    return this.units.length > 0
+  get hasChildren() {
+    return this.children.length > 0
   }
 
   get duration() {
-    return this.unit?.duration || this.episode?.duration || 0
+    return this.child?.duration || this.track?.duration || 0
+  }
+
+  // backward compat aliases used by EpisodePlayer / other consumers
+  get seriesId() {
+    return this.sourceId
+  }
+  get episodeId() {
+    return this.trackId
+  }
+  get unitId() {
+    return this.childId
+  }
+  get episodes() {
+    return this.tracks
+  }
+  get episode() {
+    return this.track
+  }
+  get unit() {
+    return this.child
+  }
+  get units() {
+    return this.children
+  }
+  get episodeIndex() {
+    return this.trackIndex
+  }
+  get unitIndex() {
+    return this.childIndex
+  }
+  get hasNextEpisode() {
+    return this.hasNextTrack
+  }
+  get hasPrevEpisode() {
+    return this.hasPrevTrack
+  }
+  get hasNextUnit() {
+    return this.hasNextChild
+  }
+  get hasPrevUnit() {
+    return this.hasPrevChild
+  }
+  get hasUnits() {
+    return this.hasChildren
+  }
+  withEpisode(tId: number, cId?: number) {
+    return this.withTrack(tId, cId)
+  }
+  withUnit(cId: number) {
+    return this.withChild(cId)
   }
 }
 
@@ -129,13 +220,24 @@ const PlayerContext = createContext<
         isPipActive: boolean
         setPipActive: (active: boolean) => void
       }
+      playingPlaylistId: string | null
+      queue: QueueItem[]
+      autoPlayNext: boolean
       navigation: {
-        playEpisode: (series: SeriesResponse, episodeId?: number, unitId?: number) => void
-        selectEpisode: (episodeId: number, unitId?: number) => void
-        playNextEpisode: () => void
-        playPreviousEpisode: () => void
-        playNextUnit: () => void
-        playPreviousUnit: () => void
+        play: (sourceId: number, tracks: PlayableTrack[], trackId?: number, childId?: number) => void
+        select: (trackId: number, childId?: number) => void
+        nextTrack: () => void
+        prevTrack: () => void
+        nextChild: () => void
+        prevChild: () => void
+        playFromList: (tracks: PlayableTrack[], trackId: number, childId?: number, options?: { playlistId?: string; keepPlaybackState?: boolean }) => void
+      }
+      queueActions: {
+        addToQueue: (item: Omit<QueueItem, 'id'>) => void
+        removeFromQueue: (itemId: string) => void
+        reorderQueue: (from: number, to: number) => void
+        clearQueue: () => void
+        setAutoPlayNext: (v: boolean) => void
       }
       controls: {
         pause: () => void
@@ -160,17 +262,43 @@ export const usePlayer = () => {
 }
 
 export const PlayerProvider = ({ children }: { children: ReactNode }) => {
-  // currentContent
   const [currentContent, setCurrentContent] = useState<CurrentContent>()
   const [playedItemIds, setPlayedItemIds] = useState<Set<number>>(new Set())
 
+  // queue & playlist playback
+  const [queue, setQueue] = useState<QueueItem[]>([])
+  const [autoPlayNext, setAutoPlayNextState] = useState(true)
+  const [playingPlaylistId, setPlayingPlaylistId] = useState<string | null>(null)
+  const queueLoadedRef = useRef(false)
+
   useEffect(() => {
     StorageRepository.getPlayedItemIds().then((ids) => setPlayedItemIds(new Set(ids)))
+    AsyncStorage.getItem(QUEUE_KEYS.queue).then((raw) => {
+      if (raw) setQueue(JSON.parse(raw))
+      queueLoadedRef.current = true
+    })
+    AsyncStorage.getItem(QUEUE_KEYS.autoPlayNext).then((raw) => {
+      if (raw !== null) setAutoPlayNextState(raw === 'true')
+    })
   }, [])
 
-  const switchContent = (content: CurrentContent) => {
+  useEffect(() => {
+    if (!queueLoadedRef.current) return
+    void AsyncStorage.setItem(QUEUE_KEYS.queue, JSON.stringify(queue))
+  }, [queue])
+
+  useEffect(() => {
+    if (!queueLoadedRef.current) return
+    void AsyncStorage.setItem(QUEUE_KEYS.autoPlayNext, String(autoPlayNext))
+  }, [autoPlayNext])
+
+  const switchContent = (content: CurrentContent, keepPlaybackState = false) => {
     setCurrentContent(content)
-    updateState({ playbackState: 'loading', currentTime: 0, duration: 0 })
+    if (keepPlaybackState) {
+      updateState({ currentTime: 0, duration: 0 })
+    } else {
+      updateState({ playbackState: 'loading', currentTime: 0, duration: 0 })
+    }
     lastProgressReportRef.current = 0
     playEndSentRef.current = false
   }
@@ -251,22 +379,21 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
   const currentContentRef = useRef(currentContent)
   currentContentRef.current = currentContent
 
-  const playNextEpisodeInternal = () => {
+  const nextTrackInternal = () => {
     const content = currentContentRef.current
     if (!content) return
-    const { episodes } = content
 
-    if (settingsRef.current.isShuffleOn && episodes.length > 1) {
-      const otherEpisodes = episodes.filter((ep) => ep.item_id !== content.episodeId)
-      const randomEpisode = otherEpisodes[Math.floor(Math.random() * otherEpisodes.length)]
-      switchContent(content.withEpisode(randomEpisode.item_id, randomEpisode.units?.[0]?.item_id))
+    if (settingsRef.current.isShuffleOn && content.tracks.length > 1) {
+      const others = content.tracks.filter((t) => t.id !== content.trackId)
+      const random = others[Math.floor(Math.random() * others.length)]
+      switchContent(content.withTrack(random.id, random.children?.[0]?.id))
       return
     }
 
-    const currentIndex = episodes.findIndex((ep) => ep.item_id === content.episodeId)
-    if (currentIndex < episodes.length - 1) {
-      const nextEpisode = episodes[currentIndex + 1]
-      switchContent(content.withEpisode(nextEpisode.item_id, nextEpisode.units?.[0]?.item_id))
+    const idx = content.trackIndex
+    if (idx < content.tracks.length - 1) {
+      const next = content.tracks[idx + 1]
+      switchContent(content.withTrack(next.id, next.children?.[0]?.id))
     }
   }
 
@@ -284,40 +411,43 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
     })
   }, [])
 
-  const handleProgress = useCallback((currentTime: number) => {
-    setState((prev) => {
-      if (prev.playbackState === 'loading' || isSlidingRef.current) return prev
-      if (seekTargetRef.current !== null) {
-        if (Math.abs(currentTime - seekTargetRef.current) < 1) {
-          seekTargetRef.current = null
-        } else {
-          return prev
+  const handleProgress = useCallback(
+    (currentTime: number) => {
+      setState((prev) => {
+        if (prev.playbackState === 'loading' || isSlidingRef.current) return prev
+        if (seekTargetRef.current !== null) {
+          if (Math.abs(currentTime - seekTargetRef.current) < 1) {
+            seekTargetRef.current = null
+          } else {
+            return prev
+          }
         }
+        return { ...prev, currentTime }
+      })
+
+      const content = currentContentRef.current
+      if (!content) return
+      const dur = content.duration
+      if (dur <= 0) return
+      const itemId = content.childId ?? content.trackId
+      const progressPercent = Math.round((currentTime / dur) * 100)
+
+      const now = Date.now()
+      if (now - lastProgressReportRef.current >= 5000) {
+        lastProgressReportRef.current = now
+        apiRepository
+          .updatePlayProgress({ series_id: content.sourceId, item_id: itemId, progress: progressPercent })
+          .catch(() => {})
       }
-      return { ...prev, currentTime }
-    })
 
-    const content = currentContentRef.current
-    if (!content) return
-    const dur = content.duration
-    if (dur <= 0) return
-    const itemId = content.unitId ?? content.episodeId
-    const progressPercent = Math.round((currentTime / dur) * 100)
-
-    const now = Date.now()
-    if (now - lastProgressReportRef.current >= 5000) {
-      lastProgressReportRef.current = now
-      apiRepository
-        .updatePlayProgress({ series_id: content.seriesId, item_id: itemId, progress: progressPercent })
-        .catch(() => {})
-    }
-
-    if (!playEndSentRef.current && progressPercent >= 95) {
-      playEndSentRef.current = true
-      apiRepository.updatePlayEnd({ series_id: content.seriesId, item_id: itemId }).catch(() => {})
-      markPlayed(itemId)
-    }
-  }, [markPlayed])
+      if (!playEndSentRef.current && progressPercent >= 95) {
+        playEndSentRef.current = true
+        apiRepository.updatePlayEnd({ series_id: content.sourceId, item_id: itemId }).catch(() => {})
+        markPlayed(itemId)
+      }
+    },
+    [markPlayed],
+  )
 
   const handleLoad = useCallback((duration: number) => {
     setState((prev) => (prev.playbackState === 'loading' ? { ...prev, playbackState: 'playing', duration } : prev))
@@ -337,34 +467,37 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
       return
     }
     if (s.isShuffleOn && content) {
-      playNextEpisodeInternal()
+      nextTrackInternal()
       return
     }
     if (s.loopMode === 'all' && content) {
-      if (content.unitId) {
-        const allUnits = content.units
-        const uIdx = allUnits.findIndex((u) => u.item_id === content.unitId)
-        if (uIdx < allUnits.length - 1) {
-          switchContent(content.withUnit(allUnits[uIdx + 1].item_id))
+      if (content.childId) {
+        const cIdx = content.childIndex
+        if (cIdx < content.children.length - 1) {
+          switchContent(content.withChild(content.children[cIdx + 1].id))
           return
         }
       }
-      const epIdx = content.episodeIndex
-      if (epIdx < content.episodes.length - 1) {
-        playNextEpisodeInternal()
+      const tIdx = content.trackIndex
+      if (tIdx < content.tracks.length - 1) {
+        nextTrackInternal()
       } else {
-        const firstEp = content.episodes[0]
-        switchContent(content.withEpisode(firstEp.item_id, firstEp.units?.[0]?.item_id))
+        const first = content.tracks[0]
+        switchContent(content.withTrack(first.id, first.children?.[0]?.id))
       }
       return
     }
     setState((prev) => ({ ...prev, playbackState: 'ended' }))
   }, [])
+
   return (
     <PlayerContext.Provider
       value={{
         currentContent,
         playedItemIds,
+        playingPlaylistId,
+        queue,
+        autoPlayNext,
         state,
         controls: {
           pause: () => {
@@ -393,46 +526,60 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
           },
         },
         navigation: {
-          playEpisode: (series, episodeId?, unitId?) => {
-            const ep = episodeId
-              ? (series.episodes.find((e) => e.item_id === episodeId) ?? series.episodes[0])
-              : series.episodes[0]
+          play: (sourceId, tracks, trackId?, childId?) => {
+            const t = trackId
+              ? (tracks.find((tr) => tr.id === trackId) ?? tracks[0])
+              : tracks[0]
 
-            switchContent(new CurrentContent(series.series_id, series.episodes, ep.item_id, unitId ?? ep.units?.[0]?.item_id))
+            setPlayingPlaylistId(null)
+            switchContent(new CurrentContent(sourceId, tracks, t.id, childId ?? t.children?.[0]?.id))
             setPlayerExpanded(true)
           },
-          playNextEpisode: playNextEpisodeInternal,
-          playPreviousEpisode: () => {
+          nextTrack: nextTrackInternal,
+          prevTrack: () => {
             if (!currentContent) return
-            const idx = currentContent.episodeIndex
+            const idx = currentContent.trackIndex
             if (idx > 0) {
-              const prev = currentContent.episodes[idx - 1]
-              switchContent(currentContent.withEpisode(prev.item_id, prev.units?.[0]?.item_id))
+              const prev = currentContent.tracks[idx - 1]
+              switchContent(currentContent.withTrack(prev.id, prev.children?.[0]?.id))
             }
           },
-          playNextUnit: () => {
-            if (!currentContent?.unitId) return
-            const idx = currentContent.unitIndex
-            if (idx < currentContent.units.length - 1) {
-              switchContent(currentContent.withUnit(currentContent.units[idx + 1].item_id))
+          nextChild: () => {
+            if (!currentContent?.childId) return
+            const idx = currentContent.childIndex
+            if (idx < currentContent.children.length - 1) {
+              switchContent(currentContent.withChild(currentContent.children[idx + 1].id))
             }
           },
-          playPreviousUnit: () => {
-            if (!currentContent?.unitId) return
-            const idx = currentContent.unitIndex
+          prevChild: () => {
+            if (!currentContent?.childId) return
+            const idx = currentContent.childIndex
             if (idx > 0) {
-              switchContent(currentContent.withUnit(currentContent.units[idx - 1].item_id))
+              switchContent(currentContent.withChild(currentContent.children[idx - 1].id))
             }
           },
-          selectEpisode: (epId, uId?) => {
+          select: (trackId, childId?) => {
             if (!currentContent) return
-            const ep = currentContent.episodes.find((e) => e.item_id === epId)
-            switchContent(currentContent.withEpisode(epId, uId ?? ep?.units?.[0]?.item_id))
+            const t = currentContent.tracks.find((tr) => tr.id === trackId)
+            switchContent(currentContent.withTrack(trackId, childId ?? t?.children?.[0]?.id))
           },
+          playFromList: (tracks, trackId, childId?, options?) => {
+            if (tracks.length === 0) return
+            setPlayingPlaylistId(options?.playlistId ?? null)
+            switchContent(new CurrentContent(0, tracks, trackId, childId), options?.keepPlaybackState)
+          },
+        },
+        queueActions: {
+          addToQueue: (item) => setQueue((prev) => [...prev, { ...item, id: uid() }]),
+          removeFromQueue: (itemId) => setQueue((prev) => prev.filter((i) => i.id !== itemId)),
+          reorderQueue: (from, to) => setQueue((prev) => reorder(prev, from, to)),
+          clearQueue: () => setQueue([]),
+          setAutoPlayNext: setAutoPlayNextState,
         },
         view: {
           closePlayer: () => {
             setCurrentContent(undefined)
+            setPlayingPlaylistId(null)
             updateState({ playbackState: 'idle', currentTime: 0, duration: 0 })
             setPlayerExpanded(true)
           },

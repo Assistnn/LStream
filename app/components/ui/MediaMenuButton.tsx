@@ -3,7 +3,7 @@ import { useCallback, useRef, useState } from 'react'
 import type { ViewStyle } from 'react-native'
 import { Dimensions, Modal, Pressable, Text, TouchableOpacity, View } from 'react-native'
 
-import { usePlaylist } from '../../hooks/PlaylistContext'
+import { usePlayer } from '../../hooks/PlayerContext'
 import { useTheme } from '../../hooks/ThemeContext'
 import { AddToPlaylistModal } from '../../screens/main/playlist/components/AddToPlaylistModal'
 import { isFavoriteEpisode } from '../../usecases/useGetFavorites'
@@ -16,6 +16,8 @@ export type MediaInfo = {
   seriesTitle: string
   thumbnail: string
   duration: number
+  url: string
+  contentMediaType: number
 }
 
 export const MediaMenuButton = ({
@@ -38,7 +40,9 @@ export const MediaMenuButton = ({
   mediaInfo?: MediaInfo
 }) => {
   const { colors, spacing, borderRadius, styles } = useTheme()
-  const { addToQueue } = usePlaylist()
+  const {
+    queueActions: { addToQueue },
+  } = usePlayer()
   const [menuVisible, setMenuVisible] = useState(false)
   const [menuStyle, setMenuStyle] = useState<ViewStyle>({})
   const [addToPlaylistOpen, setAddToPlaylistOpen] = useState(false)
@@ -57,6 +61,8 @@ export const MediaMenuButton = ({
           seriesTitle: mediaInfo.seriesTitle,
           thumbnail: mediaInfo.thumbnail,
           duration: mediaInfo.duration,
+          url: mediaInfo.url,
+          mediaType: mediaInfo.contentMediaType,
         }
       : null
 
@@ -72,7 +78,16 @@ export const MediaMenuButton = ({
       label: '再生キューに追加',
       disabled: !canAddToCollection,
       onPress: () => {
-        if (itemForCollection) addToQueue(itemForCollection)
+        if (itemForCollection) {
+          addToQueue({
+            trackId: itemForCollection.episodeId,
+            childId: itemForCollection.unitId,
+            title: itemForCollection.title,
+            parentTitle: itemForCollection.seriesTitle,
+            thumbnail: itemForCollection.thumbnail,
+            duration: itemForCollection.duration,
+          })
+        }
       },
     },
     { label: 'ダウンロード', disabled: false, onPress: () => console.log('Download:', mediaType, mediaId) },

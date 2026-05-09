@@ -2,8 +2,7 @@ import { GripVertical, Trash2 } from 'lucide-react-native'
 import { useEffect, useRef } from 'react'
 import { Animated, Image, PanResponder, Text, TouchableOpacity, View } from 'react-native'
 
-import type { PlaylistItem } from '../../../../hooks/PlaylistContext'
-import { usePlaylist } from '../../../../hooks/PlaylistContext'
+import type { QueueItem } from '../../../../hooks/PlayerContext'
 import { useTheme } from '../../../../hooks/ThemeContext'
 import { formatDuration } from '../utils'
 
@@ -15,14 +14,19 @@ export const QueueItemRow = ({
   index,
   onPress,
   isPlaying,
+  onRemove,
+  activeSwipeRowId,
+  setActiveSwipeRowId,
 }: {
-  item: PlaylistItem
+  item: QueueItem
   index: number
   onPress: () => void
   isPlaying: boolean
+  onRemove: () => void
+  activeSwipeRowId: string | null
+  setActiveSwipeRowId: (id: string | null) => void
 }) => {
   const { colors, spacing, borderRadius, styles } = useTheme()
-  const { removeFromQueue, activeSwipeRowId, setActiveSwipeRowId } = usePlaylist()
   const translateX = useRef(new Animated.Value(0)).current
   const currentXRef = useRef(0)
 
@@ -92,7 +96,7 @@ export const QueueItemRow = ({
       >
         <TouchableOpacity
           onPress={() => {
-            removeFromQueue(item.id)
+            onRemove()
             setActiveSwipeRowId(null)
           }}
           style={{ alignItems: 'center', gap: 2 }}
@@ -136,7 +140,7 @@ export const QueueItemRow = ({
               {item.title}
             </Text>
             <Text style={styles.bodySmall} numberOfLines={1}>
-              {item.seriesTitle}
+              {item.parentTitle}
             </Text>
             <Text style={styles.bodyTiny}>{formatDuration(item.duration)}</Text>
           </View>

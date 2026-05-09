@@ -17,8 +17,8 @@ import {
 import { launchImageLibrary } from 'react-native-image-picker'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
-import type { AlarmSettings, DayKey, Playlist } from '../../../../hooks/PlaylistContext'
 import { useTheme } from '../../../../hooks/ThemeContext'
+import type { AlarmSettings, DayKey, Playlist } from '../../../../repositories/playlist'
 import { DAY_LABELS, DAY_ORDER } from '../utils'
 
 type SubmitPayload = {
@@ -189,11 +189,7 @@ export const CreatePlaylistModal = ({
                 </TouchableOpacity>
                 {coverImage && (
                   <View style={{ borderRadius: borderRadius.lg, overflow: 'hidden' }}>
-                    <Image
-                      source={{ uri: coverImage }}
-                      style={{ width: '100%', height: 160 }}
-                      resizeMode='cover'
-                    />
+                    <Image source={{ uri: coverImage }} style={{ width: '100%', height: 160 }} resizeMode='cover' />
                     <TouchableOpacity
                       onPress={() => setCoverImage(undefined)}
                       style={{
@@ -426,15 +422,14 @@ export const CreatePlaylistModal = ({
                         selected && { color: colors.primary, fontWeight: typography.fontWeight.bold },
                       ]}
                     >
-                      {item}{selectOpen === 'hour' ? '時' : '分'}
+                      {item}
+                      {selectOpen === 'hour' ? '時' : '分'}
                     </Text>
                   </TouchableOpacity>
                 )
               }}
               initialScrollIndex={
-                selectOpen === 'hour'
-                  ? Math.max(0, parseInt(hour, 10) - 2)
-                  : Math.max(0, parseInt(minute, 10) - 2)
+                selectOpen === 'hour' ? Math.max(0, parseInt(hour, 10) - 2) : Math.max(0, parseInt(minute, 10) - 2)
               }
               getItemLayout={(_, index) => ({ length: 48, offset: 48 * index, index })}
             />

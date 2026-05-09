@@ -76,6 +76,8 @@ export const FavoriteEpisodeListItem = ({ item, onPress }: { item: EpisodeSummar
             seriesTitle: item.category,
             thumbnail: item.img,
             duration: item.duration,
+            url: '',
+            contentMediaType: 0,
           }}
         />
       </View>

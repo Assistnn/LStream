@@ -1,11 +1,7 @@
-import notifee, {
-  AndroidImportance,
-  RepeatFrequency,
-  TimestampTrigger,
-  TriggerType,
-} from '@notifee/react-native'
+import type { TimestampTrigger } from '@notifee/react-native'
+import notifee, { AndroidImportance, RepeatFrequency, TriggerType } from '@notifee/react-native'
 
-import type { Playlist } from './PlaylistContext'
+import type { Playlist } from '../repositories/playlist'
 
 const CHANNEL_ID = 'alarm'
 const DAY_MAP: Record<string, number> = { sun: 0, mon: 1, tue: 2, wed: 3, thu: 4, fri: 5, sat: 6 }

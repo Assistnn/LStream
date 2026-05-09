@@ -28,8 +28,8 @@ import { Defs, LinearGradient, Rect, Stop, Svg } from 'react-native-svg'
 
 import { usePlayer } from '../../hooks/PlayerContext'
 import { useTheme } from '../../hooks/ThemeContext'
-import { StorageRepository } from '../../repositories/storage'
 import type { LoopMode, MyChapter } from '../../repositories/storage'
+import { StorageRepository } from '../../repositories/storage'
 import { EpisodeMediaList } from '../listitem/EpisodeMediaList'
 import { FavoriteButton } from '../ui/FavoriteButton'
 
@@ -55,7 +55,7 @@ export const EpisodePlayer = ({
     playedItemIds,
     state: { playbackState, currentTime, duration: mediaDuration },
     controls: { pause, resume, seek, skipForward, skipBackward, startSliding, stopSliding, updateSlidingTime },
-    navigation: { playNextEpisode, playPreviousEpisode, playNextUnit, playPreviousUnit, selectEpisode },
+    navigation: { nextTrack, prevTrack, nextChild, prevChild, select },
     view: { setPlayerExpanded, setExpandedSlot },
     settings: {
       playbackRate,
@@ -166,10 +166,10 @@ export const EpisodePlayer = ({
 
     if (filterType === 'unplayed') {
       filtered = filtered.filter((ep) => {
-        if (ep.units && ep.units.length > 0) {
-          return ep.units.some((u) => !playedItemIds.has(u.item_id))
+        if (ep.children && ep.children.length > 0) {
+          return ep.children.some((u) => !playedItemIds.has(u.id))
         }
-        return !playedItemIds.has(ep.item_id)
+        return !playedItemIds.has(ep.id)
       })
     }
 
@@ -251,7 +251,7 @@ export const EpisodePlayer = ({
               <View style={{ gap: 4 }}>
                 {currentUnit ? (
                   <Text style={[styles.bodyText, { textAlign: 'center' }]}>
-                    Unit.{units.findIndex((ch) => ch.item_id === currentUnit?.item_id) + 1}
+                    Unit.{units.findIndex((ch) => ch.id === currentUnit?.id) + 1}
                   </Text>
                 ) : (
                   <Text style={[styles.bodyText, { textAlign: 'center' }]}>Episode.{currentEpisodeIndex + 1}</Text>
@@ -315,7 +315,7 @@ export const EpisodePlayer = ({
               >
                 <TouchableOpacity
                   onPress={() => {
-                    if (hasPrevEpisode) playPreviousEpisode()
+                    if (hasPrevEpisode) prevTrack()
                   }}
                   disabled={!hasPrevEpisode}
                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
@@ -331,7 +331,7 @@ export const EpisodePlayer = ({
                 {/* Previous Unit Button */}
                 {hasUnits && (
                   <TouchableOpacity
-                    onPress={() => playPreviousUnit()}
+                    onPress={() => prevChild()}
                     disabled={!hasPrevUnit}
                     hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                     style={{ padding: spacing.sm }}
@@ -405,7 +405,7 @@ export const EpisodePlayer = ({
                 {/* Next Unit Button */}
                 {hasUnits && (
                   <TouchableOpacity
-                    onPress={() => playNextUnit()}
+                    onPress={() => nextChild()}
                     disabled={!hasNextUnit}
                     hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                     style={{ padding: spacing.sm }}
@@ -416,7 +416,7 @@ export const EpisodePlayer = ({
 
                 <TouchableOpacity
                   onPress={() => {
-                    if (hasNextEpisode) playNextEpisode()
+                    if (hasNextEpisode) nextTrack()
                   }}
                   disabled={!hasNextEpisode}
                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
@@ -694,7 +694,7 @@ export const EpisodePlayer = ({
               </View>
               {hasNextEpisode && (
                 <TouchableOpacity
-                  onPress={playNextEpisode}
+                  onPress={nextTrack}
                   style={{
                     position: 'absolute',
                     top: 0,
@@ -781,7 +781,7 @@ export const EpisodePlayer = ({
               {currentUnit ? (
                 <>
                   <Text style={[styles.bodySmall, { fontWeight: '600' }]} numberOfLines={1}>
-                    Unit.{units.findIndex((ch) => ch.item_id === currentUnit?.item_id) + 1} {currentUnit.title}
+                    Unit.{units.findIndex((ch) => ch.id === currentUnit?.id) + 1} {currentUnit.title}
                   </Text>
                   <Text style={styles.bodyTiny} numberOfLines={1}>
                     Ep.{currentEpisodeIndex + 1} {episode.title}
@@ -881,11 +881,11 @@ export const EpisodePlayer = ({
             <EpisodeMediaList
               episodes={getSortedEpisodes()}
               onEpisodePress={(ep) => {
-                if (ep.item_id !== episode.item_id) {
-                  selectEpisode(ep.item_id)
+                if (ep.id !== episode.id) {
+                  select(ep.id)
                 }
               }}
-              onUnitPress={(ep, unit) => selectEpisode(ep.item_id, unit.item_id)}
+              onUnitPress={(ep, unit) => select(ep.id, unit.id)}
             />
           </ScrollView>
         </View>

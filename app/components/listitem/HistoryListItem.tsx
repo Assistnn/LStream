@@ -5,13 +5,14 @@ import { usePlayer } from '../../hooks/PlayerContext'
 import { useTheme } from '../../hooks/ThemeContext'
 import { ApiRepository } from '../../repositories/api/ApiRepository'
 import type { PlaybackHistoryItem } from '../../repositories/api/IApiRepository'
+import { seriesMediaToTrack } from '../../screens/main/playlist/utils'
 
 const apiRepository = new ApiRepository()
 
 export const HistoryListItem = ({ item, isTop }: { item: PlaybackHistoryItem; isTop: boolean }) => {
   const { colors, spacing, styles, borderRadius } = useTheme()
   const {
-    navigation: { playEpisode },
+    navigation: { play },
   } = usePlayer()
 
   const playedDate = new Date(item.date)
@@ -21,7 +22,7 @@ export const HistoryListItem = ({ item, isTop }: { item: PlaybackHistoryItem; is
     try {
       const seriesData = await apiRepository.getSeries(item.series_id)
       if (seriesData.result) {
-        playEpisode(seriesData, item.item_id)
+        play(seriesData.series_id, seriesData.episodes.map(seriesMediaToTrack), item.item_id)
       }
     } catch (error) {
       console.error('Failed to play from history:', error)

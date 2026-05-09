@@ -4,11 +4,12 @@ import { Modal, Pressable, ScrollView, Text, TouchableOpacity, View } from 'reac
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { EmptyState } from '../../../../components/ui/EmptyState'
-import type { PlaylistItem } from '../../../../hooks/PlaylistContext'
-import { usePlaylist } from '../../../../hooks/PlaylistContext'
 import { useTheme } from '../../../../hooks/ThemeContext'
-import type { SeriesMedia } from '../../../../repositories/api/IApiRepository'
 import { apiRepository } from '../../../../repositories/api'
+import type { SeriesMedia } from '../../../../repositories/api/IApiRepository'
+import type { PlaylistItem } from '../../../../repositories/playlist'
+import { PlaylistRepository } from '../../../../repositories/playlist'
+import { usePlaylists } from '../usePlaylists'
 import { CreatePlaylistModal } from './CreatePlaylistModal'
 import { PlaylistCover } from './PlaylistCover'
 
@@ -27,6 +28,8 @@ const seriesToPlaylistItems = (
           seriesTitle,
           thumbnail: unit.img || ep.img,
           duration: unit.duration,
+          url: unit.url,
+          mediaType: unit.type_media,
         }))
       : [
           {
@@ -36,6 +39,8 @@ const seriesToPlaylistItems = (
             seriesTitle,
             thumbnail: ep.img,
             duration: ep.duration,
+            url: ep.url,
+            mediaType: ep.type_media,
           },
         ],
   )
@@ -53,16 +58,16 @@ export const AddToPlaylistModal = ({
 }) => {
   const { colors, spacing, borderRadius, styles } = useTheme()
   const insets = useSafeAreaInsets()
-  const { playlists, addItemToPlaylist, addItemsToPlaylist, createPlaylist } = usePlaylist()
+  const { playlists, setPlaylists } = usePlaylists()
   const [createOpen, setCreateOpen] = useState(false)
 
   const addToPlaylist = async (playlistId: string) => {
     if (seriesId) {
       const series = await apiRepository.getSeries(seriesId)
       const items = seriesToPlaylistItems(seriesId, series.title, series.episodes)
-      addItemsToPlaylist(playlistId, items)
+      setPlaylists(PlaylistRepository.addItemsToPlaylist(playlists, playlistId, items))
     } else if (item) {
-      addItemToPlaylist(playlistId, item)
+      setPlaylists(PlaylistRepository.addItemToPlaylist(playlists, playlistId, item))
     }
   }
 
@@ -182,7 +187,8 @@ export const AddToPlaylistModal = ({
         visible={createOpen}
         onClose={() => setCreateOpen(false)}
         onSubmit={(payload) => {
-          const newId = createPlaylist(payload)
+          const { id: newId, playlists: next } = PlaylistRepository.createPlaylist(playlists, payload)
+          setPlaylists(next)
           setCreateOpen(false)
           void addToPlaylist(newId)
           onClose()

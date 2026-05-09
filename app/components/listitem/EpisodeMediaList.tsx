@@ -3,9 +3,9 @@ import type React from 'react'
 import { useState } from 'react'
 import { Image, Text, TouchableOpacity, View } from 'react-native'
 
+import type { PlayableChild, PlayableTrack } from '../../hooks/PlayerContext'
 import { usePlayer } from '../../hooks/PlayerContext'
 import { useTheme } from '../../hooks/ThemeContext'
-import type { SeriesMedia } from '../../repositories/api/IApiRepository'
 
 const formatTime = (seconds: number): string => {
   const mins = Math.floor(seconds / 60)
@@ -21,12 +21,12 @@ export const EpisodeMediaList = ({
   renderEpisodeActions,
   renderUnitActions,
 }: {
-  episodes: SeriesMedia[]
-  onEpisodePress?: (episode: SeriesMedia) => void
-  onUnitPress?: (episode: SeriesMedia, unit: Omit<SeriesMedia, 'units'>) => void
-  renderThumbnailOverlay?: (episode: SeriesMedia) => React.ReactNode
-  renderEpisodeActions?: (episode: SeriesMedia, hasUnits: boolean) => React.ReactNode
-  renderUnitActions?: (episode: SeriesMedia, unit: Omit<SeriesMedia, 'units'>) => React.ReactNode
+  episodes: PlayableTrack[]
+  onEpisodePress?: (episode: PlayableTrack) => void
+  onUnitPress?: (episode: PlayableTrack, unit: PlayableChild) => void
+  renderThumbnailOverlay?: (episode: PlayableTrack) => React.ReactNode
+  renderEpisodeActions?: (episode: PlayableTrack, hasUnits: boolean) => React.ReactNode
+  renderUnitActions?: (unit: PlayableChild) => React.ReactNode
 }) => {
   const { colors, styles, spacing } = useTheme()
   const { currentContent } = usePlayer()
@@ -35,19 +35,19 @@ export const EpisodeMediaList = ({
   return (
     <View>
       {episodes.map((ep, index) => {
-        const hasUnits = ep.units && ep.units.length > 0
-        const isExpanded = expandedEpisodes.has(ep.item_id)
-        const isCurrentEpisode = currentContent?.episodeId === ep.item_id
+        const hasUnits = ep.children && ep.children.length > 0
+        const isExpanded = expandedEpisodes.has(ep.id)
+        const isCurrentEpisode = currentContent?.episodeId === ep.id
 
         return (
-          <View key={ep.item_id}>
+          <View key={ep.id}>
             <TouchableOpacity
               onPress={() => {
                 if (hasUnits) {
                   setExpandedEpisodes((prev) => {
                     const next = new Set(prev)
-                    if (next.has(ep.item_id)) next.delete(ep.item_id)
-                    else next.add(ep.item_id)
+                    if (next.has(ep.id)) next.delete(ep.id)
+                    else next.add(ep.id)
                     return next
                   })
                 } else {
@@ -91,9 +91,9 @@ export const EpisodeMediaList = ({
                   </Text>
                 </View>
 
-                {hasUnits && ep.units && (
+                {hasUnits && ep.children && (
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing['2xs'] }}>
-                    <Text style={styles.bodyTiny}>{ep.units.length} Units</Text>
+                    <Text style={styles.bodyTiny}>{ep.children.length} Units</Text>
                     <Text style={[styles.bodyTiny, { color: colors.text }]}>{formatTime(ep.duration)}</Text>
                   </View>
                 )}
@@ -125,14 +125,14 @@ export const EpisodeMediaList = ({
               </View>
             </TouchableOpacity>
 
-            {hasUnits && isExpanded && ep.units && (
+            {hasUnits && isExpanded && ep.children && (
               <View style={{ paddingLeft: spacing['5xl'] }}>
-                {ep.units.map((unit, unitIndex) => {
-                  const isCurrentUnit = currentContent?.unitId === unit.item_id
+                {ep.children.map((unit, unitIndex) => {
+                  const isCurrentUnit = currentContent?.unitId === unit.id
 
                   return (
                     <TouchableOpacity
-                      key={unit.item_id}
+                      key={unit.id}
                       onPress={() => onUnitPress?.(ep, unit)}
                       style={{
                         flexDirection: 'row',
@@ -168,7 +168,7 @@ export const EpisodeMediaList = ({
                           )}
                         </View>
                       </View>
-                      {renderUnitActions?.(ep, unit)}
+                      {renderUnitActions?.(unit)}
                       {isCurrentUnit && <Play size={32} color={colors.primary} fill={colors.primary} />}
                     </TouchableOpacity>
                   )

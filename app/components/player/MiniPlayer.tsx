@@ -27,9 +27,9 @@ export const MiniPlayer = ({ onTap, onListTap }: { onTap: () => void; onListTap:
   if (!currentContent) return null
 
   const isPlaying = playbackState === 'playing'
-  const episode = currentContent.episodes.find((ep) => ep.item_id === currentContent.episodeId)
+  const episode = currentContent.episodes.find((ep) => ep.id === currentContent.episodeId)
   if (!episode) return null
-  const unit = currentContent.unitId ? episode.units?.find((u) => u.item_id === currentContent.unitId) : undefined
+  const unit = currentContent.unitId ? episode.children?.find((u) => u.id === currentContent.unitId) : undefined
   const thumbnail = unit?.img || episode.img
 
   return (
@@ -79,9 +79,9 @@ export const MiniPlayer = ({ onTap, onListTap }: { onTap: () => void; onListTap:
             </Text>
             <Text style={{ fontSize: 11, marginTop: 2, color: colors.textSecondary }} numberOfLines={1}>
               {unit ? episode.title : episode.parentTitle}
-              {(unit?.type_media || episode.type_media) === 1
+              {(unit?.mediaType || episode.mediaType) === 1
                 ? ' • 動画'
-                : (unit?.type_media || episode.type_media) === 2
+                : (unit?.mediaType || episode.mediaType) === 2
                   ? ' • 音声'
                   : ''}
             </Text>

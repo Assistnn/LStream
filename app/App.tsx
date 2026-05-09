@@ -1,5 +1,5 @@
-import { NavigationContainer } from '@react-navigation/native'
 import notifee from '@notifee/react-native'
+import { NavigationContainer } from '@react-navigation/native'
 import { useContext, useEffect } from 'react'
 import { StatusBar, View } from 'react-native'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
@@ -9,7 +9,6 @@ import { ensureChannel } from './hooks/alarmService'
 import { ApiErrorProvider } from './hooks/api/ApiErrorContext'
 import { AuthProvider, useAuth } from './hooks/AuthContext'
 import { PlayerProvider } from './hooks/PlayerContext'
-import { PlaylistProvider } from './hooks/PlaylistContext'
 import { ThemeContext, ThemeProvider } from './hooks/ThemeContext'
 import { useAlarmHandler } from './hooks/useAlarmHandler'
 import { LoginScreen } from './screens/login'
@@ -24,10 +23,8 @@ export default () => (
       <ApiErrorProvider>
         <AuthProvider>
           <PlayerProvider>
-            <PlaylistProvider>
-              <AlarmHandler />
-              <AppContent />
-            </PlaylistProvider>
+            <AlarmHandler />
+            <AppContent />
           </PlayerProvider>
         </AuthProvider>
       </ApiErrorProvider>

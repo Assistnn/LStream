@@ -1,22 +1,21 @@
 import { useNavigation } from '@react-navigation/native'
 import { ChevronLeft, ListMusic, Play } from 'lucide-react-native'
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { ScrollView, Switch, Text, TouchableOpacity, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { EmptyState } from '../../../components/ui/EmptyState'
 import { usePlayer } from '../../../hooks/PlayerContext'
-import { usePlaylist } from '../../../hooks/PlaylistContext'
 import { useTheme } from '../../../hooks/ThemeContext'
 import { QueueItemRow } from './components/QueueItemRow'
-import { formatTotalDuration } from './utils'
+import { formatTotalDuration, toPlayableTrack } from './utils'
 
 export const QueueScreen = () => {
   const insets = useSafeAreaInsets()
   const navigation = useNavigation()
   const { styles, colors, spacing, borderRadius } = useTheme()
-  const { queue, autoPlayNext, setAutoPlayNext, playQueueFrom } = usePlaylist()
-  const { currentContent } = usePlayer()
+  const { queue, autoPlayNext, currentContent, navigation: playerNav, queueActions } = usePlayer()
+  const [activeSwipeRowId, setActiveSwipeRowId] = useState<string | null>(null)
 
   const total = useMemo(() => queue.reduce((s, i) => s + i.duration, 0), [queue])
 
@@ -48,7 +47,7 @@ export const QueueScreen = () => {
 
           {queue.length > 0 && (
             <TouchableOpacity
-              onPress={() => playQueueFrom(0)}
+              onPress={() => playerNav.playFromList(queue.map(toPlayableTrack), queue[0].trackId, queue[0].childId)}
               style={{
                 flexDirection: 'row',
                 alignItems: 'center',
@@ -86,7 +85,7 @@ export const QueueScreen = () => {
           </View>
           <Switch
             value={autoPlayNext}
-            onValueChange={setAutoPlayNext}
+            onValueChange={queueActions.setAutoPlayNext}
             trackColor={{ false: colors.muted, true: colors.primary }}
           />
         </View>
@@ -105,8 +104,11 @@ export const QueueScreen = () => {
                 key={item.id}
                 item={item}
                 index={index}
-                isPlaying={currentContent?.episodeId === item.episodeId && currentContent.unitId === item.unitId}
-                onPress={() => playQueueFrom(index)}
+                isPlaying={currentContent?.episodeId === item.trackId && currentContent.unitId === item.childId}
+                onPress={() => playerNav.playFromList(queue.map(toPlayableTrack), item.trackId, item.childId)}
+                onRemove={() => queueActions.removeFromQueue(item.id)}
+                activeSwipeRowId={activeSwipeRowId}
+                setActiveSwipeRowId={setActiveSwipeRowId}
               />
             ))
           )}

@@ -2,9 +2,8 @@ import { GripVertical, MoreVertical, Trash2 } from 'lucide-react-native'
 import { useEffect, useRef } from 'react'
 import { Animated, Image, PanResponder, Text, TouchableOpacity, View } from 'react-native'
 
-import type { PlaylistItem } from '../../../../hooks/PlaylistContext'
-import { usePlaylist } from '../../../../hooks/PlaylistContext'
 import { useTheme } from '../../../../hooks/ThemeContext'
+import type { PlaylistItem } from '../../../../repositories/playlist'
 import { formatDuration } from '../utils'
 import { AudioIndicator } from './AudioIndicator'
 
@@ -15,7 +14,6 @@ export const ITEM_HEIGHT = 72
 
 export const PlaylistItemRow = ({
   item,
-  playlistId,
   index,
   onPress,
   onMenuPress,
@@ -24,6 +22,9 @@ export const PlaylistItemRow = ({
   onDragStart,
   onDragMove,
   onDragEnd,
+  onRemove,
+  activeSwipeRowId,
+  setActiveSwipeRowId,
 }: {
   item: PlaylistItem
   playlistId: string
@@ -35,9 +36,11 @@ export const PlaylistItemRow = ({
   onDragStart: (index: number) => void
   onDragMove: (dy: number) => void
   onDragEnd: () => void
+  onRemove: () => void
+  activeSwipeRowId: string | null
+  setActiveSwipeRowId: (id: string | null) => void
 }) => {
   const { colors, spacing, borderRadius, styles } = useTheme()
-  const { removeItemFromPlaylist, activeSwipeRowId, setActiveSwipeRowId } = usePlaylist()
   const translateX = useRef(new Animated.Value(0)).current
   const currentXRef = useRef(0)
 
@@ -117,7 +120,7 @@ export const PlaylistItemRow = ({
       >
         <TouchableOpacity
           onPress={() => {
-            removeItemFromPlaylist(playlistId, item.id)
+            onRemove()
             setActiveSwipeRowId(null)
           }}
           style={{ alignItems: 'center', gap: 2 }}
