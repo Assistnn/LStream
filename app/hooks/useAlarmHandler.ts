@@ -19,7 +19,9 @@ export const useAlarmHandler = () => {
     if (!playlist || playlist.items.length === 0) return
     const index = random ? Math.floor(Math.random() * playlist.items.length) : 0
     const target = playlist.items[index]
-    playerNavRef.current.playFromList(playlist.items.map(toPlayableTrack), target.episodeId, target.unitId, { playlistId })
+    playerNavRef.current.playFromList(playlist.items.map(toPlayableTrack), target.episodeId, target.unitId, {
+      playlistId,
+    })
   }
 
   useEffect(() => {

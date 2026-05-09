@@ -61,10 +61,17 @@ export const PlaylistItemRow = ({
     }
   }, [activeSwipeRowId, item.id])
 
+  const callbacksRef = useRef({ onDragStart, onDragMove, onDragEnd, setActiveSwipeRowId, onRemove })
+  callbacksRef.current = { onDragStart, onDragMove, onDragEnd, setActiveSwipeRowId, onRemove }
+  const indexRef = useRef(index)
+  indexRef.current = index
+  const itemIdRef = useRef(item.id)
+  itemIdRef.current = item.id
+
   const swipeResponder = useRef(
     PanResponder.create({
       onMoveShouldSetPanResponder: (_, g) => Math.abs(g.dx) > Math.abs(g.dy) * 2 && Math.abs(g.dx) > 6,
-      onPanResponderGrant: () => setActiveSwipeRowId(item.id),
+      onPanResponderGrant: () => callbacksRef.current.setActiveSwipeRowId(itemIdRef.current),
       onPanResponderMove: (_, g) => {
         const base = currentXRef.current
         const next = Math.max(SWIPE_OPEN, Math.min(0, base + g.dx))
@@ -76,7 +83,7 @@ export const PlaylistItemRow = ({
           snapTo(SWIPE_OPEN)
         } else {
           snapTo(0)
-          setActiveSwipeRowId(null)
+          callbacksRef.current.setActiveSwipeRowId(null)
         }
       },
       onPanResponderTerminate: () => snapTo(0),
@@ -87,10 +94,10 @@ export const PlaylistItemRow = ({
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: () => true,
-      onPanResponderGrant: () => onDragStart(index),
-      onPanResponderMove: (_, g) => onDragMove(g.dy),
-      onPanResponderRelease: () => onDragEnd(),
-      onPanResponderTerminate: () => onDragEnd(),
+      onPanResponderGrant: () => callbacksRef.current.onDragStart(indexRef.current),
+      onPanResponderMove: (_, g) => callbacksRef.current.onDragMove(g.dy),
+      onPanResponderRelease: () => callbacksRef.current.onDragEnd(),
+      onPanResponderTerminate: () => callbacksRef.current.onDragEnd(),
     }),
   ).current
 
@@ -106,7 +113,12 @@ export const PlaylistItemRow = ({
       }}
     >
       {/* Delete background (revealed on left-swipe) */}
-      <View
+      <TouchableOpacity
+        activeOpacity={0.8}
+        onPress={() => {
+          onRemove()
+          setActiveSwipeRowId(null)
+        }}
         style={{
           position: 'absolute',
           top: 0,
@@ -116,19 +128,12 @@ export const PlaylistItemRow = ({
           backgroundColor: colors.destructive,
           alignItems: 'center',
           justifyContent: 'center',
+          gap: 2,
         }}
       >
-        <TouchableOpacity
-          onPress={() => {
-            onRemove()
-            setActiveSwipeRowId(null)
-          }}
-          style={{ alignItems: 'center', gap: 2 }}
-        >
-          <Trash2 size={20} color='#FFFFFF' />
-          <Text style={{ color: '#FFFFFF', fontSize: 11 }}>削除</Text>
-        </TouchableOpacity>
-      </View>
+        <Trash2 size={20} color='#FFFFFF' />
+        <Text style={{ color: '#FFFFFF', fontSize: 11 }}>削除</Text>
+      </TouchableOpacity>
 
       <Animated.View
         {...swipeResponder.panHandlers}

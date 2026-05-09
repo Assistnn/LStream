@@ -5,23 +5,32 @@ import { Animated, Image, PanResponder, Text, TouchableOpacity, View } from 'rea
 import type { QueueItem } from '../../../../hooks/PlayerContext'
 import { useTheme } from '../../../../hooks/ThemeContext'
 import { formatDuration } from '../utils'
+import { AudioIndicator } from './AudioIndicator'
 
-const SWIPE_OPEN = 96
+const SWIPE_OPEN = -96
 const THRESHOLD = 40
+
+export const QUEUE_ITEM_HEIGHT = 72
 
 export const QueueItemRow = ({
   item,
   index,
-  onPress,
   isPlaying,
+  isDragging,
+  onDragStart,
+  onDragMove,
+  onDragEnd,
   onRemove,
   activeSwipeRowId,
   setActiveSwipeRowId,
 }: {
   item: QueueItem
   index: number
-  onPress: () => void
   isPlaying: boolean
+  isDragging: boolean
+  onDragStart: (index: number) => void
+  onDragMove: (dy: number) => void
+  onDragEnd: () => void
   onRemove: () => void
   activeSwipeRowId: string | null
   setActiveSwipeRowId: (id: string | null) => void
@@ -47,27 +56,43 @@ export const QueueItemRow = ({
     }
   }, [activeSwipeRowId, item.id])
 
-  const panResponder = useRef(
+  const callbacksRef = useRef({ onDragStart, onDragMove, onDragEnd, setActiveSwipeRowId, onRemove })
+  callbacksRef.current = { onDragStart, onDragMove, onDragEnd, setActiveSwipeRowId, onRemove }
+  const indexRef = useRef(index)
+  indexRef.current = index
+  const itemIdRef = useRef(item.id)
+  itemIdRef.current = item.id
+
+  const swipeResponder = useRef(
     PanResponder.create({
       onMoveShouldSetPanResponder: (_, g) => Math.abs(g.dx) > Math.abs(g.dy) * 2 && Math.abs(g.dx) > 6,
-      onPanResponderGrant: () => {
-        setActiveSwipeRowId(item.id)
-      },
+      onPanResponderGrant: () => callbacksRef.current.setActiveSwipeRowId(itemIdRef.current),
       onPanResponderMove: (_, g) => {
         const base = currentXRef.current
-        const next = Math.max(0, Math.min(SWIPE_OPEN, base + g.dx))
+        const next = Math.max(SWIPE_OPEN, Math.min(0, base + g.dx))
         translateX.setValue(next)
       },
       onPanResponderRelease: () => {
         const end = currentXRef.current
-        if (end > THRESHOLD) {
+        if (end < THRESHOLD * -1) {
           snapTo(SWIPE_OPEN)
         } else {
           snapTo(0)
-          setActiveSwipeRowId(null)
+          callbacksRef.current.setActiveSwipeRowId(null)
         }
       },
       onPanResponderTerminate: () => snapTo(0),
+    }),
+  ).current
+
+  const dragResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderGrant: () => callbacksRef.current.onDragStart(indexRef.current),
+      onPanResponderMove: (_, g) => callbacksRef.current.onDragMove(g.dy),
+      onPanResponderRelease: () => callbacksRef.current.onDragEnd(),
+      onPanResponderTerminate: () => callbacksRef.current.onDragEnd(),
     }),
   ).current
 
@@ -76,65 +101,86 @@ export const QueueItemRow = ({
       style={{
         position: 'relative',
         overflow: 'hidden',
+        height: QUEUE_ITEM_HEIGHT,
         borderBottomWidth: 1,
         borderBottomColor: colors.border,
+        opacity: isDragging ? 0 : 1,
       }}
     >
-      {/* Delete background (shown on right-swipe) */}
-      <View
+      {/* Delete background (revealed on left-swipe) */}
+      <TouchableOpacity
+        activeOpacity={0.8}
+        onPress={() => {
+          onRemove()
+          setActiveSwipeRowId(null)
+        }}
         style={{
           position: 'absolute',
           top: 0,
           bottom: 0,
-          left: 0,
-          width: SWIPE_OPEN,
+          right: 0,
+          width: -SWIPE_OPEN,
           backgroundColor: colors.destructive,
-          flexDirection: 'row',
           alignItems: 'center',
           justifyContent: 'center',
+          gap: 2,
+        }}
+      >
+        <Trash2 size={20} color='#FFFFFF' />
+        <Text style={{ color: '#FFFFFF', fontSize: 11 }}>削除</Text>
+      </TouchableOpacity>
+
+      <Animated.View
+        {...swipeResponder.panHandlers}
+        style={{
+          transform: [{ translateX }],
+          backgroundColor: isPlaying ? colors.secondary : colors.card,
         }}
       >
         <TouchableOpacity
-          onPress={() => {
-            onRemove()
-            setActiveSwipeRowId(null)
-          }}
-          style={{ alignItems: 'center', gap: 2 }}
-        >
-          <Trash2 size={20} color='#FFFFFF' />
-          <Text style={{ color: '#FFFFFF', fontSize: 11 }}>削除</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Foreground row */}
-      <Animated.View
-        {...panResponder.panHandlers}
-        style={{ transform: [{ translateX }], backgroundColor: isPlaying ? colors.secondary : colors.card }}
-      >
-        <TouchableOpacity
-          activeOpacity={0.8}
-          onPress={() => {
-            if (currentXRef.current !== 0) {
-              snapTo(0)
-              setActiveSwipeRowId(null)
-              return
-            }
-            onPress()
-          }}
+          activeOpacity={1}
+          onPress={
+            currentXRef.current !== 0
+              ? () => {
+                  snapTo(0)
+                  setActiveSwipeRowId(null)
+                }
+              : undefined
+          }
           style={{
             flexDirection: 'row',
             alignItems: 'center',
             gap: spacing.sm,
             paddingVertical: spacing.sm,
             paddingHorizontal: spacing.lg,
+            height: QUEUE_ITEM_HEIGHT,
           }}
         >
-          <GripVertical size={18} color={colors.textTertiary} />
-          <Text style={[styles.bodySmall, { width: 20, textAlign: 'center' }]}>{index + 1}</Text>
-          <Image
-            source={{ uri: item.thumbnail }}
-            style={{ width: 56, height: 56, borderRadius: borderRadius.md, backgroundColor: colors.muted }}
-          />
+          <View {...dragResponder.panHandlers}>
+            <GripVertical size={18} color={colors.textTertiary} />
+          </View>
+
+          <View style={{ position: 'relative' }}>
+            <Image
+              source={{ uri: item.thumbnail }}
+              style={{ width: 56, height: 56, borderRadius: borderRadius.md, backgroundColor: colors.muted }}
+            />
+            {isPlaying ? (
+              <View
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: 'rgba(0,0,0,0.35)',
+                  borderRadius: borderRadius.md,
+                }}
+              >
+                <AudioIndicator color='#FFFFFF' />
+              </View>
+            ) : null}
+          </View>
+
           <View style={{ flex: 1, gap: 2 }}>
             <Text style={styles.textBold} numberOfLines={1}>
               {item.title}

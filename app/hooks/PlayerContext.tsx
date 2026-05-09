@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import type { ReactNode } from 'react'
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
-import type { ViewStyle } from 'react-native'
+import { Alert, type ViewStyle } from 'react-native'
 import Video, { type VideoRef } from 'react-native-video'
 
 import { apiRepository } from '../repositories/api'
@@ -33,6 +33,8 @@ export type QueueItem = {
   parentTitle: string
   thumbnail: string
   duration: number
+  url: string
+  mediaType: number
 }
 
 const QUEUE_KEYS = {
@@ -230,7 +232,12 @@ const PlayerContext = createContext<
         prevTrack: () => void
         nextChild: () => void
         prevChild: () => void
-        playFromList: (tracks: PlayableTrack[], trackId: number, childId?: number, options?: { playlistId?: string; keepPlaybackState?: boolean }) => void
+        playFromList: (
+          tracks: PlayableTrack[],
+          trackId: number,
+          childId?: number,
+          options?: { playlistId?: string; keepPlaybackState?: boolean },
+        ) => void
       }
       queueActions: {
         addToQueue: (item: Omit<QueueItem, 'id'>) => void
@@ -292,12 +299,22 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
     void AsyncStorage.setItem(QUEUE_KEYS.autoPlayNext, String(autoPlayNext))
   }, [autoPlayNext])
 
+  const loadingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
   const switchContent = (content: CurrentContent, keepPlaybackState = false) => {
     setCurrentContent(content)
     if (keepPlaybackState) {
       updateState({ currentTime: 0, duration: 0 })
     } else {
       updateState({ playbackState: 'loading', currentTime: 0, duration: 0 })
+      if (loadingTimerRef.current) clearTimeout(loadingTimerRef.current)
+      loadingTimerRef.current = setTimeout(() => {
+        setState((prev) => {
+          if (prev.playbackState !== 'loading') return prev
+          Alert.alert('読み込みエラー', 'メディアの読み込みに失敗しました')
+          return { ...prev, playbackState: 'error' }
+        })
+      }, 30000)
     }
     lastProgressReportRef.current = 0
     playEndSentRef.current = false
@@ -378,6 +395,8 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
   settingsRef.current = settings
   const currentContentRef = useRef(currentContent)
   currentContentRef.current = currentContent
+  const playingPlaylistIdRef = useRef(playingPlaylistId)
+  playingPlaylistIdRef.current = playingPlaylistId
 
   const nextTrackInternal = () => {
     const content = currentContentRef.current
@@ -450,6 +469,7 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
   )
 
   const handleLoad = useCallback((duration: number) => {
+    if (loadingTimerRef.current) clearTimeout(loadingTimerRef.current)
     setState((prev) => (prev.playbackState === 'loading' ? { ...prev, playbackState: 'playing', duration } : prev))
   }, [])
 
@@ -461,6 +481,18 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
   const handleEnd = useCallback(() => {
     const s = settingsRef.current
     const content = currentContentRef.current
+
+    if (playingPlaylistIdRef.current === '__queue__' && content) {
+      setQueue((prev) => prev.filter((q) => q.trackId !== content.trackId || q.childId !== content.childId))
+      if (content.hasNextTrack) {
+        nextTrackInternal()
+        return
+      }
+      setPlayingPlaylistId(null)
+      setState((prev) => ({ ...prev, playbackState: 'ended' }))
+      return
+    }
+
     if (s.loopMode === 'single') {
       videoRef.current?.seek(0)
       setState((prev) => ({ ...prev, currentTime: 0, playbackState: 'playing' }))
@@ -527,9 +559,7 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
         },
         navigation: {
           play: (sourceId, tracks, trackId?, childId?) => {
-            const t = trackId
-              ? (tracks.find((tr) => tr.id === trackId) ?? tracks[0])
-              : tracks[0]
+            const t = trackId ? (tracks.find((tr) => tr.id === trackId) ?? tracks[0]) : tracks[0]
 
             setPlayingPlaylistId(null)
             switchContent(new CurrentContent(sourceId, tracks, t.id, childId ?? t.children?.[0]?.id))
@@ -566,6 +596,7 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
           playFromList: (tracks, trackId, childId?, options?) => {
             if (tracks.length === 0) return
             setPlayingPlaylistId(options?.playlistId ?? null)
+            setPlayerExpanded(false)
             switchContent(new CurrentContent(0, tracks, trackId, childId), options?.keepPlaybackState)
           },
         },
@@ -644,7 +675,7 @@ export const PlayerVideo = ({ style }: { style?: ViewStyle }) => {
     <Video
       ref={videoRef}
       source={source}
-      style={style}
+      style={[style, playbackState === 'loading' && { opacity: 0 }]}
       resizeMode='cover'
       paused={playbackState !== 'playing' && playbackState !== 'loading'}
       rate={playbackRate}

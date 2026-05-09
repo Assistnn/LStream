@@ -172,6 +172,8 @@ export const PlaylistDetailScreen = ({ route }: Props) => {
               parentTitle: itemMenuTarget.seriesTitle,
               thumbnail: itemMenuTarget.thumbnail,
               duration: itemMenuTarget.duration,
+              url: itemMenuTarget.url,
+              mediaType: itemMenuTarget.mediaType,
             })
           },
         },

@@ -29,6 +29,7 @@ export const MediaMenuButton = ({
   buttonStyle,
   onPress,
   mediaInfo,
+  onAddAllToQueue,
 }: {
   seriesId: number
   mediaId: number
@@ -38,6 +39,7 @@ export const MediaMenuButton = ({
   buttonStyle?: ViewStyle
   onPress?: () => void
   mediaInfo?: MediaInfo
+  onAddAllToQueue?: () => void
 }) => {
   const { colors, spacing, borderRadius, styles } = useTheme()
   const {
@@ -86,7 +88,11 @@ export const MediaMenuButton = ({
             parentTitle: itemForCollection.seriesTitle,
             thumbnail: itemForCollection.thumbnail,
             duration: itemForCollection.duration,
+            url: itemForCollection.url,
+            mediaType: itemForCollection.mediaType,
           })
+        } else if (onAddAllToQueue) {
+          onAddAllToQueue()
         }
       },
     },
@@ -142,7 +148,8 @@ export const MediaMenuButton = ({
 
       <Modal visible={menuVisible} transparent animationType='fade' onRequestClose={() => setMenuVisible(false)}>
         <Pressable style={{ flex: 1 }} onPress={() => setMenuVisible(false)}>
-          <View
+          <Pressable
+            onPress={(e) => e.stopPropagation()}
             style={{
               position: 'absolute',
               ...menuStyle,
@@ -175,7 +182,7 @@ export const MediaMenuButton = ({
                 <Text style={styles.textDefault}>{item.label}</Text>
               </TouchableOpacity>
             ))}
-          </View>
+          </Pressable>
         </Pressable>
       </Modal>
 

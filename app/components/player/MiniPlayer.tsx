@@ -1,6 +1,6 @@
-import { List, Pause, Play, X } from 'lucide-react-native'
+import { AlertCircle, List, Pause, Play, X } from 'lucide-react-native'
 import { useCallback, useRef } from 'react'
-import { Image, Text, TouchableOpacity, View } from 'react-native'
+import { ActivityIndicator, Image, Text, TouchableOpacity, View } from 'react-native'
 
 import { usePlayer } from '../../hooks/PlayerContext'
 import { useTheme } from '../../hooks/ThemeContext'
@@ -27,6 +27,8 @@ export const MiniPlayer = ({ onTap, onListTap }: { onTap: () => void; onListTap:
   if (!currentContent) return null
 
   const isPlaying = playbackState === 'playing'
+  const isLoading = playbackState === 'loading'
+  const isError = playbackState === 'error'
   const episode = currentContent.episodes.find((ep) => ep.id === currentContent.episodeId)
   if (!episode) return null
   const unit = currentContent.unitId ? episode.children?.find((u) => u.id === currentContent.unitId) : undefined
@@ -116,7 +118,11 @@ export const MiniPlayer = ({ onTap, onListTap }: { onTap: () => void; onListTap:
             style={{ padding: 6, justifyContent: 'center', alignItems: 'center' }}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            {isPlaying ? (
+            {isError ? (
+              <AlertCircle size={24} color={colors.destructive} />
+            ) : isLoading ? (
+              <ActivityIndicator size={24} color={colors.text} />
+            ) : isPlaying ? (
               <Pause size={24} color={colors.text} fill={colors.text} />
             ) : (
               <Play size={24} color={colors.text} fill={colors.text} />

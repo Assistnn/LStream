@@ -65,15 +65,13 @@ export const sortPlaylists = (playlists: Playlist[]): Playlist[] => {
   })
 }
 
-export const toPlayableTrack = (
-  item: Omit<PlaylistItem, 'id' | 'seriesId'> | Omit<QueueItem, 'id'>,
-): PlayableTrack => {
+export const toPlayableTrack = (item: Omit<PlaylistItem, 'id' | 'seriesId'> | Omit<QueueItem, 'id'>): PlayableTrack => {
   const isPlaylist = 'episodeId' in item
   const trackId = isPlaylist ? item.episodeId : item.trackId
   const childId = isPlaylist ? item.unitId : item.childId
   const parentTitle = isPlaylist ? item.seriesTitle : item.parentTitle
-  const url = 'url' in item ? (item as { url: string }).url : ''
-  const mType = 'mediaType' in item ? (item as { mediaType: number }).mediaType : 0
+  const url = item.url
+  const mType = item.mediaType
   return {
     id: trackId,
     mediaType: mType,

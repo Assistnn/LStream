@@ -31,6 +31,7 @@ export const SeriesDetailScreen = ({
   const { data, loading, refetch } = useGetSeries(seriesId)
   const {
     navigation: { play },
+    queueActions: { addToQueue },
   } = usePlayer()
 
   const [filterType, setFilterType] = useState<'all' | 'notStarted'>('all')
@@ -111,6 +112,34 @@ export const SeriesDetailScreen = ({
                   height: 40,
                   alignItems: 'center',
                   justifyContent: 'center',
+                }}
+                onAddAllToQueue={() => {
+                  for (const ep of data.episodes) {
+                    if (ep.units && ep.units.length > 0) {
+                      for (const u of ep.units) {
+                        addToQueue({
+                          trackId: ep.item_id,
+                          childId: u.item_id,
+                          title: u.title,
+                          parentTitle: ep.title,
+                          thumbnail: u.img || ep.img,
+                          duration: u.duration,
+                          url: u.url,
+                          mediaType: u.type_media,
+                        })
+                      }
+                    } else {
+                      addToQueue({
+                        trackId: ep.item_id,
+                        title: ep.title,
+                        parentTitle: data.title,
+                        thumbnail: ep.img,
+                        duration: ep.duration,
+                        url: ep.url,
+                        mediaType: ep.type_media,
+                      })
+                    }
+                  }
                 }}
               />
             </View>
