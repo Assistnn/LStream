@@ -1,3 +1,4 @@
+import notifee, { AuthorizationStatus } from '@notifee/react-native'
 import {
   Bell,
   Check,
@@ -15,9 +16,20 @@ import {
   Trash2,
   Wifi,
 } from 'lucide-react-native'
-import notifee, { AuthorizationStatus } from '@notifee/react-native'
 import { useEffect, useState } from 'react'
-import { Alert, Linking, Modal, NativeModules, Platform, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native'
+import {
+  Alert,
+  Linking,
+  Modal,
+  NativeModules,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { PageTitle } from '../../../components/ui/PageTitle'

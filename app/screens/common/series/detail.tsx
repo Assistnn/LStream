@@ -11,6 +11,7 @@ import { LoadingSpinner } from '../../../components/ui/LoadingSpinner'
 import { MediaMenuButton } from '../../../components/ui/MediaMenuButton'
 import { SeriesProgessBar } from '../../../components/ui/SeriesProgessBar'
 import { ThemedRefreshControl } from '../../../components/ui/ThemedRefreshControl'
+import { useDownload } from '../../../hooks/DownloadContext'
 import { usePlayer } from '../../../hooks/PlayerContext'
 import { useTheme } from '../../../hooks/ThemeContext'
 import { isFavoriteEpisode } from '../../../usecases/useGetFavorites'
@@ -33,6 +34,7 @@ export const SeriesDetailScreen = ({
     navigation: { play },
     queueActions: { addToQueue },
   } = usePlayer()
+  const { startDownload } = useDownload()
 
   const [filterType, setFilterType] = useState<'all' | 'notStarted'>('all')
   const [sortOrder, setSortOrder] = useState<'default' | 'newest' | 'oldest'>('default')
@@ -137,6 +139,35 @@ export const SeriesDetailScreen = ({
                         duration: ep.duration,
                         url: ep.url,
                         mediaType: ep.type_media,
+                      })
+                    }
+                  }
+                }}
+                onDownloadAll={() => {
+                  for (const ep of data.episodes) {
+                    if (ep.units && ep.units.length > 0) {
+                      for (const u of ep.units) {
+                        startDownload({
+                          seriesId: data.series_id,
+                          mediaId: u.item_id,
+                          title: u.title,
+                          seriesTitle: data.title,
+                          thumbnail: u.img || ep.img,
+                          duration: u.duration,
+                          mediaType: u.type_media,
+                          url: u.url,
+                        })
+                      }
+                    } else {
+                      startDownload({
+                        seriesId: data.series_id,
+                        mediaId: ep.item_id,
+                        title: ep.title,
+                        seriesTitle: data.title,
+                        thumbnail: ep.img,
+                        duration: ep.duration,
+                        mediaType: ep.type_media,
+                        url: ep.url,
                       })
                     }
                   }

@@ -1,5 +1,5 @@
-import NetInfo from '@react-native-community/netinfo'
 import AsyncStorage from '@react-native-async-storage/async-storage'
+import NetInfo from '@react-native-community/netinfo'
 import { Alert } from 'react-native'
 import DeviceInfo from 'react-native-device-info'
 
@@ -78,7 +78,10 @@ class ApiClient {
     if (!mobileDataEnabled) {
       const state = await NetInfo.fetch()
       if (state.type === 'cellular') {
-        Alert.alert('モバイルデータ通信', 'Wi-Fi接続時のみ利用できます。設定からモバイルデータの使用を有効にしてください。')
+        Alert.alert(
+          'モバイルデータ通信',
+          'Wi-Fi接続時のみ利用できます。設定からモバイルデータの使用を有効にしてください。',
+        )
         throw new ApiException({ message: 'Mobile data is disabled', code: 'MOBILE_DATA_DISABLED' })
       }
     }

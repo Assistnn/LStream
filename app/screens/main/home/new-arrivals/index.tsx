@@ -4,6 +4,7 @@ import { FlatList, Text, View } from 'react-native'
 import { EpisodeListItem } from '../../../../components/listitem/EpisodeListItem'
 import { EmptyState } from '../../../../components/ui/EmptyState'
 import { LoadingSpinner } from '../../../../components/ui/LoadingSpinner'
+import { MediaMenuButton } from '../../../../components/ui/MediaMenuButton'
 import { ThemedRefreshControl } from '../../../../components/ui/ThemedRefreshControl'
 import { useTheme } from '../../../../hooks/ThemeContext'
 import { useGetNewArrivals } from '../../../../usecases/useGetNewArrivals'
@@ -40,11 +41,22 @@ export const NewArrivalsScreen = () => {
             <EpisodeListItem
               episode={item}
               onPress={() => console.log('Episode pressed:', item.item_id)}
-              menuItems={[
-                { label: 'プレイリストに追加', onPress: () => console.log('Add to playlist:', item.item_id) },
-                { label: '再生キューに追加', onPress: () => console.log('Add to queue:', item.item_id) },
-                { label: 'ダウンロード', onPress: () => console.log('Download:', item.item_id) },
-              ]}
+              menuButton={
+                <MediaMenuButton
+                  seriesId={item.series_id}
+                  mediaId={item.item_id}
+                  mediaType='episode'
+                  size={20}
+                  mediaInfo={{
+                    title: item.title,
+                    seriesTitle: item.category,
+                    thumbnail: item.img,
+                    duration: item.duration,
+                    url: '',
+                    contentMediaType: 0,
+                  }}
+                />
+              }
             />
           )}
         />

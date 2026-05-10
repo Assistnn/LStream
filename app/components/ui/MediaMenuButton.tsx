@@ -3,6 +3,7 @@ import { useCallback, useRef, useState } from 'react'
 import type { ViewStyle } from 'react-native'
 import { Dimensions, Modal, Pressable, Text, TouchableOpacity, View } from 'react-native'
 
+import { useDownload } from '../../hooks/DownloadContext'
 import { usePlayer } from '../../hooks/PlayerContext'
 import { useTheme } from '../../hooks/ThemeContext'
 import { AddToPlaylistModal } from '../../screens/main/playlist/components/AddToPlaylistModal'
@@ -30,6 +31,7 @@ export const MediaMenuButton = ({
   onPress,
   mediaInfo,
   onAddAllToQueue,
+  onDownloadAll,
 }: {
   seriesId: number
   mediaId: number
@@ -40,11 +42,13 @@ export const MediaMenuButton = ({
   onPress?: () => void
   mediaInfo?: MediaInfo
   onAddAllToQueue?: () => void
+  onDownloadAll?: () => void
 }) => {
   const { colors, spacing, borderRadius, styles } = useTheme()
   const {
     queueActions: { addToQueue },
   } = usePlayer()
+  const { startDownload, isDownloaded, isDownloading } = useDownload()
   const [menuVisible, setMenuVisible] = useState(false)
   const [menuStyle, setMenuStyle] = useState<ViewStyle>({})
   const [addToPlaylistOpen, setAddToPlaylistOpen] = useState(false)
@@ -96,7 +100,38 @@ export const MediaMenuButton = ({
         }
       },
     },
-    { label: 'ダウンロード', disabled: false, onPress: () => console.log('Download:', mediaType, mediaId) },
+    ...(mediaInfo
+      ? [
+          {
+            label: isDownloaded(mediaId)
+              ? 'ダウンロード済み'
+              : isDownloading(mediaId)
+                ? 'ダウンロード中...'
+                : 'ダウンロード',
+            disabled: isDownloaded(mediaId) || isDownloading(mediaId),
+            onPress: () => {
+              startDownload({
+                seriesId,
+                mediaId,
+                title: mediaInfo.title,
+                seriesTitle: mediaInfo.seriesTitle,
+                thumbnail: mediaInfo.thumbnail,
+                duration: mediaInfo.duration,
+                mediaType: mediaInfo.contentMediaType,
+                url: mediaInfo.url,
+              })
+            },
+          },
+        ]
+      : onDownloadAll
+        ? [
+            {
+              label: 'ダウンロード',
+              disabled: false,
+              onPress: () => onDownloadAll(),
+            },
+          ]
+        : []),
     {
       label: isFavorited ? 'お気に入りから削除' : 'お気に入りに追加',
       disabled: false,
