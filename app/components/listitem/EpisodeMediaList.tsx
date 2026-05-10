@@ -26,7 +26,7 @@ export const EpisodeMediaList = ({
   onUnitPress?: (episode: PlayableTrack, unit: PlayableChild) => void
   renderThumbnailOverlay?: (episode: PlayableTrack) => React.ReactNode
   renderEpisodeActions?: (episode: PlayableTrack, hasUnits: boolean) => React.ReactNode
-  renderUnitActions?: (unit: PlayableChild) => React.ReactNode
+  renderUnitActions?: (unit: PlayableChild, episode: PlayableTrack) => React.ReactNode
 }) => {
   const { colors, styles, spacing } = useTheme()
   const { currentContent } = usePlayer()
@@ -168,7 +168,7 @@ export const EpisodeMediaList = ({
                           )}
                         </View>
                       </View>
-                      {renderUnitActions?.(unit)}
+                      {renderUnitActions?.(unit, ep)}
                       {isCurrentUnit && <Play size={32} color={colors.primary} fill={colors.primary} />}
                     </TouchableOpacity>
                   )

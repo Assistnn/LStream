@@ -1,7 +1,6 @@
 import { CheckSquare, Clock, Download, Lock, MoreVertical, Square, Trash2, Unlock } from 'lucide-react-native'
 import { useCallback, useRef, useState } from 'react'
 import {
-  Alert,
   Animated,
   FlatList,
   Image,
@@ -567,28 +566,6 @@ export const HistoryTabScreen = () => {
               style={{ paddingVertical: spacing.md, paddingHorizontal: spacing.lg, borderRadius: borderRadius.md }}
             >
               <Text style={[styles.bodyText, { fontWeight: '600' }]}>選択を削除</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => {
-                setShowDeleteMenu(false)
-                Alert.alert('確認', 'ロックされているものも含め、すべてが削除されますがよろしいですか？', [
-                  { text: 'キャンセル', style: 'cancel' },
-                  {
-                    text: 'OK',
-                    style: 'destructive',
-                    onPress: () => {
-                      deleteDownloads(
-                        downloads.map((d) => d.id),
-                        true,
-                      )
-                      showToast('すべてのダウンロードを削除しました')
-                    },
-                  },
-                ])
-              }}
-              style={{ paddingVertical: spacing.md, paddingHorizontal: spacing.lg, borderRadius: borderRadius.md }}
-            >
-              <Text style={[styles.bodyText, { fontWeight: '600', color: colors.destructive }]}>完全に削除</Text>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => setShowDeleteMenu(false)}

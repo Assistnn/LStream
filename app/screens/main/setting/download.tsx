@@ -1,17 +1,6 @@
 import { CheckSquare, Download, Lock, MoreVertical, Square, Trash2, Unlock } from 'lucide-react-native'
 import { useCallback, useRef, useState } from 'react'
-import {
-  Alert,
-  Animated,
-  Image,
-  Modal,
-  PanResponder,
-  Pressable,
-  ScrollView,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native'
+import { Animated, Image, Modal, PanResponder, Pressable, ScrollView, Text, TouchableOpacity, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { useDownload } from '../../../hooks/DownloadContext'
@@ -167,24 +156,6 @@ export const DownloadScreen = ({ navigation }: { navigation: { goBack: () => voi
     showToast(`${selectedIds.size}件を削除しました`)
     setSelectMode(false)
     setSelectedIds(new Set())
-  }
-
-  const handleCompleteDelete = () => {
-    setShowDeleteMenu(false)
-    Alert.alert('確認', 'ロックされているものも含め、すべてが削除されますがよろしいですか？', [
-      { text: 'キャンセル', style: 'cancel' },
-      {
-        text: 'OK',
-        style: 'destructive',
-        onPress: () => {
-          deleteDownloads(
-            downloads.map((d) => d.id),
-            true,
-          )
-          showToast('すべてのダウンロードを削除しました')
-        },
-      },
-    ])
   }
 
   const handlePlay = (item: (typeof downloads)[0]) => {
@@ -403,12 +374,6 @@ export const DownloadScreen = ({ navigation }: { navigation: { goBack: () => voi
               style={{ paddingVertical: spacing.md, paddingHorizontal: spacing.lg, borderRadius: borderRadius.md }}
             >
               <Text style={[styles.bodyText, { fontWeight: '600' }]}>選択を削除</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={handleCompleteDelete}
-              style={{ paddingVertical: spacing.md, paddingHorizontal: spacing.lg, borderRadius: borderRadius.md }}
-            >
-              <Text style={[styles.bodyText, { fontWeight: '600', color: colors.destructive }]}>完全に削除</Text>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => setShowDeleteMenu(false)}

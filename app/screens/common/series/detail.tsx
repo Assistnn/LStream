@@ -151,7 +151,7 @@ export const SeriesDetailScreen = ({
                           seriesId: data.series_id,
                           mediaId: u.item_id,
                           title: u.title,
-                          seriesTitle: data.title,
+                          seriesTitle: `${data.title} / ${ep.title}`,
                           thumbnail: u.img || ep.img,
                           duration: u.duration,
                           mediaType: u.type_media,
@@ -363,7 +363,7 @@ export const SeriesDetailScreen = ({
               />
             ) : null
           }
-          renderUnitActions={(unit) => (
+          renderUnitActions={(unit, ep) => (
             <MediaMenuButton
               seriesId={data.series_id}
               mediaId={unit.id}
@@ -371,8 +371,8 @@ export const SeriesDetailScreen = ({
               size={16}
               mediaInfo={{
                 title: unit.title,
-                seriesTitle: data.title,
-                thumbnail: unit.img,
+                seriesTitle: `${data.title} / ${ep.title}`,
+                thumbnail: unit.img || ep.img,
                 duration: unit.duration,
                 url: unit.url,
                 contentMediaType: unit.mediaType,
