@@ -6,8 +6,8 @@
     "prettier": "^3.6.2"
   },
   "scripts": {
-    "lint": "prettier --check --ignore-path ./.prettierignore_ci --config ./.prettierrc.mjs .",
-    "fix": "prettier --write --ignore-path ./.prettierignore_ci --config ./.prettierrc.mjs .",
+    "lint": "prettier --check --ignore-path ./.prettierignore --config ./.prettierrc.mjs .",
+    "fix": "prettier --write --ignore-path ./.prettierignore --config ./.prettierrc.mjs .",
     "devcontainer:up": "devcontainer up --remove-existing-container --workspace-folder ./app --config ./.docker/dev/devcontainer.json"
   },
   "dependencies": {

@@ -10,11 +10,13 @@ export const EpisodeListItem = ({
   episode,
   onPress,
   menuItems,
+  menuButton,
   playCount,
 }: {
   episode: EpisodeSummary
   onPress?: () => void
   menuItems?: ContextMenuItem[]
+  menuButton?: React.ReactNode
   playCount?: number
 }) => {
   const { colors, spacing, styles, borderRadius } = useTheme()
@@ -59,32 +61,33 @@ export const EpisodeListItem = ({
           )}
         </View>
       </View>
-      {menuItems && menuItems.length > 0 && (
-        <TouchableOpacity
-          onPress={(e) => {
-            const layout = e.nativeEvent
-            setMenuAnchorY(layout.pageY)
-            setMenuVisible(true)
-          }}
-          style={{
-            width: 40,
-            height: 40,
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <MoreVertical size={20} color={colors.textSecondary} />
-        </TouchableOpacity>
-      )}
-      {menuItems && (
-        <ContextMenu
-          visible={menuVisible}
-          items={menuItems}
-          onClose={() => setMenuVisible(false)}
-          position='right'
-          anchorY={menuAnchorY}
-        />
-      )}
+      {menuButton ??
+        (menuItems && menuItems.length > 0 && (
+          <>
+            <TouchableOpacity
+              onPress={(e) => {
+                const layout = e.nativeEvent
+                setMenuAnchorY(layout.pageY)
+                setMenuVisible(true)
+              }}
+              style={{
+                width: 40,
+                height: 40,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <MoreVertical size={20} color={colors.textSecondary} />
+            </TouchableOpacity>
+            <ContextMenu
+              visible={menuVisible}
+              items={menuItems}
+              onClose={() => setMenuVisible(false)}
+              position='right'
+              anchorY={menuAnchorY}
+            />
+          </>
+        ))}
     </TouchableOpacity>
   )
 }

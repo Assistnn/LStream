@@ -7,6 +7,7 @@ import Video, { type VideoRef } from 'react-native-video'
 import { apiRepository } from '../repositories/api'
 import type { LoopMode } from '../repositories/storage'
 import { StorageRepository } from '../repositories/storage'
+import { useDownload } from './DownloadContext'
 
 type PlaybackState = 'idle' | 'loading' | 'playing' | 'paused' | 'ended' | 'error'
 
@@ -366,22 +367,10 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [settings.sleepTimer, state.playbackState])
 
-  // persist player settings
-  const isSettingsLoadedRef = useRef(false)
-  useEffect(() => {
-    StorageRepository.getPlayerSettings().then((saved) => {
-      updateSettings(saved)
-      isSettingsLoadedRef.current = true
-    })
-  }, [])
-  useEffect(() => {
-    if (!isSettingsLoadedRef.current) return
-    StorageRepository.savePlayerSettings({
-      playbackRate: settings.playbackRate,
-      loopMode: settings.loopMode,
-      isShuffleOn: settings.isShuffleOn,
-    })
-  }, [settings.playbackRate, settings.loopMode, settings.isShuffleOn])
+  const applyDefaultSettings = async () => {
+    const saved = await StorageRepository.getPlayerSettings()
+    updateSettings(saved)
+  }
 
   // view
   const videoRef = useRef<VideoRef>(null)
@@ -564,6 +553,7 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
             setPlayingPlaylistId(null)
             switchContent(new CurrentContent(sourceId, tracks, t.id, childId ?? t.children?.[0]?.id))
             setPlayerExpanded(true)
+            void applyDefaultSettings()
           },
           nextTrack: nextTrackInternal,
           prevTrack: () => {
@@ -598,6 +588,7 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
             setPlayingPlaylistId(options?.playlistId ?? null)
             setPlayerExpanded(false)
             switchContent(new CurrentContent(0, tracks, trackId, childId), options?.keepPlaybackState)
+            void applyDefaultSettings()
           },
         },
         queueActions: {
@@ -657,8 +648,25 @@ export const PlayerVideo = ({ style }: { style?: ViewStyle }) => {
     settings: { playbackRate, volume },
     view: { videoRef, handleProgress, handleLoad, handleEnd, handleBuffer, setPipActive },
   } = usePlayer()
+  const { getLocalPath, incrementPlayCount, downloads } = useDownload()
   const mediaUrl = currentContent?.mediaUrl
-  const source = useMemo(() => (mediaUrl ? { uri: mediaUrl } : undefined), [mediaUrl])
+  const localPath = mediaUrl ? getLocalPath(mediaUrl) : undefined
+  const effectiveUrl = localPath
+    ? localPath.startsWith('http') || localPath.startsWith('file://')
+      ? localPath
+      : `file://${localPath}`
+    : mediaUrl
+  const source = useMemo(() => (effectiveUrl ? { uri: effectiveUrl } : undefined), [effectiveUrl])
+
+  const playCountIncrementedRef = useRef<string | null>(null)
+  useEffect(() => {
+    if (!mediaUrl || !localPath) return
+    const item = downloads.find((d) => d.originalUrl === mediaUrl)
+    if (item && playCountIncrementedRef.current !== item.id) {
+      playCountIncrementedRef.current = item.id
+      incrementPlayCount(item.id)
+    }
+  }, [mediaUrl, localPath, downloads, incrementPlayCount])
   const onProgress = useCallback((data: { currentTime: number }) => handleProgress(data.currentTime), [handleProgress])
   const onPipStatusChanged = useCallback(
     ({ isActive }: { isActive: boolean }) => setPipActive(isActive),

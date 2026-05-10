@@ -2,6 +2,7 @@ import type { TimestampTrigger } from '@notifee/react-native'
 import notifee, { AndroidImportance, RepeatFrequency, TriggerType } from '@notifee/react-native'
 
 import type { Playlist } from '../repositories/playlist'
+import { StorageRepository } from '../repositories/storage'
 
 const CHANNEL_ID = 'alarm'
 const DAY_MAP: Record<string, number> = { sun: 0, mon: 1, tue: 2, wed: 3, thu: 4, fri: 5, sat: 6 }
@@ -74,7 +75,12 @@ export const cancelAlarmsForPlaylist = async (playlistId: string) => {
 }
 
 export const syncAllAlarms = async (playlists: Playlist[]) => {
+  const enabled = await StorageRepository.getNotificationsEnabled()
   for (const p of playlists) {
-    await scheduleAlarmsForPlaylist(p)
+    if (enabled) {
+      await scheduleAlarmsForPlaylist(p)
+    } else {
+      await cancelAlarmsForPlaylist(p.id)
+    }
   }
 }

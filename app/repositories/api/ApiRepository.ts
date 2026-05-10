@@ -10,6 +10,7 @@ import type {
   LibrariesParams,
   LibrariesResponse,
   LoginParams,
+  MeResponse,
   PlayEndParams,
   PlayProgressParams,
   SeriesResponse,
@@ -88,5 +89,9 @@ export class ApiRepository implements IApiRepository {
 
   async updatePlayEnd(params: PlayEndParams) {
     return apiClient.post<ApiResult>('/str_play_end', params)
+  }
+
+  async getMe() {
+    return apiClient.get<MeResponse>('/me')
   }
 }

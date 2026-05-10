@@ -150,7 +150,7 @@ _プロジェクト固有の実装・設計の注意点を追加する場合は�
 - **Figmaに書いてあることは実装する**: Figmaのコードに記載されているプロパティ（例: `textTransform: 'uppercase'`）は、効果がなさそうでも実装する
 - **後で不要と判断されたら削除**: 実装後に不要と判断された場合は、その時点で削除すればよい
 - **デザインに忠実に**: 色、グラデーション、レイアウトなどはFigmaデザイン通りに実装する
-- **Figmaのコードを正確に参照する**: 
+- **Figmaのコードを正確に参照する**:
   - 余白（margin/padding）、高さ（height）、配置（justifyContent）などはFigmaのコード通りに実装する
   - 例: Figmaで`h-[100px] flex flex-col justify-center`なら、React Nativeでも`height: 100, justifyContent: 'center'`を使う
 - **textStyleは近しいもので良い**: Figmaの文字サイズと完全一致させる必要はなく、ThemeContextで定義された近しいスタイルを使う
