@@ -1,6 +1,16 @@
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack'
-import { useState } from 'react'
-import { Dimensions, Image, ScrollView, Text, TouchableOpacity, View } from 'react-native'
+import { useCallback, useState } from 'react'
+import {
+  Alert,
+  Dimensions,
+  Image,
+  NativeModules,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  TurboModuleRegistry,
+  View,
+} from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import serviceLogo from '../../../assets/logos/service-logo.png'
@@ -11,9 +21,16 @@ import { ThemedRefreshControl } from '../../../components/ui/ThemedRefreshContro
 import { useTheme } from '../../../hooks/ThemeContext'
 import { useGetHomeData } from '../../../usecases/useGetHomeData'
 import { useSettings } from '../../../usecases/useSettings'
+import { AccountModal } from './components/AccountModal'
+import { AddTenantModal } from './components/AddTenantModal'
 import { NewsCard } from './components/NewsCard'
 import { RecentCard } from './components/RecentCard'
 import { RecommendCard } from './components/RecommendCard'
+
+const WebAuthSessionModule = (TurboModuleRegistry.get('WebAuthSessionModule') ??
+  NativeModules.WebAuthSessionModule) as {
+  openAuthSession: (url: string, host: string, path: string) => Promise<string>
+}
 
 const { width: screenWidth } = Dimensions.get('window')
 
@@ -33,6 +50,25 @@ export const HomeTabScreen = ({
   const headerImageUri = isDark ? settings?.header_dark : settings?.header_light
   const headerImageSource = settings ? (headerImageUri ? { uri: headerImageUri } : serviceLogo) : undefined
   const [logoWidth, setLogoWidth] = useState(160)
+  const [showAccount, setShowAccount] = useState(false)
+  const [showAddTenant, setShowAddTenant] = useState(false)
+
+  const handleAddTenant = useCallback(() => {
+    setShowAccount(false)
+    setTimeout(() => setShowAddTenant(true), 300)
+  }, [])
+
+  const handleTenantSubmit = useCallback(async (tenantCode: string) => {
+    setShowAddTenant(false)
+    await new Promise<void>((resolve) => setTimeout(resolve, 500))
+    try {
+      await WebAuthSessionModule.openAuthSession(`https://${tenantCode}.lseed.app`, 'login.lseed.app', '/app/lstream')
+    } catch (e: unknown) {
+      if (e instanceof Error && (e.message?.includes('cancelled') || e.message?.includes('USER_CANCELLED'))) return
+      Alert.alert('エラー', '認証に失敗しました')
+    }
+  }, [])
+
   return (
     <View style={[styles.screenContainer, { paddingTop: insets.top }]}>
       <ScrollView
@@ -69,8 +105,9 @@ export const HomeTabScreen = ({
                 alignItems: 'center',
                 justifyContent: 'center',
               }}
+              onPress={() => setShowAccount(true)}
             >
-              <Text style={styles.textBold}>社</Text>
+              <Text style={styles.textBold}>L</Text>
             </TouchableOpacity>
           </View>
           <Text style={styles.bodyText}>
@@ -227,6 +264,12 @@ export const HomeTabScreen = ({
           </>
         )}
       </ScrollView>
+      <AccountModal visible={showAccount} onClose={() => setShowAccount(false)} onAddTenant={handleAddTenant} />
+      <AddTenantModal
+        visible={showAddTenant}
+        onClose={() => setShowAddTenant(false)}
+        onSubmit={(code) => void handleTenantSubmit(code)}
+      />
     </View>
   )
 }

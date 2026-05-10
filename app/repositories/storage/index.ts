@@ -22,6 +22,8 @@ const KEYS = {
   DEFAULT_SLEEP_TIMER: 'defaultSleepTimer',
   PLAYED_ITEM_IDS: 'playedItemIds',
   MY_CHAPTERS: 'myChapters',
+  BIOMETRIC_ENABLED: 'biometricEnabled',
+  PASSCODE: 'passcode',
 } as const
 
 export const StorageRepository = {
@@ -259,6 +261,45 @@ export const StorageRepository = {
       await AsyncStorage.setItem(`${KEYS.MY_CHAPTERS}_${mediaId}`, JSON.stringify(chapters))
     } catch (error) {
       console.error('Failed to set myChapters:', error)
+    }
+  },
+
+  async getBiometricEnabled(): Promise<boolean> {
+    try {
+      const value = await AsyncStorage.getItem(KEYS.BIOMETRIC_ENABLED)
+      return value === null ? false : (JSON.parse(value) as boolean)
+    } catch (error) {
+      console.error('Failed to get biometricEnabled:', error)
+      return false
+    }
+  },
+
+  async setBiometricEnabled(value: boolean) {
+    try {
+      await AsyncStorage.setItem(KEYS.BIOMETRIC_ENABLED, JSON.stringify(value))
+    } catch (error) {
+      console.error('Failed to set biometricEnabled:', error)
+    }
+  },
+
+  async getPasscode(): Promise<string | null> {
+    try {
+      return await AsyncStorage.getItem(KEYS.PASSCODE)
+    } catch (error) {
+      console.error('Failed to get passcode:', error)
+      return null
+    }
+  },
+
+  async setPasscode(value: string | null) {
+    try {
+      if (value === null) {
+        await AsyncStorage.removeItem(KEYS.PASSCODE)
+      } else {
+        await AsyncStorage.setItem(KEYS.PASSCODE, value)
+      }
+    } catch (error) {
+      console.error('Failed to set passcode:', error)
     }
   },
 }

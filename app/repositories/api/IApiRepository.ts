@@ -12,6 +12,7 @@ export interface IApiRepository {
   getHistories(): Promise<HistoriesResponse>
   updatePlayProgress(params: PlayProgressParams): Promise<ApiResult>
   updatePlayEnd(params: PlayEndParams): Promise<ApiResult>
+  getMe(): Promise<MeResponse>
 }
 
 export interface ApiResult {
@@ -32,6 +33,20 @@ export type LoginParams = {
 
 export type AuthResponse = ApiResult & {
   token: string
+}
+
+export type Tenant = {
+  tenant_id: string
+  name: string
+  code: string
+  is_active: boolean
+}
+
+export type MeResponse = ApiResult & {
+  user_id: string
+  user_name: string
+  email: string
+  tenants: Tenant[]
 }
 
 export type SettingsResponse = ApiResult & {

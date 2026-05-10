@@ -5,6 +5,7 @@ import { StatusBar, View } from 'react-native'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { enableScreens } from 'react-native-screens'
 
+import { LockScreen } from './components/LockScreen'
 import { ensureChannel } from './hooks/alarmService'
 import { ApiErrorProvider } from './hooks/api/ApiErrorContext'
 import { AuthProvider, useAuth } from './hooks/AuthContext'
@@ -27,6 +28,7 @@ export default () => (
             <PlayerProvider>
               <AlarmHandler />
               <AppContent />
+              <LockScreen />
             </PlayerProvider>
           </DownloadProvider>
         </AuthProvider>

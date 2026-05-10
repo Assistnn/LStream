@@ -13,6 +13,7 @@ import type {
   LibrariesResponse,
   LibraryItem,
   LoginParams,
+  MeResponse,
   PlaybackHistoryItem,
   PlayEndParams,
   PlayProgressParams,
@@ -514,6 +515,20 @@ export class ApiMockRepository implements IApiRepository {
     await new Promise<void>((resolve) => setTimeout(() => resolve(), 100))
     return {
       result: 1,
+    }
+  }
+
+  async getMe(): Promise<MeResponse> {
+    await new Promise<void>((resolve) => setTimeout(() => resolve(), 200))
+    return {
+      result: 1,
+      user_id: '285',
+      user_name: 'ユーザー',
+      email: 'admin@president-school.jp',
+      tenants: [
+        { tenant_id: '1', name: 'LStream', code: 'LSTREAM', is_active: true },
+        { tenant_id: '2', name: '社長の教習所', code: 'PBS001', is_active: false },
+      ],
     }
   }
 }

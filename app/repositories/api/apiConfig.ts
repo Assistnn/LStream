@@ -19,4 +19,5 @@ export const API_METHOD_CONFIG: ApiMethodConfig = {
   getHistories: 'real',
   updatePlayProgress: 'real',
   updatePlayEnd: 'real',
+  getMe: 'mock',
 }
