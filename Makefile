@@ -38,7 +38,11 @@ open:
 		echo "Cursor IDE not found. You can manually connect to DevContainer using VS Code or other IDE."; \
 		echo "DevContainer URI: $$DEVCONTAINER_URI"; \
 	fi
-dev-ios: open
+
+
+up:
+	cd .docker/dev && docker compose up -d
+dev-ios: up
 	@UDID=$$(xcrun simctl list devices booted -j | python3 -c "import sys,json; ds=json.load(sys.stdin)['devices']; print(next((u['udid'] for r in ds.values() for u in r if u['state']=='Booted'), ''))"); \
 	if [ -z "$$UDID" ]; then \
 		echo "No booted simulator found. Booting default iPhone..."; \
@@ -47,7 +51,7 @@ dev-ios: open
 	fi; \
 	open -a Simulator; \
 	cd app && npx react-native run-ios --udid "$$UDID"
-dev-android: open
+dev-android: up
 	cd app && JAVA_HOME=/opt/homebrew/opt/openjdk@17 pnpm run android
 logs:
 	cd .docker/dev && docker compose logs -f
