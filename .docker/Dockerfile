@@ -8,7 +8,7 @@ ENV NODE_ENV=${NODE_ENV}
 RUN apt-get update
 RUN npm install -g pnpm
 ENV PNPM_HOME="/root/.local/share/pnpm"
-ENV PATH="${PNPM_HOME}:${PATH}"
+ENV PATH="${PNPM_HOME}/bin:${PNPM_HOME}:${PATH}"
 
 # -------- run --------
 RUN apt-get install -y zsh && chsh -s /usr/bin/zsh root
