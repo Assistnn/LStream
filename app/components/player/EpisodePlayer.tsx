@@ -351,22 +351,27 @@ export const EpisodePlayer = ({
                   style={{ padding: spacing.sm, position: 'relative' }}
                 >
                   <RotateCcw size={32} color={currentTime < 30 ? colors.muted : colors.text} />
-                  <Text
+                  <View
                     style={{
                       position: 'absolute',
                       top: 0,
                       left: 0,
                       right: 0,
-                      bottom: 0,
-                      textAlign: 'center',
-                      lineHeight: 48,
-                      fontSize: 10,
-                      fontWeight: '700',
-                      color: currentTime < 30 ? colors.muted : colors.text,
+                      bottom: 1,
+                      justifyContent: 'center',
+                      alignItems: 'center',
                     }}
                   >
-                    30
-                  </Text>
+                    <Text
+                      style={{
+                        fontSize: 10,
+                        fontWeight: '700',
+                        color: currentTime < 30 ? colors.muted : colors.text,
+                      }}
+                    >
+                      30
+                    </Text>
+                  </View>
                 </TouchableOpacity>
 
                 <TouchableOpacity
@@ -388,22 +393,27 @@ export const EpisodePlayer = ({
                   style={{ padding: spacing.sm, position: 'relative' }}
                 >
                   <RotateCw size={32} color={currentTime >= mediaDuration - 30 ? colors.muted : colors.text} />
-                  <Text
+                  <View
                     style={{
                       position: 'absolute',
                       top: 0,
                       left: 0,
                       right: 0,
-                      bottom: 0,
-                      textAlign: 'center',
-                      lineHeight: 48,
-                      fontSize: 10,
-                      fontWeight: '700',
-                      color: currentTime >= mediaDuration - 30 ? colors.muted : colors.text,
+                      bottom: 1,
+                      justifyContent: 'center',
+                      alignItems: 'center',
                     }}
                   >
-                    30
-                  </Text>
+                    <Text
+                      style={{
+                        fontSize: 10,
+                        fontWeight: '700',
+                        color: currentTime >= mediaDuration - 30 ? colors.muted : colors.text,
+                      }}
+                    >
+                      30
+                    </Text>
+                  </View>
                 </TouchableOpacity>
 
                 {/* Next Unit Button */}

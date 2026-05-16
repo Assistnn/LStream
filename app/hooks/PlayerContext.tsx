@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import type { ReactNode } from 'react'
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
-import { Alert, type ViewStyle } from 'react-native'
+import { Alert, AppState, type ViewStyle } from 'react-native'
 import Video, { type VideoRef } from 'react-native-video'
 
 import { apiRepository } from '../repositories/api'
@@ -600,9 +600,12 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
         },
         view: {
           closePlayer: () => {
+            videoRef.current?.pause()
+            videoRef.current?.exitPictureInPicture()
+            videoRef.current?.setSource(undefined)
+            updateState({ playbackState: 'idle', currentTime: 0, duration: 0 })
             setCurrentContent(undefined)
             setPlayingPlaylistId(null)
-            updateState({ playbackState: 'idle', currentTime: 0, duration: 0 })
             setPlayerExpanded(true)
           },
           isPlayerExpanded,
@@ -645,6 +648,7 @@ export const PlayerVideo = ({ style }: { style?: ViewStyle }) => {
   const {
     currentContent,
     state: { playbackState },
+    controls: { pause: pausePlayer },
     settings: { playbackRate, volume },
     view: { videoRef, handleProgress, handleLoad, handleEnd, handleBuffer, setPipActive },
   } = usePlayer()
@@ -656,7 +660,20 @@ export const PlayerVideo = ({ style }: { style?: ViewStyle }) => {
       ? localPath
       : `file://${localPath}`
     : mediaUrl
-  const source = useMemo(() => (effectiveUrl ? { uri: effectiveUrl } : undefined), [effectiveUrl])
+  const source = useMemo(
+    () =>
+      effectiveUrl
+        ? {
+            uri: effectiveUrl,
+            metadata: {
+              title: currentContent?.child?.title ?? currentContent?.track?.title ?? '',
+              artist: currentContent?.child?.parentTitle ?? currentContent?.track?.parentTitle ?? '',
+              imageUri: currentContent?.thumbnail ?? '',
+            },
+          }
+        : undefined,
+    [effectiveUrl, currentContent],
+  )
 
   const playCountIncrementedRef = useRef<string | null>(null)
   useEffect(() => {
@@ -669,15 +686,44 @@ export const PlayerVideo = ({ style }: { style?: ViewStyle }) => {
   }, [mediaUrl, localPath, downloads, incrementPlayCount])
   const onProgress = useCallback((data: { currentTime: number }) => handleProgress(data.currentTime), [handleProgress])
   const onPipStatusChanged = useCallback(
-    ({ isActive }: { isActive: boolean }) => setPipActive(isActive),
-    [setPipActive],
+    ({ isActive }: { isActive: boolean }) => {
+      setPipActive(isActive)
+      if (!isActive && AppState.currentState !== 'active') {
+        videoRef.current?.pause()
+        pausePlayer()
+      }
+    },
+    [setPipActive, videoRef, pausePlayer],
   )
   const onLoad = useCallback((data: { duration: number }) => handleLoad(data.duration), [handleLoad])
+  const externallyPausedRef = useRef(false)
+  const onPlaybackRateChange = useCallback(
+    ({ playbackRate: rate }: { playbackRate: number }) => {
+      if (rate === 0 && AppState.currentState !== 'active') {
+        externallyPausedRef.current = true
+      } else if (rate > 0) {
+        externallyPausedRef.current = false
+      }
+    },
+    [],
+  )
   const onBuffer = useCallback(
     ({ isBuffering: buffering }: { isBuffering: boolean }) => handleBuffer(buffering),
     [handleBuffer],
   )
   const enterPip = !!currentContent?.isVideo
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (nextState) => {
+      if (nextState === 'active') {
+        if (externallyPausedRef.current) {
+          externallyPausedRef.current = false
+          pausePlayer()
+        }
+        videoRef.current?.exitPictureInPicture()
+      }
+    })
+    return () => sub.remove()
+  }, [videoRef, pausePlayer])
   if (!currentContent || !source) return null
   return (
     <Video
@@ -692,11 +738,13 @@ export const PlayerVideo = ({ style }: { style?: ViewStyle }) => {
       onLoad={onLoad}
       onEnd={handleEnd}
       onBuffer={onBuffer}
+      onPlaybackRateChange={onPlaybackRateChange}
       playInBackground={true}
       playWhenInactive={true}
       ignoreSilentSwitch='ignore'
       enterPictureInPictureOnLeave={enterPip}
       onPictureInPictureStatusChanged={onPipStatusChanged}
+      showNotificationControls={true}
     />
   )
 }

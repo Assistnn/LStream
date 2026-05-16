@@ -22,9 +22,13 @@ export const FullscreenControls = () => {
 
   const [showControls, setShowControls] = useState(true)
   const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const isLockedRef = useRef(false)
+  const suppressUntilRef = useRef(0)
 
   const isPlaying = playbackState === 'playing'
+
+  const exitFullscreen = useCallback(() => {
+    setIsFullscreen(false)
+  }, [setIsFullscreen])
 
   const resetHideTimer = useCallback(() => {
     if (hideTimerRef.current) {
@@ -39,31 +43,34 @@ export const FullscreenControls = () => {
   }, [isPlaying])
 
   useEffect(() => {
-    if (isFullscreen && !isLockedRef.current) {
-      isLockedRef.current = true
+    if (isFullscreen) {
       Orientation.lockToLandscape()
       StatusBar.setHidden(true, 'fade')
-    } else if (!isFullscreen && isLockedRef.current) {
-      isLockedRef.current = false
+    } else {
       Orientation.lockToPortrait()
       StatusBar.setHidden(false, 'fade')
-      setTimeout(() => Orientation.unlockAllOrientations(), 500)
     }
     return () => {
-      if (isLockedRef.current) {
-        isLockedRef.current = false
+      if (isFullscreen) {
         Orientation.lockToPortrait()
         StatusBar.setHidden(false, 'fade')
-        setTimeout(() => Orientation.unlockAllOrientations(), 500)
       }
     }
   }, [isFullscreen])
 
   useEffect(() => {
-    if (!currentContent || isFullscreen) return
+    if (!currentContent) return
     const listener = (orientation: string) => {
-      if (orientation === 'LANDSCAPE-LEFT' || orientation === 'LANDSCAPE-RIGHT') {
+      const isLandscape = orientation === 'LANDSCAPE-LEFT' || orientation === 'LANDSCAPE-RIGHT'
+      const isPortrait = orientation === 'PORTRAIT'
+      if (!isFullscreen && isLandscape) {
+        suppressUntilRef.current = Date.now() + 1000
         setIsFullscreen(true)
+        Orientation.unlockAllOrientations()
+      } else if (isFullscreen && isPortrait) {
+        suppressUntilRef.current = Date.now() + 1000
+        setIsFullscreen(false)
+        Orientation.unlockAllOrientations()
       }
     }
     Orientation.addDeviceOrientationListener(listener)
@@ -117,7 +124,7 @@ export const FullscreenControls = () => {
                 }}
               >
                 <TouchableOpacity
-                  onPress={() => setIsFullscreen(false)}
+                  onPress={exitFullscreen}
                   style={{ padding: 8 }}
                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 >
