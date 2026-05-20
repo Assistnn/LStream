@@ -60,25 +60,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
       },
       signOut: async () => {
-        const currentToken = state.token
-        setState({ status: 'signedOut', token: null })
-        try {
-          await AsyncStorage.removeItem('authToken')
-        } catch {
-          // ignore
-        }
-        if (currentToken) {
+        if (state.token) {
           try {
             await fetch('https://login.lseed.app/logout', {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
-                Authorization: `Bearer ${currentToken}`,
+                Authorization: `Bearer ${state.token}`,
               },
             })
           } catch {
             // ignore
           }
+        }
+        setState({ status: 'signedOut', token: null })
+        try {
+          await AsyncStorage.removeItem('authToken')
+        } catch {
+          // ignore
         }
       },
     }),
