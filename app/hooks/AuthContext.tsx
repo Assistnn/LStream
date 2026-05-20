@@ -1,6 +1,12 @@
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import type { ReactNode } from 'react'
 import { createContext, useContext, useEffect, useMemo, useState } from 'react'
+import { NativeModules, TurboModuleRegistry } from 'react-native'
+
+const WebAuthSessionModule = (TurboModuleRegistry.get('WebAuthSessionModule') ??
+  NativeModules.WebAuthSessionModule) as {
+  openAuthSession: (url: string, host: string, path: string) => Promise<string>
+}
 
 type AuthStatus = 'loading' | 'signedOut' | 'signedIn'
 
@@ -60,18 +66,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
       },
       signOut: async () => {
-        if (state.token) {
-          try {
-            await fetch('https://login.lseed.app/logout', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${state.token}`,
-              },
-            })
-          } catch {
-            // ignore
-          }
+        try {
+          await WebAuthSessionModule.openAuthSession(
+            'https://login.lseed.app/logout',
+            'login.lseed.app',
+            '/app/lstream',
+          )
+        } catch {
+          // ignore
         }
         setState({ status: 'signedOut', token: null })
         try {
