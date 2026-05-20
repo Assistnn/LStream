@@ -148,6 +148,7 @@ export const EpisodePlayer = ({
 
   const currentEpisodeIndex = currentContent.episodeIndex
   const units = currentContent.units
+  const apiChapters = currentUnit?.chapters ?? episode.chapters ?? []
 
   const speedOptions = [0.75, 1.0, 1.25, 1.5, 2.0]
   const timerOptions = [
@@ -1091,6 +1092,43 @@ export const EpisodePlayer = ({
             </View>
 
             <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom }}>
+              {apiChapters.length > 0 && (
+                <View style={{ borderBottomWidth: 1, borderBottomColor: colors.border }}>
+                  <View
+                    style={{
+                      paddingHorizontal: spacing.lg,
+                      paddingVertical: spacing.sm,
+                      backgroundColor: colors.muted,
+                    }}
+                  >
+                    <Text style={[styles.bodySmall, { fontWeight: '600' }]}>チャプター</Text>
+                  </View>
+                  {apiChapters.map((chapter, index) => (
+                    <TouchableOpacity
+                      key={`api-chapter-${index}`}
+                      onPress={() => {
+                        seek(chapter.position)
+                        setShowChapterList(false)
+                      }}
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        gap: spacing.md,
+                        paddingHorizontal: spacing.lg,
+                        paddingVertical: spacing.md,
+                        borderBottomWidth: 1,
+                        borderBottomColor: colors.border,
+                      }}
+                    >
+                      <Text style={[styles.bodySmall, { width: 48 }]}>{formatTime(chapter.position)}</Text>
+                      <Text style={[styles.textDefault, { flex: 1 }]} numberOfLines={1}>
+                        {chapter.title}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+
               {myChapters.length > 0 && (
                 <View style={{ borderBottomWidth: 1, borderBottomColor: colors.border }}>
                   <View
@@ -1177,7 +1215,7 @@ export const EpisodePlayer = ({
                 </View>
               )}
 
-              {myChapters.length === 0 && (
+              {apiChapters.length === 0 && myChapters.length === 0 && (
                 <View style={{ paddingHorizontal: spacing.lg, paddingVertical: spacing['3xl'], alignItems: 'center' }}>
                   <Text style={styles.bodySmall}>チャプターがありません</Text>
                 </View>

@@ -109,6 +109,7 @@ export const seriesMediaToTrack = (ep: SeriesMedia): PlayableTrack => ({
   duration: ep.duration,
   progress: ep.progress,
   parentTitle: ep.parentTitle,
+  chapters: ep.chapters,
   ...(ep.units
     ? {
         children: ep.units.map(
@@ -121,6 +122,7 @@ export const seriesMediaToTrack = (ep: SeriesMedia): PlayableTrack => ({
             duration: u.duration,
             progress: u.progress,
             parentTitle: u.parentTitle,
+            chapters: u.chapters,
           }),
         ),
       }

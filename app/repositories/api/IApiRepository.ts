@@ -104,6 +104,11 @@ export interface PlaybackHistoryItem {
   date: string
 }
 
+export interface ApiChapter {
+  title: string
+  position: number
+}
+
 export interface SeriesMedia {
   item_id: number
   type_media: 0 | 1 | 2
@@ -112,6 +117,7 @@ export interface SeriesMedia {
   title: string
   duration: number
   progress: number
+  chapters?: ApiChapter[]
   units?: Omit<SeriesMedia, 'units'>[]
   // アプリ側で設定。unit > 親episode、episode > 親シリーズのタイトルが入る
   parentTitle: string
@@ -145,6 +151,7 @@ export interface SeriesResponse extends ApiResult, SeriesSummaryDetail {
   type_media: 0 | 1 | 2
   url: string
   progress: number
+  chapters?: ApiChapter[]
   episodes: SeriesMedia[]
 }
 

@@ -11,6 +11,11 @@ import { useDownload } from './DownloadContext'
 
 type PlaybackState = 'idle' | 'loading' | 'playing' | 'paused' | 'ended' | 'error'
 
+export type PlayableChapter = {
+  title: string
+  position: number
+}
+
 export type PlayableChild = {
   id: number
   mediaType: number
@@ -20,6 +25,7 @@ export type PlayableChild = {
   duration: number
   progress: number
   parentTitle: string
+  chapters?: PlayableChapter[]
 }
 
 export type PlayableTrack = PlayableChild & {
@@ -697,16 +703,13 @@ export const PlayerVideo = ({ style }: { style?: ViewStyle }) => {
   )
   const onLoad = useCallback((data: { duration: number }) => handleLoad(data.duration), [handleLoad])
   const externallyPausedRef = useRef(false)
-  const onPlaybackRateChange = useCallback(
-    ({ playbackRate: rate }: { playbackRate: number }) => {
-      if (rate === 0 && AppState.currentState !== 'active') {
-        externallyPausedRef.current = true
-      } else if (rate > 0) {
-        externallyPausedRef.current = false
-      }
-    },
-    [],
-  )
+  const onPlaybackRateChange = useCallback(({ playbackRate: rate }: { playbackRate: number }) => {
+    if (rate === 0 && AppState.currentState !== 'active') {
+      externallyPausedRef.current = true
+    } else if (rate > 0) {
+      externallyPausedRef.current = false
+    }
+  }, [])
   const onBuffer = useCallback(
     ({ isBuffering: buffering }: { isBuffering: boolean }) => handleBuffer(buffering),
     [handleBuffer],
