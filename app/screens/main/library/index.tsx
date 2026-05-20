@@ -1,3 +1,5 @@
+import { useNavigation } from '@react-navigation/native'
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack'
 import {
   ArrowDown,
   ArrowUp,
@@ -39,6 +41,7 @@ export const LibraryTabScreen = () => {
   const insets = useSafeAreaInsets()
   const { styles, colors, spacing, borderRadius, typography } = useTheme()
   const settings = useSettings()
+  const navigation = useNavigation<NativeStackNavigationProp<{ SeriesDetail: { seriesId: number } }>>()
 
   const [showSearch, setShowSearch] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
@@ -344,14 +347,21 @@ export const LibraryTabScreen = () => {
                   marginBottom: spacing.md,
                 }}
               >
-                <LibraryCard item={item} onPress={() => {}} />
+                <LibraryCard
+                  item={item}
+                  onPress={() => navigation.navigate('SeriesDetail', { seriesId: item.series_id })}
+                />
               </View>
             ))}
           </View>
         ) : (
           <View style={{ gap: spacing.md, paddingHorizontal: spacing.lg }}>
             {data.map((item) => (
-              <LibraryListItem key={item.series_id} item={item} onPress={() => {}} />
+              <LibraryListItem
+                key={item.series_id}
+                item={item}
+                onPress={() => navigation.navigate('SeriesDetail', { seriesId: item.series_id })}
+              />
             ))}
           </View>
         )}

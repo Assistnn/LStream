@@ -12,6 +12,7 @@ import { MediaMenuButton } from '../../../components/ui/MediaMenuButton'
 import { SeriesProgessBar } from '../../../components/ui/SeriesProgessBar'
 import { ThemedRefreshControl } from '../../../components/ui/ThemedRefreshControl'
 import { useDownload } from '../../../hooks/DownloadContext'
+import type { PlayableTrack } from '../../../hooks/PlayerContext'
 import { usePlayer } from '../../../hooks/PlayerContext'
 import { useTheme } from '../../../hooks/ThemeContext'
 import { isFavoriteEpisode } from '../../../usecases/useGetFavorites'
@@ -55,7 +56,22 @@ export const SeriesDetailScreen = ({
     return null
   }
 
-  const playableTracks = data.episodes.map(seriesMediaToTrack)
+  const playableTracks =
+    data.episodes.length > 0
+      ? data.episodes.map(seriesMediaToTrack)
+      : [
+          {
+            id: data.series_id,
+            mediaType: data.type_media,
+            url: data.url,
+            img: data.img,
+            title: data.title,
+            duration: data.duration,
+            progress: data.progress,
+            parentTitle: '',
+            chapters: data.chapters,
+          } satisfies PlayableTrack,
+        ]
 
   const filteredEpisodes =
     filterType === 'all'
@@ -100,7 +116,10 @@ export const SeriesDetailScreen = ({
                   {(() => {
                     const hours = Math.floor(data.duration / 3600)
                     const minutes = Math.floor((data.duration % 3600) / 60)
-                    return hours > 0 ? `${hours}:${minutes.toString().padStart(2, '0')}:00` : `${minutes}:00`
+                    const seconds = data.duration % 60
+                    return hours > 0
+                      ? `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
+                      : `${minutes}:${seconds.toString().padStart(2, '0')}`
                   })()}
                 </Text>
               </View>
@@ -180,9 +199,12 @@ export const SeriesDetailScreen = ({
 
           <View style={{ paddingTop: spacing.lg, gap: spacing.sm }}>
             {(() => {
-              const hasProgress = data.episodes.some(
-                (ep) => ep.progress > 0 || (ep.units && ep.units.some((unit) => unit.progress > 0)),
-              )
+              const isSingleContent = data.episodes.length === 0
+              const hasProgress = isSingleContent
+                ? data.progress > 0
+                : data.episodes.some(
+                    (ep) => ep.progress > 0 || (ep.units && ep.units.some((unit) => unit.progress > 0)),
+                  )
               const inProgressEpisode = data.episodes.find((ep) => ep.progress > 0 && ep.progress < ep.duration)
               const nextUnwatchedEpisode = data.episodes.find((ep) => ep.progress === 0)
               const resumeEpisode = inProgressEpisode || nextUnwatchedEpisode || data.episodes[0]
@@ -197,20 +219,20 @@ export const SeriesDetailScreen = ({
                     icon={<Play size={20} />}
                     fillIcon
                     onPress={() => {
-                      if (resumeEpisode) {
+                      if (isSingleContent) {
+                        play(data.series_id, playableTracks)
+                      } else if (resumeEpisode) {
                         play(data.series_id, playableTracks, resumeEpisode.item_id)
                       }
                     }}
                   >
-                    {`続きから再生 (Episode ${resumeEpisodeIndex + 1})`}
+                    {isSingleContent ? '続きから再生' : `続きから再生 (Episode ${resumeEpisodeIndex + 1})`}
                   </Button>
                   <Button
                     variant='secondary'
                     icon={<CirclePlay size={20} />}
                     onPress={() => {
-                      if (data.episodes[0]) {
-                        play(data.series_id, playableTracks)
-                      }
+                      play(data.series_id, playableTracks)
                     }}
                   >
                     最初から再生
@@ -220,9 +242,7 @@ export const SeriesDetailScreen = ({
                 <Button
                   variant='primary'
                   onPress={() => {
-                    if (data.episodes[0]) {
-                      play(data.series_id, playableTracks)
-                    }
+                    play(data.series_id, playableTracks)
                   }}
                 >
                   すべて完了！もう一度学習する
@@ -235,151 +255,159 @@ export const SeriesDetailScreen = ({
                     play(data.series_id, playableTracks)
                   }}
                 >
-                  最初から再生 (Episode 1)
+                  {isSingleContent ? '再生' : '最初から再生 (Episode 1)'}
                 </Button>
               )
             })()}
           </View>
         </View>
 
-        <View style={{ paddingHorizontal: spacing.lg, flexDirection: 'column', gap: spacing.md }}>
-          <Text style={styles.text2xl}>エピソード一覧</Text>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
-            <TouchableOpacity
-              style={[
-                styles.buttonSecondary,
-                {
-                  paddingHorizontal: spacing.lg,
-                  paddingVertical: spacing.sm,
-                  backgroundColor: filterType === 'all' ? colors.primary : colors.secondary,
-                },
-              ]}
-              onPress={() => setFilterType('all')}
-            >
-              <Text style={[{ color: filterType === 'all' ? colors.primaryForeground : colors.secondaryForeground }]}>
-                すべて
-              </Text>
-            </TouchableOpacity>
+        {data.episodes.length > 0 && (
+          <>
+            <View style={{ paddingHorizontal: spacing.lg, flexDirection: 'column', gap: spacing.md }}>
+              <Text style={styles.text2xl}>エピソード一覧</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
+                <TouchableOpacity
+                  style={[
+                    styles.buttonSecondary,
+                    {
+                      paddingHorizontal: spacing.lg,
+                      paddingVertical: spacing.sm,
+                      backgroundColor: filterType === 'all' ? colors.primary : colors.secondary,
+                    },
+                  ]}
+                  onPress={() => setFilterType('all')}
+                >
+                  <Text
+                    style={[{ color: filterType === 'all' ? colors.primaryForeground : colors.secondaryForeground }]}
+                  >
+                    すべて
+                  </Text>
+                </TouchableOpacity>
 
-            <TouchableOpacity
-              style={[
-                styles.buttonSecondary,
-                {
-                  paddingHorizontal: spacing.lg,
-                  paddingVertical: spacing.sm,
-                  backgroundColor: filterType === 'notStarted' ? colors.primary : colors.secondary,
-                },
-              ]}
-              onPress={() => setFilterType('notStarted')}
-            >
-              <Text
-                style={[{ color: filterType === 'notStarted' ? colors.primaryForeground : colors.secondaryForeground }]}
-              >
-                未再生のみ
-              </Text>
-            </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.buttonSecondary,
+                    {
+                      paddingHorizontal: spacing.lg,
+                      paddingVertical: spacing.sm,
+                      backgroundColor: filterType === 'notStarted' ? colors.primary : colors.secondary,
+                    },
+                  ]}
+                  onPress={() => setFilterType('notStarted')}
+                >
+                  <Text
+                    style={[
+                      { color: filterType === 'notStarted' ? colors.primaryForeground : colors.secondaryForeground },
+                    ]}
+                  >
+                    未再生のみ
+                  </Text>
+                </TouchableOpacity>
 
-            <TouchableOpacity
-              ref={sortButtonRef}
-              style={[
-                styles.buttonSecondary,
-                {
-                  paddingHorizontal: spacing.md,
-                  paddingVertical: spacing.sm,
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  gap: spacing.xs,
-                  marginLeft: 'auto',
-                  borderRadius: 6,
-                  borderWidth: 1,
-                  borderColor: colors.border,
-                },
-              ]}
-              onPress={() => {
-                sortButtonRef.current?.measure(
-                  (_x: number, _y: number, _width: number, height: number, _pageX: number, pageY: number) => {
-                    setSortMenuAnchorY(pageY + height + 4)
-                    setSortMenuVisible(true)
-                  },
-                )
-              }}
-            >
-              <Text style={{ color: colors.secondaryForeground }}>
-                {sortOrder === 'default' ? '登録順' : sortOrder === 'newest' ? '新着順' : '古い順'}
-              </Text>
-              <ChevronDown size={16} color={colors.secondaryForeground} />
-            </TouchableOpacity>
-            <ContextMenu
-              visible={sortMenuVisible}
-              items={[
-                { label: '登録順', onPress: () => setSortOrder('default') },
-                { label: '新着順', onPress: () => setSortOrder('newest') },
-                { label: '古い順', onPress: () => setSortOrder('oldest') },
-              ]}
-              onClose={() => setSortMenuVisible(false)}
-              position='right'
-              anchorY={sortMenuAnchorY}
-            />
-          </View>
-        </View>
-
-        <EpisodeMediaList
-          episodes={sortedEpisodes}
-          onEpisodePress={(ep) => play(data.series_id, playableTracks, ep.id)}
-          onUnitPress={(ep, unit) => play(data.series_id, playableTracks, ep.id, unit.id)}
-          renderThumbnailOverlay={(ep) => (
-            <>
-              {isFavoriteEpisode(seriesId, ep.id) && (
-                <View
-                  style={{
-                    position: 'absolute',
-                    top: -4,
-                    left: -4,
-                    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-                    borderRadius: 12,
-                    padding: 4,
+                <TouchableOpacity
+                  ref={sortButtonRef}
+                  style={[
+                    styles.buttonSecondary,
+                    {
+                      paddingHorizontal: spacing.md,
+                      paddingVertical: spacing.sm,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: spacing.xs,
+                      marginLeft: 'auto',
+                      borderRadius: 6,
+                      borderWidth: 1,
+                      borderColor: colors.border,
+                    },
+                  ]}
+                  onPress={() => {
+                    sortButtonRef.current?.measure(
+                      (_x: number, _y: number, _width: number, height: number, _pageX: number, pageY: number) => {
+                        setSortMenuAnchorY(pageY + height + 4)
+                        setSortMenuVisible(true)
+                      },
+                    )
                   }}
                 >
-                  <Heart size={12} color='#ef4444' fill='#ef4444' strokeWidth={0} />
-                </View>
+                  <Text style={{ color: colors.secondaryForeground }}>
+                    {sortOrder === 'default' ? '登録順' : sortOrder === 'newest' ? '新着順' : '古い順'}
+                  </Text>
+                  <ChevronDown size={16} color={colors.secondaryForeground} />
+                </TouchableOpacity>
+                <ContextMenu
+                  visible={sortMenuVisible}
+                  items={[
+                    { label: '登録順', onPress: () => setSortOrder('default') },
+                    { label: '新着順', onPress: () => setSortOrder('newest') },
+                    { label: '古い順', onPress: () => setSortOrder('oldest') },
+                  ]}
+                  onClose={() => setSortMenuVisible(false)}
+                  position='right'
+                  anchorY={sortMenuAnchorY}
+                />
+              </View>
+            </View>
+
+            <EpisodeMediaList
+              episodes={sortedEpisodes}
+              onEpisodePress={(ep) => play(data.series_id, playableTracks, ep.id)}
+              onUnitPress={(ep, unit) => play(data.series_id, playableTracks, ep.id, unit.id)}
+              renderThumbnailOverlay={(ep) => (
+                <>
+                  {isFavoriteEpisode(seriesId, ep.id) && (
+                    <View
+                      style={{
+                        position: 'absolute',
+                        top: -4,
+                        left: -4,
+                        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                        borderRadius: 12,
+                        padding: 4,
+                      }}
+                    >
+                      <Heart size={12} color='#ef4444' fill='#ef4444' strokeWidth={0} />
+                    </View>
+                  )}
+                </>
               )}
-            </>
-          )}
-          renderEpisodeActions={(ep, hasUnits) =>
-            !hasUnits ? (
-              <MediaMenuButton
-                seriesId={data.series_id}
-                mediaId={ep.id}
-                mediaType='episode'
-                size={16}
-                mediaInfo={{
-                  title: ep.title,
-                  seriesTitle: data.title,
-                  thumbnail: ep.img,
-                  duration: ep.duration,
-                  url: ep.url,
-                  contentMediaType: ep.mediaType,
-                }}
-              />
-            ) : null
-          }
-          renderUnitActions={(unit, ep) => (
-            <MediaMenuButton
-              seriesId={data.series_id}
-              mediaId={unit.id}
-              mediaType='unit'
-              size={16}
-              mediaInfo={{
-                title: unit.title,
-                seriesTitle: `${data.title} / ${ep.title}`,
-                thumbnail: unit.img || ep.img,
-                duration: unit.duration,
-                url: unit.url,
-                contentMediaType: unit.mediaType,
-              }}
+              renderEpisodeActions={(ep, hasUnits) =>
+                !hasUnits ? (
+                  <MediaMenuButton
+                    seriesId={data.series_id}
+                    mediaId={ep.id}
+                    mediaType='episode'
+                    size={16}
+                    mediaInfo={{
+                      title: ep.title,
+                      seriesTitle: data.title,
+                      thumbnail: ep.img,
+                      duration: ep.duration,
+                      url: ep.url,
+                      contentMediaType: ep.mediaType,
+                    }}
+                  />
+                ) : null
+              }
+              renderUnitActions={(unit, ep) => (
+                <MediaMenuButton
+                  seriesId={data.series_id}
+                  mediaId={unit.id}
+                  mediaType='unit'
+                  size={16}
+                  mediaInfo={{
+                    title: unit.title,
+                    seriesTitle: `${data.title} / ${ep.title}`,
+                    thumbnail: unit.img || ep.img,
+                    duration: unit.duration,
+                    url: unit.url,
+                    contentMediaType: unit.mediaType,
+                  }}
+                />
+              )}
             />
-          )}
-        />
+          </>
+        )}
       </ScrollView>
     </View>
   )

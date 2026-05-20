@@ -38,7 +38,10 @@ const HomeStack = createNativeStackNavigator<{
   NewArrivals: undefined
   SeriesDetail: { seriesId: number }
 }>()
-const LibraryStack = createNativeStackNavigator()
+const LibraryStack = createNativeStackNavigator<{
+  LibraryRoot: undefined
+  SeriesDetail: { seriesId: number }
+}>()
 const FavoritesStack = createNativeStackNavigator()
 const PlaylistStack = createNativeStackNavigator<PlaylistStackParamList>()
 const HistoryStack = createNativeStackNavigator()
@@ -87,11 +90,28 @@ const HomeStackScreen = () => {
   )
 }
 
-const LibraryStackScreen = () => (
-  <LibraryStack.Navigator screenOptions={{ headerShown: false, presentation: 'card', animation: 'default' }}>
-    <LibraryStack.Screen name='LibraryRoot' component={LibraryTabScreen} options={{ title: 'ライブラリ' }} />
-  </LibraryStack.Navigator>
-)
+const LibraryStackScreen = () => {
+  const { colors } = useTheme()
+  return (
+    <LibraryStack.Navigator screenOptions={{ headerShown: false, presentation: 'card', animation: 'default' }}>
+      <LibraryStack.Screen name='LibraryRoot' component={LibraryTabScreen} options={{ title: 'ライブラリ' }} />
+      <LibraryStack.Screen
+        name='SeriesDetail'
+        component={SeriesDetailScreen}
+        options={() => ({
+          title: '',
+          headerShown: true,
+          presentation: 'card',
+          headerShadowVisible: false,
+          headerStyle: {
+            backgroundColor: colors.navBar,
+          },
+          headerTintColor: colors.text,
+        })}
+      />
+    </LibraryStack.Navigator>
+  )
+}
 
 const FavoritesStackScreen = () => (
   <FavoritesStack.Navigator screenOptions={{ headerShown: false, presentation: 'card', animation: 'default' }}>

@@ -42,7 +42,10 @@ export const RecommendCard = ({ series, onPress }: { series: SeriesSummaryDetail
             {(() => {
               const hours = Math.floor(series.duration / 3600)
               const minutes = Math.floor((series.duration % 3600) / 60)
-              return hours > 0 ? `${hours}:${minutes.toString().padStart(2, '0')}:00` : `${minutes}:00`
+              const seconds = series.duration % 60
+              return hours > 0
+                ? `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
+                : `${minutes}:${seconds.toString().padStart(2, '0')}`
             })()}
           </Text>
         </View>
