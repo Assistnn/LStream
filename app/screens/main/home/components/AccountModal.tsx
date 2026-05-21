@@ -326,10 +326,19 @@ export const AccountModal = ({
                   alignItems: 'center',
                   justifyContent: 'center',
                 }}
-                onPress={() => {
-                  onClose()
-                  void signOut()
-                }}
+                onPress={() =>
+                  Alert.alert('ログアウト', '本当にログアウトしますか？', [
+                    { text: 'キャンセル', style: 'cancel' },
+                    {
+                      text: 'ログアウト',
+                      style: 'destructive',
+                      onPress: () => {
+                        onClose()
+                        void signOut()
+                      },
+                    },
+                  ])
+                }
               >
                 <Text style={[styles.textDefault, { color: colors.destructive }]}>ログアウト</Text>
               </TouchableOpacity>

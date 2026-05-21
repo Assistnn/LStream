@@ -10,10 +10,12 @@ import {
   HelpCircle,
   History,
   Info,
+  LogOut,
   Palette,
   Repeat,
   Settings as SettingsIcon,
   Trash2,
+  User,
   Wifi,
 } from 'lucide-react-native'
 import { useEffect, useState } from 'react'
@@ -28,12 +30,14 @@ import {
   Switch,
   Text,
   TouchableOpacity,
+  TurboModuleRegistry,
   View,
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { PageTitle } from '../../../components/ui/PageTitle'
 import { syncAllAlarms } from '../../../hooks/alarmService'
+import { useAuth } from '../../../hooks/AuthContext'
 import type { ThemeMode } from '../../../hooks/ThemeContext'
 import { useTheme } from '../../../hooks/ThemeContext'
 import packageJson from '../../../package.json'
@@ -42,6 +46,13 @@ import type { LoopMode } from '../../../repositories/storage'
 import { StorageRepository } from '../../../repositories/storage'
 import { clearFavoritesCache } from '../../../usecases/useGetFavorites'
 import { clearSettingsCache } from '../../../usecases/useSettings'
+import { AccountModal } from '../home/components/AccountModal'
+import { AddTenantModal } from '../home/components/AddTenantModal'
+
+const WebAuthSessionModule = (TurboModuleRegistry.get('WebAuthSessionModule') ??
+  NativeModules.WebAuthSessionModule) as {
+  openAuthSession: (url: string, host: string, path: string) => Promise<string>
+}
 
 const ICON_SIZE = 20
 const ICON_BG_SIZE = 32
@@ -65,7 +76,10 @@ type SettingItem =
 export const SettingsTabScreen = () => {
   const insets = useSafeAreaInsets()
   const { themeMode, styles, colors, spacing, setThemeMode } = useTheme()
+  const { signOut } = useAuth()
 
+  const [showAccountModal, setShowAccountModal] = useState(false)
+  const [showAddTenant, setShowAddTenant] = useState(false)
   const [showThemeMenu, setShowThemeMenu] = useState(false)
   const [showNextEpisode, setShowNextEpisode] = useState(true)
   const [showHistoryRetentionMenu, setShowHistoryRetentionMenu] = useState(false)
@@ -312,6 +326,25 @@ export const SettingsTabScreen = () => {
           icon: Trash2,
           label: 'キャッシュを削除',
           onPress: clearCache,
+        },
+      ],
+    },
+    {
+      title: 'アカウント',
+      items: [
+        {
+          icon: User,
+          label: 'アカウント情報',
+          onPress: () => setShowAccountModal(true),
+        },
+        {
+          icon: LogOut,
+          label: 'ログアウト',
+          onPress: () =>
+            Alert.alert('ログアウト', '本当にログアウトしますか？', [
+              { text: 'キャンセル', style: 'cancel' },
+              { text: 'ログアウト', style: 'destructive', onPress: () => void signOut() },
+            ]),
         },
       ],
     },
@@ -581,6 +614,29 @@ export const SettingsTabScreen = () => {
           </View>
         </TouchableOpacity>
       </Modal>
+
+      <AccountModal
+        visible={showAccountModal}
+        onClose={() => setShowAccountModal(false)}
+        onAddTenant={() => {
+          setShowAccountModal(false)
+          setTimeout(() => setShowAddTenant(true), 300)
+        }}
+      />
+      <AddTenantModal
+        visible={showAddTenant}
+        onClose={() => setShowAddTenant(false)}
+        onSubmit={async (code) => {
+          setShowAddTenant(false)
+          await new Promise<void>((resolve) => setTimeout(resolve, 500))
+          try {
+            await WebAuthSessionModule.openAuthSession(`https://${code}.lseed.app`, 'login.lseed.app', '/app/lstream')
+          } catch (e: unknown) {
+            if (e instanceof Error && (e.message?.includes('cancelled') || e.message?.includes('USER_CANCELLED'))) return
+            Alert.alert('エラー', '認証に失敗しました')
+          }
+        }}
+      />
     </View>
   )
 }
