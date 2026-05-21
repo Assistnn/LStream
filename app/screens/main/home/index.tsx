@@ -204,7 +204,11 @@ export const HomeTabScreen = ({
                   }}
                 >
                   {data.news.map((item, index) => (
-                    <NewsCard key={index} news={item} onPress={() => {}} />
+                    <NewsCard
+                      key={index}
+                      news={item}
+                      onPress={() => navigation.navigate('SeriesDetail', { seriesId: item.series_id })}
+                    />
                   ))}
                 </ScrollView>
               </View>

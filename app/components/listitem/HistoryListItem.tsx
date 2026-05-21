@@ -21,9 +21,23 @@ export const HistoryListItem = ({ item, isTop }: { item: PlaybackHistoryItem; is
   const handlePlay = async () => {
     try {
       const seriesData = await apiRepository.getSeries(item.series_id)
-      if (seriesData.result) {
-        play(seriesData.series_id, seriesData.episodes.map(seriesMediaToTrack), item.item_id)
-      }
+      const tracks =
+        seriesData.episodes.length > 0
+          ? seriesData.episodes.map(seriesMediaToTrack)
+          : [
+              {
+                id: seriesData.series_id,
+                mediaType: seriesData.type_media,
+                url: seriesData.url,
+                img: seriesData.img,
+                title: seriesData.title,
+                duration: seriesData.duration,
+                progress: seriesData.progress,
+                parentTitle: '',
+                chapters: seriesData.chapters,
+              },
+            ]
+      play(seriesData.series_id, tracks, item.item_id)
     } catch (error) {
       console.error('Failed to play from history:', error)
     }
