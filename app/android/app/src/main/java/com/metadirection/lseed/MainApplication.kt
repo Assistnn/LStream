@@ -17,6 +17,7 @@ class MainApplication : Application(), ReactApplication {
           add(CacheManagerPackage())
           add(WebAuthSessionPackage())
           add(VideoConverterPackage())
+          add(PipPackage())
         },
     )
   }

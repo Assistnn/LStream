@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import type { ReactNode } from 'react'
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
-import { Alert, AppState, type ViewStyle } from 'react-native'
+import { Alert, AppState, NativeModules, Platform, type ViewStyle } from 'react-native'
 import Video, { type VideoRef } from 'react-native-video'
 
 import { apiRepository } from '../repositories/api'
@@ -372,6 +372,12 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
       }
     }
   }, [settings.sleepTimer, state.playbackState])
+
+  useEffect(() => {
+    if (Platform.OS === 'android') {
+      NativeModules.PipModule?.setVideoPlaying(state.playbackState === 'playing')
+    }
+  }, [state.playbackState])
 
   const applyDefaultSettings = async () => {
     const saved = await StorageRepository.getPlayerSettings()
