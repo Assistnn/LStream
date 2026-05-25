@@ -1,6 +1,6 @@
 import { AlertCircle, List, Pause, Play, X } from 'lucide-react-native'
 import { useCallback, useRef } from 'react'
-import { ActivityIndicator, Image, Text, TouchableOpacity, View } from 'react-native'
+import { ActivityIndicator, Image, Platform, StatusBar, Text, TouchableOpacity, View } from 'react-native'
 
 import { usePlayer } from '../../hooks/PlayerContext'
 import { useTheme } from '../../hooks/ThemeContext'
@@ -19,7 +19,8 @@ export const MiniPlayer = ({ onTap, onListTap }: { onTap: () => void; onListTap:
   const measureSlot = useCallback(() => {
     slotRef.current?.measureInWindow((x, y, width, height) => {
       if (width > 0 && height > 0) {
-        setCompactSlot({ x, y, width, height })
+        const offsetY = Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) : 0
+        setCompactSlot({ x, y: y + offsetY, width, height })
       }
     })
   }, [setCompactSlot])
@@ -38,14 +39,7 @@ export const MiniPlayer = ({ onTap, onListTap }: { onTap: () => void; onListTap:
     <View
       style={{
         height: 56,
-        borderTopWidth: 1,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: -2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 8,
         backgroundColor: colors.navBar,
-        borderTopColor: colors.border,
       }}
     >
       <TouchableOpacity style={{ flex: 1 }} onPress={onTap} activeOpacity={0.8}>

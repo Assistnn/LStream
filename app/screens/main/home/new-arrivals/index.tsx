@@ -5,13 +5,14 @@ import { EpisodeListItem } from '../../../../components/listitem/EpisodeListItem
 import { EmptyState } from '../../../../components/ui/EmptyState'
 import { LoadingSpinner } from '../../../../components/ui/LoadingSpinner'
 import { MediaMenuButton } from '../../../../components/ui/MediaMenuButton'
-import { ThemedRefreshControl } from '../../../../components/ui/ThemedRefreshControl'
+import { useThemedRefreshControl } from '../../../../components/ui/ThemedRefreshControl'
 import { useTheme } from '../../../../hooks/ThemeContext'
 import { useGetNewArrivals } from '../../../../usecases/useGetNewArrivals'
 
 export const NewArrivalsScreen = () => {
   const { styles, colors, spacing } = useTheme()
   const { data: episodes, loading, refetch } = useGetNewArrivals()
+  const refreshControl = useThemedRefreshControl(episodes !== null && loading, refetch)
   return (
     <View style={[styles.screenContainer]}>
       <View style={{ height: 0.5, backgroundColor: colors.border }} />
@@ -23,7 +24,7 @@ export const NewArrivalsScreen = () => {
         <FlatList
           data={episodes}
           keyExtractor={(item) => `${item.series_id}-${item.item_id}`}
-          refreshControl={<ThemedRefreshControl refreshing={episodes !== null && loading} onRefresh={refetch} />}
+          refreshControl={refreshControl}
           ListHeaderComponent={
             <View
               style={{

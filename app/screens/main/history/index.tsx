@@ -18,7 +18,7 @@ import { HistoryListItem } from '../../../components/listitem/HistoryListItem'
 import { EmptyState } from '../../../components/ui/EmptyState'
 import { LoadingSpinner } from '../../../components/ui/LoadingSpinner'
 import { PageTitle } from '../../../components/ui/PageTitle'
-import { ThemedRefreshControl } from '../../../components/ui/ThemedRefreshControl'
+import { useThemedRefreshControl } from '../../../components/ui/ThemedRefreshControl'
 import { useDownload } from '../../../hooks/DownloadContext'
 import { usePlayer } from '../../../hooks/PlayerContext'
 import { useTheme } from '../../../hooks/ThemeContext'
@@ -169,21 +169,18 @@ export const HistoryTabScreen = () => {
     )
   }
 
+  const refreshControl = useThemedRefreshControl(refreshing, async () => {
+    setRefreshing(true)
+    if (activeTab === 'history') await refetchHistory()
+    setRefreshing(false)
+  })
+
   return (
     <View style={[styles.screenContainer, { paddingTop: insets.top }]}>
       <ScrollView
         style={styles.scrollContainer}
         contentContainerStyle={styles.scrollContentContainer}
-        refreshControl={
-          <ThemedRefreshControl
-            refreshing={refreshing}
-            onRefresh={async () => {
-              setRefreshing(true)
-              if (activeTab === 'history') await refetchHistory()
-              setRefreshing(false)
-            }}
-          />
-        }
+        refreshControl={refreshControl}
       >
         <PageTitle icon={Clock} title='履歴' />
         {/* Tab Buttons */}

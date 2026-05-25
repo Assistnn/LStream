@@ -2,7 +2,16 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
 import { Clock, Heart, Home, Library, ListMusic, Settings } from 'lucide-react-native'
 import { useEffect, useRef, useState } from 'react'
-import { ActivityIndicator, Animated, BackHandler, Easing, Image, useWindowDimensions, View } from 'react-native'
+import {
+  ActivityIndicator,
+  Animated,
+  BackHandler,
+  Easing,
+  Image,
+  Platform,
+  useWindowDimensions,
+  View,
+} from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { EpisodePlayer } from '../../components/player/EpisodePlayer'
@@ -227,6 +236,30 @@ export const MainScreen = () => {
     extrapolate: 'clamp',
   })
 
+  // Androidではscale時のtranslateをtransformOriginの代わりに手動補正
+  const androidTranslateX =
+    Platform.OS === 'android'
+      ? slideAnim.interpolate({
+          inputRange: [0, screenHeight],
+          outputRange: [
+            effectiveExpanded.x,
+            effectiveCompact.x - (baseWidth * (1 - effectiveCompact.width / baseWidth)) / 2,
+          ],
+          extrapolate: 'clamp',
+        })
+      : translateX
+  const androidTranslateY =
+    Platform.OS === 'android'
+      ? slideAnim.interpolate({
+          inputRange: [0, screenHeight],
+          outputRange: [
+            effectiveExpanded.y,
+            effectiveCompact.y - (baseHeight * (1 - effectiveCompact.height / baseHeight)) / 2,
+          ],
+          extrapolate: 'clamp',
+        })
+      : translateY
+
   const videoWrapperStyle = isFullscreen
     ? {
         position: 'absolute' as const,
@@ -242,8 +275,8 @@ export const MainScreen = () => {
         left: 0,
         width: baseWidth,
         height: baseHeight,
-        transformOrigin: '0% 0%' as const,
-        transform: [{ translateX }, { translateY }, { scaleX }, { scaleY }],
+        ...(Platform.OS === 'ios' ? { transformOrigin: '0% 0%' as const } : {}),
+        transform: [{ translateX: androidTranslateX }, { translateY: androidTranslateY }, { scaleX }, { scaleY }],
         zIndex: 60,
       }
 

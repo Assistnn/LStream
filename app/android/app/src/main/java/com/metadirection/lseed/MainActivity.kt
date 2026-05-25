@@ -51,9 +51,5 @@ class MainActivity : ReactActivity() {
 
   override fun onNewIntent(intent: Intent) {
     super.onNewIntent(intent)
-    val uri = intent.data ?: return
-    val modules = reactInstanceManager?.currentReactContext
-        ?.getNativeModule(WebAuthSessionModule::class.java)
-    modules?.handleCallback(uri)
   }
 }

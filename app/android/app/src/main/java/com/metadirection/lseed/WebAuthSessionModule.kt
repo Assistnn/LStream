@@ -130,6 +130,7 @@ class WebAuthSessionModule(private val reactContext: ReactApplicationContext) :
     }
 
     override fun onNewIntent(intent: Intent) {
+        Log.d(TAG, "onNewIntent: ${intent.data}")
         val uri = intent.data ?: return
         handleCallback(uri)
     }

@@ -16,7 +16,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { ContextMenu } from '../../../components/ui/ContextMenu'
 import { LoadingSpinner } from '../../../components/ui/LoadingSpinner'
 import { PageTitle } from '../../../components/ui/PageTitle'
-import { ThemedRefreshControl } from '../../../components/ui/ThemedRefreshControl'
+import { useThemedRefreshControl } from '../../../components/ui/ThemedRefreshControl'
 import { useTheme } from '../../../hooks/ThemeContext'
 import { useGetLibrary } from '../../../usecases/useGetLibrary'
 import { useSettings } from '../../../usecases/useSettings'
@@ -92,6 +92,7 @@ export const LibraryTabScreen = () => {
     await refetch()
     setIsManualRefreshing(false)
   }
+  const refreshControl = useThemedRefreshControl(isManualRefreshing && loading, handleManualRefresh)
 
   const typeFilters = ['すべて', '音声', '動画', 'お気に入り']
   const sortMenuItems = [
@@ -117,9 +118,7 @@ export const LibraryTabScreen = () => {
       <ScrollView
         style={styles.scrollContainer}
         contentContainerStyle={styles.scrollContentContainer}
-        refreshControl={
-          <ThemedRefreshControl refreshing={isManualRefreshing && loading} onRefresh={handleManualRefresh} />
-        }
+        refreshControl={refreshControl}
       >
         <PageTitle icon={LibraryIcon} title='ライブラリ'>
           <TouchableOpacity

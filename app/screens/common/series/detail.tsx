@@ -10,7 +10,7 @@ import { ContextMenu } from '../../../components/ui/ContextMenu'
 import { LoadingSpinner } from '../../../components/ui/LoadingSpinner'
 import { MediaMenuButton } from '../../../components/ui/MediaMenuButton'
 import { SeriesProgessBar } from '../../../components/ui/SeriesProgessBar'
-import { ThemedRefreshControl } from '../../../components/ui/ThemedRefreshControl'
+import { useThemedRefreshControl } from '../../../components/ui/ThemedRefreshControl'
 import { useDownload } from '../../../hooks/DownloadContext'
 import type { PlayableTrack } from '../../../hooks/PlayerContext'
 import { usePlayer } from '../../../hooks/PlayerContext'
@@ -43,6 +43,7 @@ export const SeriesDetailScreen = ({
   const [sortMenuVisible, setSortMenuVisible] = useState(false)
   const [sortMenuAnchorY, setSortMenuAnchorY] = useState<number | undefined>(undefined)
   const sortButtonRef = useRef<View>(null)
+  const refreshControl = useThemedRefreshControl(data !== null && loading, refetch)
 
   if (!data && loading) {
     return (
@@ -93,7 +94,7 @@ export const SeriesDetailScreen = ({
       <ScrollView
         style={styles.scrollContainer}
         contentContainerStyle={styles.scrollContentContainer}
-        refreshControl={<ThemedRefreshControl refreshing={data !== null && loading} onRefresh={refetch} />}
+        refreshControl={refreshControl}
       >
         <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.lg, paddingBottom: spacing.lg }}>
           <Image source={{ uri: data.img }} style={{ width: '100%', aspectRatio: 1, borderRadius: borderRadius.sm }} />

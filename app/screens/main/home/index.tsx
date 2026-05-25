@@ -17,7 +17,7 @@ import serviceLogo from '../../../assets/logos/service-logo.png'
 import { HistoryListItem } from '../../../components/listitem/HistoryListItem'
 import { LoadingSpinner } from '../../../components/ui/LoadingSpinner'
 import { SectionHeader } from '../../../components/ui/SectionHeader'
-import { ThemedRefreshControl } from '../../../components/ui/ThemedRefreshControl'
+import { useThemedRefreshControl } from '../../../components/ui/ThemedRefreshControl'
 import { useTheme } from '../../../hooks/ThemeContext'
 import { useGetHomeData } from '../../../usecases/useGetHomeData'
 import { useSettings } from '../../../usecases/useSettings'
@@ -52,6 +52,7 @@ export const HomeTabScreen = ({
   const [logoWidth, setLogoWidth] = useState(160)
   const [showAccount, setShowAccount] = useState(false)
   const [showAddTenant, setShowAddTenant] = useState(false)
+  const refreshControl = useThemedRefreshControl(data !== null && loading, refetch)
 
   const handleAddTenant = useCallback(() => {
     setShowAccount(false)
@@ -74,7 +75,7 @@ export const HomeTabScreen = ({
       <ScrollView
         style={styles.scrollContainer}
         contentContainerStyle={styles.scrollContentContainer}
-        refreshControl={<ThemedRefreshControl refreshing={data !== null && loading} onRefresh={refetch} />}
+        refreshControl={refreshControl}
       >
         {/* Header */}
         <View style={{ paddingHorizontal: spacing.lg, gap: spacing.xs }}>

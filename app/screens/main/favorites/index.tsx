@@ -6,7 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { EmptyState } from '../../../components/ui/EmptyState'
 import { LoadingSpinner } from '../../../components/ui/LoadingSpinner'
 import { PageTitle } from '../../../components/ui/PageTitle'
-import { ThemedRefreshControl } from '../../../components/ui/ThemedRefreshControl'
+import { useThemedRefreshControl } from '../../../components/ui/ThemedRefreshControl'
 import { useTheme } from '../../../hooks/ThemeContext'
 import { refetchFavorites, useGetFavorites } from '../../../usecases/useGetFavorites'
 import { FavoriteEpisodeListItem } from './components/FavoriteEpisodeListItem'
@@ -18,21 +18,17 @@ export const FavoritesTabScreen = () => {
   const [activeTab, setActiveTab] = useState<'series' | 'episode'>('series')
   const [refreshing, setRefreshing] = useState(false)
   const favorites = useGetFavorites()
+  const refreshControl = useThemedRefreshControl(refreshing, async () => {
+    setRefreshing(true)
+    await refetchFavorites()
+    setRefreshing(false)
+  })
   return (
     <View style={[styles.screenContainer, { paddingTop: insets.top }]}>
       <ScrollView
         style={styles.scrollContainer}
         contentContainerStyle={styles.scrollContentContainer}
-        refreshControl={
-          <ThemedRefreshControl
-            refreshing={refreshing}
-            onRefresh={async () => {
-              setRefreshing(true)
-              await refetchFavorites()
-              setRefreshing(false)
-            }}
-          />
-        }
+        refreshControl={refreshControl}
       >
         <PageTitle icon={Heart} title='お気に入り' />
         {!favorites ? (

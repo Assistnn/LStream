@@ -632,7 +632,8 @@ export const SettingsTabScreen = () => {
           try {
             await WebAuthSessionModule.openAuthSession(`https://${code}.lseed.app`, 'login.lseed.app', '/app/lstream')
           } catch (e: unknown) {
-            if (e instanceof Error && (e.message?.includes('cancelled') || e.message?.includes('USER_CANCELLED'))) return
+            if (e instanceof Error && (e.message?.includes('cancelled') || e.message?.includes('USER_CANCELLED')))
+              return
             Alert.alert('エラー', '認証に失敗しました')
           }
         }}

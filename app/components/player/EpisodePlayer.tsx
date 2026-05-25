@@ -22,7 +22,7 @@ import {
   X,
 } from 'lucide-react-native'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Image, Platform, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native'
+import { Image, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Defs, LinearGradient, Rect, Stop, Svg } from 'react-native-svg'
 
@@ -68,6 +68,7 @@ export const EpisodePlayer = ({
       setLoopMode,
       isShuffleOn,
       setShuffleOn,
+      isFullscreen,
       setIsFullscreen,
     },
   } = usePlayer()
@@ -99,6 +100,13 @@ export const EpisodePlayer = ({
       () => {},
     )
   }, [setExpandedSlot])
+
+  useEffect(() => {
+    if (!isFullscreen) {
+      setTimeout(measureSlot, 500)
+      setTimeout(measureSlot, 1000)
+    }
+  }, [isFullscreen, measureSlot])
 
   useEffect(() => {
     setShowEpisodeList(initialShowEpisodeList)
@@ -195,7 +203,7 @@ export const EpisodePlayer = ({
           flexDirection: 'row',
           alignItems: 'center',
           paddingHorizontal: spacing.lg,
-          paddingTop: Platform.OS === 'ios' ? 60 : spacing.lg,
+          paddingTop: insets.top + spacing.sm,
           paddingBottom: spacing.md,
           borderBottomWidth: 1,
           borderBottomColor: colors.border,
