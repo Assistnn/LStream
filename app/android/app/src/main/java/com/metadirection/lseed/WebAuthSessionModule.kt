@@ -5,8 +5,6 @@ import android.content.ComponentName
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
-import android.os.Handler
-import android.os.Looper
 import android.util.Log
 import androidx.browser.customtabs.CustomTabsClient
 import androidx.browser.customtabs.CustomTabsIntent
@@ -116,15 +114,12 @@ class WebAuthSessionModule(private val reactContext: ReactApplicationContext) :
     }
 
     fun handleCallback(uri: Uri): Boolean {
-        Log.d(TAG, "handleCallback: uri=$uri, pendingPromise=${pendingPromise != null}, expectedHost=$expectedHost, expectedPath=$expectedPath, authInProgress=$authInProgress")
         val promise = pendingPromise ?: return false
         val host = expectedHost ?: return false
         val path = expectedPath ?: return false
 
-        Log.d(TAG, "handleCallback match: host=${uri.host}==$host, path=${uri.path}==$path")
         if (uri.host == host && uri.path == path) {
             authInProgress = false
-            Log.d(TAG, "handleCallback: RESOLVED")
             promise.resolve(uri.toString())
             pendingPromise = null
             expectedHost = null
@@ -150,15 +145,12 @@ class WebAuthSessionModule(private val reactContext: ReactApplicationContext) :
 
     override fun onHostResume() {
         if (authInProgress) {
-            Handler(Looper.getMainLooper()).postDelayed({
-                if (!authInProgress) return@postDelayed
-                authInProgress = false
-                val promise = pendingPromise ?: return@postDelayed
-                pendingPromise = null
-                expectedHost = null
-                expectedPath = null
-                promise.reject("USER_CANCELLED", "User cancelled")
-            }, 500)
+            authInProgress = false
+            val promise = pendingPromise ?: return
+            pendingPromise = null
+            expectedHost = null
+            expectedPath = null
+            promise.reject("USER_CANCELLED", "User cancelled")
         }
     }
 
