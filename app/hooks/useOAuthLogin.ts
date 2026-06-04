@@ -38,7 +38,7 @@ export const useOAuthLogin = () => {
         .replace(/=+$/, '')
 
       const params = new URLSearchParams({
-        client_id: '019dbced-45c8-7255-97b7-f35703aa5702',
+        client_id: '019e9136-9104-71f2-bca4-a7bbdb2fb91d',
         redirect_uri: 'https://login.lseed.app/app/lstream',
         response_type: 'code',
         state,
@@ -66,7 +66,7 @@ export const useOAuthLogin = () => {
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: new URLSearchParams({
           grant_type: 'authorization_code',
-          client_id: '019dbced-45c8-7255-97b7-f35703aa5702',
+          client_id: '019e9136-9104-71f2-bca4-a7bbdb2fb91d',
           code_verifier: codeVerifier,
           redirect_uri: 'https://login.lseed.app/app/lstream',
           code,

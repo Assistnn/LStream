@@ -48,7 +48,11 @@ class WebAuthSessionModule: NSObject {
       session.presentationContextProvider = self
       session.prefersEphemeralWebBrowserSession = false
       self?.currentSession = session
-      session.start()
+
+      if !session.start() {
+        self?.currentSession = nil
+        reject("START_FAILED", "Failed to start auth session", nil)
+      }
     }
   }
 
@@ -60,9 +64,14 @@ class WebAuthSessionModule: NSObject {
 
 extension WebAuthSessionModule: ASWebAuthenticationPresentationContextProviding {
   func presentationAnchor(for session: ASWebAuthenticationSession) -> ASPresentationAnchor {
-    return UIApplication.shared.connectedScenes
-      .compactMap { $0 as? UIWindowScene }
+    let windowScenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+    let windows = windowScenes
+      .sorted { $0.activationState.rawValue < $1.activationState.rawValue }
       .flatMap { $0.windows }
-      .first { $0.isKeyWindow } ?? ASPresentationAnchor()
+
+    return windows.first { $0.isKeyWindow }
+      ?? windows.first { !$0.isHidden }
+      ?? windows.first
+      ?? ASPresentationAnchor()
   }
 }
