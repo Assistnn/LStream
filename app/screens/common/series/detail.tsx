@@ -1,6 +1,6 @@
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import { ChevronDown, CirclePlay, Heart, Play } from 'lucide-react-native'
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Image, ScrollView, Text, TouchableOpacity, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
@@ -15,7 +15,7 @@ import { useDownload } from '../../../hooks/DownloadContext'
 import type { PlayableTrack } from '../../../hooks/PlayerContext'
 import { usePlayer } from '../../../hooks/PlayerContext'
 import { useTheme } from '../../../hooks/ThemeContext'
-import { isFavoriteEpisode } from '../../../usecases/useGetFavorites'
+import { isFavoriteEpisode, useGetFavorites } from '../../../usecases/useGetFavorites'
 import { useGetSeries } from '../../../usecases/useGetSeries'
 import { seriesMediaToTrack } from '../../main/playlist/utils'
 
@@ -23,14 +23,15 @@ export const SeriesDetailScreen = ({
   route,
 }: NativeStackScreenProps<
   {
-    SeriesDetail: { seriesId: number }
+    SeriesDetail: { seriesId: number; autoPlayEpisodeId?: number }
   },
   'SeriesDetail'
 >) => {
-  const { seriesId } = route.params
+  const { seriesId, autoPlayEpisodeId } = route.params
   const insets = useSafeAreaInsets()
   const { styles, colors, spacing, borderRadius } = useTheme()
   const { data, loading, refetch } = useGetSeries(seriesId)
+  useGetFavorites()
   const {
     navigation: { play },
     queueActions: { addToQueue },
@@ -44,21 +45,10 @@ export const SeriesDetailScreen = ({
   const [sortMenuAnchorY, setSortMenuAnchorY] = useState<number | undefined>(undefined)
   const sortButtonRef = useRef<View>(null)
   const refreshControl = useThemedRefreshControl(data !== null && loading, refetch)
+  const autoPlayedRef = useRef(false)
 
-  if (!data && loading) {
-    return (
-      <View style={[styles.screenContainer, { paddingTop: insets.top, justifyContent: 'center' }]}>
-        <LoadingSpinner size='large' />
-      </View>
-    )
-  }
-
-  if (!data) {
-    return null
-  }
-
-  const playableTracks =
-    data.episodes.length > 0
+  const playableTracks = data
+    ? data.episodes.length > 0
       ? data.episodes.map(seriesMediaToTrack)
       : [
           {
@@ -73,6 +63,26 @@ export const SeriesDetailScreen = ({
             chapters: data.chapters,
           } satisfies PlayableTrack,
         ]
+    : []
+
+  useEffect(() => {
+    if (autoPlayedRef.current || !data || !autoPlayEpisodeId || playableTracks.length === 0) return
+    if (!playableTracks.some((t) => t.id === autoPlayEpisodeId)) return
+    autoPlayedRef.current = true
+    play(data.series_id, playableTracks, autoPlayEpisodeId)
+  }, [autoPlayEpisodeId, playableTracks, play, data])
+
+  if (!data && loading) {
+    return (
+      <View style={[styles.screenContainer, { paddingTop: insets.top, justifyContent: 'center' }]}>
+        <LoadingSpinner size='large' />
+      </View>
+    )
+  }
+
+  if (!data) {
+    return null
+  }
 
   const filteredEpisodes =
     filterType === 'all'
@@ -356,7 +366,7 @@ export const SeriesDetailScreen = ({
               onUnitPress={(ep, unit) => play(data.series_id, playableTracks, ep.id, unit.id)}
               renderThumbnailOverlay={(ep) => (
                 <>
-                  {isFavoriteEpisode(seriesId, ep.id) && (
+                  {isFavoriteEpisode(ep.id) && (
                     <View
                       style={{
                         position: 'absolute',

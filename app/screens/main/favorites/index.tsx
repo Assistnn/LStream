@@ -1,5 +1,7 @@
+import { useFocusEffect, useNavigation } from '@react-navigation/native'
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack'
 import { Heart } from 'lucide-react-native'
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import { FlatList, ScrollView, Text, TouchableOpacity, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
@@ -8,16 +10,24 @@ import { LoadingSpinner } from '../../../components/ui/LoadingSpinner'
 import { PageTitle } from '../../../components/ui/PageTitle'
 import { useThemedRefreshControl } from '../../../components/ui/ThemedRefreshControl'
 import { useTheme } from '../../../hooks/ThemeContext'
-import { refetchFavorites, useGetFavorites } from '../../../usecases/useGetFavorites'
+import { clearFavoritesCache, refetchFavorites, useGetFavorites } from '../../../usecases/useGetFavorites'
 import { FavoriteEpisodeListItem } from './components/FavoriteEpisodeListItem'
 import { FavoriteSeriesListItem } from './components/FavoriteSeriesListItem'
 
 export const FavoritesTabScreen = () => {
   const insets = useSafeAreaInsets()
   const { styles, colors, spacing, borderRadius } = useTheme()
+  const navigation =
+    useNavigation<NativeStackNavigationProp<{ SeriesDetail: { seriesId: number; autoPlayEpisodeId?: number } }>>()
   const [activeTab, setActiveTab] = useState<'series' | 'episode'>('series')
   const [refreshing, setRefreshing] = useState(false)
   const favorites = useGetFavorites()
+  useFocusEffect(
+    useCallback(() => {
+      clearFavoritesCache()
+      void refetchFavorites()
+    }, []),
+  )
   const refreshControl = useThemedRefreshControl(refreshing, async () => {
     setRefreshing(true)
     await refetchFavorites()
@@ -93,7 +103,7 @@ export const FavoritesTabScreen = () => {
                   renderItem={({ item }) => (
                     <FavoriteSeriesListItem
                       item={item}
-                      onPress={() => console.log('Series pressed:', item.series_id)}
+                      onPress={() => navigation.navigate('SeriesDetail', { seriesId: item.series_id })}
                     />
                   )}
                 />
@@ -113,7 +123,15 @@ export const FavoritesTabScreen = () => {
                 keyExtractor={(item) => `${item.series_id}-${item.item_id}`}
                 scrollEnabled={false}
                 renderItem={({ item }) => (
-                  <FavoriteEpisodeListItem item={item} onPress={() => console.log('Episode pressed:', item.item_id)} />
+                  <FavoriteEpisodeListItem
+                    item={item}
+                    onPress={() =>
+                      navigation.navigate('SeriesDetail', {
+                        seriesId: item.series_id,
+                        autoPlayEpisodeId: item.item_id,
+                      })
+                    }
+                  />
                 )}
               />
             )}

@@ -1,9 +1,15 @@
 import { ChevronLeft, ChevronRight, Mail, QrCode, X } from 'lucide-react-native'
 import { useState } from 'react'
-import { Alert, Modal, Pressable, Text, TextInput, TouchableOpacity, View } from 'react-native'
+import { Alert, Modal, NativeModules, Pressable, Text, TextInput, TouchableOpacity, TurboModuleRegistry, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
+import { useAuth } from '../../../../hooks/AuthContext'
 import { useTheme } from '../../../../hooks/ThemeContext'
+
+const WebAuthSessionModule = (TurboModuleRegistry.get('WebAuthSessionModule') ??
+  NativeModules.WebAuthSessionModule) as {
+  openAuthSession: (url: string, host: string, path: string) => Promise<string>
+}
 
 export const AddTenantModal = ({
   visible,
@@ -16,6 +22,7 @@ export const AddTenantModal = ({
 }) => {
   const { colors, spacing, borderRadius, styles } = useTheme()
   const insets = useSafeAreaInsets()
+  const { refreshTenants } = useAuth()
   const [step, setStep] = useState<'select' | 'manual'>('select')
   const [tenantCode, setTenantCode] = useState('')
 
@@ -113,7 +120,29 @@ export const AddTenantModal = ({
                       backgroundColor: colors.secondary,
                       borderRadius: borderRadius.xl,
                     }}
-                    onPress={() => Alert.alert('準備中', 'QRコード読み込み機能は準備中です')}
+                    onPress={async () => {
+                      try {
+                        await WebAuthSessionModule.openAuthSession(
+                          'https://login.lseed.app/qr',
+                          'login.lseed.app',
+                          '/app/lstream',
+                        )
+                        const refreshed = await refreshTenants()
+                        if (!refreshed) {
+                          Alert.alert('エラー', 'テナント情報の更新に失敗しました')
+                          return
+                        }
+                        handleClose()
+                      } catch (e: unknown) {
+                        if (
+                          e instanceof Error &&
+                          (e.message?.includes('cancelled') || e.message?.includes('USER_CANCELLED'))
+                        ) {
+                          return
+                        }
+                        Alert.alert('エラー', 'QRコード読み込みに失敗しました')
+                      }
+                    }}
                   >
                     <View
                       style={{

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 
+import { useAuth } from '../hooks/AuthContext'
 import { apiRepository } from '../repositories/api'
 import type { FavoritesResponse } from '../repositories/api/IApiRepository'
 
@@ -35,9 +36,11 @@ export const useGetFavorites = () => {
 }
 
 export const useInitFavorites = () => {
+  const { activeTenant } = useAuth()
   useEffect(() => {
+    clearFavoritesCache()
     void fetchFavorites(true)
-  }, [])
+  }, [activeTenant?.account, activeTenant?.server_id])
 }
 
 export const refetchFavorites = () => fetchFavorites(false)
@@ -47,7 +50,12 @@ export const clearFavoritesCache = () => {
   lastFetchTime = null
 }
 
-export const isFavoriteEpisode = (seriesId: number, episodeId: number): boolean => {
+export const isFavoriteEpisode = (episodeId: number): boolean => {
   if (!cachedFavorites?.episodes) return false
-  return cachedFavorites.episodes.some((ep) => ep.series_id === seriesId && ep.item_id === episodeId)
+  return cachedFavorites.episodes.some((ep) => ep.item_id === episodeId)
+}
+
+export const isFavoriteSeries = (seriesId: number): boolean => {
+  if (!cachedFavorites?.series) return false
+  return cachedFavorites.series.some((s) => s.series_id === seriesId)
 }

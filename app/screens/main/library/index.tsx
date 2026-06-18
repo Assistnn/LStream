@@ -1,4 +1,4 @@
-import { useNavigation } from '@react-navigation/native'
+import { useFocusEffect, useNavigation } from '@react-navigation/native'
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack'
 import {
   ArrowDown,
@@ -9,7 +9,7 @@ import {
   Search,
   SlidersHorizontal,
 } from 'lucide-react-native'
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
@@ -86,6 +86,12 @@ export const LibraryTabScreen = () => {
   )
 
   const { data, loading, refetch } = useGetLibrary(params)
+
+  useFocusEffect(
+    useCallback(() => {
+      void refetch()
+    }, [refetch]),
+  )
 
   const handleManualRefresh = async () => {
     setIsManualRefreshing(true)

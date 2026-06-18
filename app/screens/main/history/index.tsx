@@ -1,3 +1,4 @@
+import { useFocusEffect } from '@react-navigation/native'
 import { CheckSquare, Clock, Download, Lock, MoreVertical, Square, Trash2, Unlock } from 'lucide-react-native'
 import { useCallback, useRef, useState } from 'react'
 import {
@@ -120,6 +121,11 @@ export const HistoryTabScreen = () => {
   const { styles, colors, spacing, borderRadius } = useTheme()
   const [activeTab, setActiveTab] = useState<'history' | 'download'>('history')
   const { data: history, loading: historyLoading, refetch: refetchHistory } = useGetHistory()
+  useFocusEffect(
+    useCallback(() => {
+      void refetchHistory()
+    }, [refetchHistory]),
+  )
   const { downloads, downloadProgress, deleteDownloads, toggleLock, cancelDownload } = useDownload()
   const {
     navigation: { play },

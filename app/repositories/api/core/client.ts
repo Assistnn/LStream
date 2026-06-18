@@ -4,7 +4,7 @@ import { Alert } from 'react-native'
 import DeviceInfo from 'react-native-device-info'
 
 import { StorageRepository } from '../../storage'
-import { API_CONFIG, getDeviceHeaders } from './config'
+import { API_CONFIG, buildApiBaseUrl, getDeviceHeaders } from './config'
 import type { ApiResponse } from './errors'
 import { ApiException, ApiResponseException, ApiResultCode, AppVersionException, createApiError } from './errors'
 
@@ -22,11 +22,24 @@ class ApiClient {
   private baseURL: string
   private timeout: number
   private defaultHeaders: Record<string, string>
+  private ready: boolean
+  private friendId: string | null
 
   constructor() {
     this.baseURL = API_CONFIG.baseURL
     this.timeout = API_CONFIG.timeout
     this.defaultHeaders = API_CONFIG.headers
+    this.ready = false
+    this.friendId = null
+  }
+
+  setActiveServerId(serverId: string | null) {
+    this.baseURL = buildApiBaseUrl(serverId)
+    this.ready = true
+  }
+
+  setActiveFriendId(friendId: number | null) {
+    this.friendId = friendId === null ? null : String(friendId)
   }
 
   async getToken() {
@@ -72,6 +85,12 @@ class ApiClient {
   }
 
   async request<T>(endpoint: string, config: RequestConfig = {}): Promise<T> {
+    if (!this.ready) {
+      throw new ApiException({
+        message: 'API client is not initialized. Active tenant must be set before making requests.',
+        code: 'NOT_INITIALIZED',
+      })
+    }
     const { method = 'GET', headers = {}, body, requiresAuth = true } = config
 
     const mobileDataEnabled = await StorageRepository.getMobileDataEnabled()
@@ -99,6 +118,10 @@ class ApiClient {
       if (token) {
         requestHeaders['x-app-token'] = token
       }
+    }
+
+    if (this.friendId) {
+      requestHeaders['x-app-id'] = this.friendId
     }
 
     console.log('[API Request]', {

@@ -7,6 +7,7 @@
 		<string>applinks:login.lseed.app</string>
 		<string>applinks:login.lseed.app?mode=developer</string>
 		<string>webcredentials:login.lseed.app</string>
+		<string>webcredentials:login.lseed.app?mode=developer</string>
 	</array>
 </dict>
 </plist>

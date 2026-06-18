@@ -115,6 +115,7 @@ export interface SeriesMedia {
   url: string
   img: string
   title: string
+  content?: string
   duration: number
   progress: number
   chapters?: ApiChapter[]
@@ -192,6 +193,7 @@ export interface FavoritesResponse extends ApiResult {
 export type FavoriteParams = {
   series_id: number
   item_id: number
+  enabled: number
 }
 
 /* =========================

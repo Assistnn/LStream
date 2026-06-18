@@ -73,6 +73,7 @@ export const useOAuthLogin = () => {
         }).toString(),
       })
       const tokenResponse = await response.json()
+      console.log('[OAuth] tenants:', tokenResponse.tenants)
 
       if (!tokenResponse.access_token) {
         setError('トークンの取得に失敗しました')
@@ -83,7 +84,7 @@ export const useOAuthLogin = () => {
       if (tokenResponse.refresh_token) {
         await apiClient.setRefreshToken(tokenResponse.refresh_token)
       }
-      await signIn(tokenResponse.access_token)
+      await signIn(tokenResponse.access_token, tokenResponse.tenants ?? [])
     } catch (e: unknown) {
       if (e instanceof Error && (e.message?.includes('cancelled') || e.message?.includes('USER_CANCELLED'))) return
       setError('認証に失敗しました')

@@ -1,9 +1,15 @@
 import { apiRepository } from '../repositories/api'
-import { refetchFavorites } from './useGetFavorites'
+import { clearFavoritesCache, isFavoriteEpisode, isFavoriteSeries, refetchFavorites } from './useGetFavorites'
 
 export const toggleFavorite = async (seriesId: number, itemId: number) => {
   try {
-    await apiRepository.updateFavorite({ series_id: seriesId, item_id: itemId })
+    const isFavorited = itemId === 0 ? isFavoriteSeries(seriesId) : isFavoriteEpisode(itemId)
+    await apiRepository.updateFavorite({
+      series_id: seriesId,
+      item_id: itemId === 0 ? seriesId : itemId,
+      enabled: isFavorited ? 0 : 1,
+    })
+    clearFavoritesCache()
     await refetchFavorites()
   } catch (error) {
     console.error('Failed to toggle favorite:', error)

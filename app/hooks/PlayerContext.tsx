@@ -22,6 +22,7 @@ export type PlayableChild = {
   url: string
   img: string
   title: string
+  content?: string
   duration: number
   progress: number
   parentTitle: string
@@ -472,6 +473,15 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
   const handleLoad = useCallback((duration: number) => {
     if (loadingTimerRef.current) clearTimeout(loadingTimerRef.current)
     setState((prev) => (prev.playbackState === 'loading' ? { ...prev, playbackState: 'playing', duration } : prev))
+
+    const content = currentContentRef.current
+    const track = content?.child ?? content?.track
+    const progress = track?.progress ?? 0
+    if (progress > 0 && progress < 95) {
+      const targetTime = (duration * progress) / 100
+      videoRef.current?.seek(targetTime)
+      setState((prev) => ({ ...prev, currentTime: targetTime }))
+    }
   }, [])
 
   const [isBuffering, setIsBuffering] = useState(false)

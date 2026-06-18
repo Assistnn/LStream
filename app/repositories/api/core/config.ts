@@ -1,7 +1,11 @@
 import { Platform } from 'react-native'
 import DeviceInfo from 'react-native-device-info'
 
-const API_BASE_URL = __DEV__ ? 'https://d3.lseed.jp/api/app' : 'https://d3.lseed.jp/api/app'
+const DEFAULT_SERVER_ID = 'd3'
+
+export const buildApiBaseUrl = (serverId?: string | null) =>
+  `https://${serverId ?? DEFAULT_SERVER_ID}.lseed.jp/api/app`
+
 const API_TIMEOUT = 30000
 
 export const getDeviceHeaders = () => ({
@@ -11,7 +15,7 @@ export const getDeviceHeaders = () => ({
 })
 
 export const API_CONFIG = {
-  baseURL: API_BASE_URL,
+  baseURL: buildApiBaseUrl(),
   timeout: API_TIMEOUT,
   headers: {
     'Content-Type': 'application/json',

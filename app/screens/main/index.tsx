@@ -45,13 +45,16 @@ const Tab = createBottomTabNavigator<{
 const HomeStack = createNativeStackNavigator<{
   HomeRoot: undefined
   NewArrivals: undefined
-  SeriesDetail: { seriesId: number }
+  SeriesDetail: { seriesId: number; autoPlayEpisodeId?: number }
 }>()
 const LibraryStack = createNativeStackNavigator<{
   LibraryRoot: undefined
-  SeriesDetail: { seriesId: number }
+  SeriesDetail: { seriesId: number; autoPlayEpisodeId?: number }
 }>()
-const FavoritesStack = createNativeStackNavigator()
+const FavoritesStack = createNativeStackNavigator<{
+  FavoritesRoot: undefined
+  SeriesDetail: { seriesId: number; autoPlayEpisodeId?: number }
+}>()
 const PlaylistStack = createNativeStackNavigator<PlaylistStackParamList>()
 const HistoryStack = createNativeStackNavigator()
 const SettingsStack = createNativeStackNavigator()
@@ -122,11 +125,28 @@ const LibraryStackScreen = () => {
   )
 }
 
-const FavoritesStackScreen = () => (
-  <FavoritesStack.Navigator screenOptions={{ headerShown: false, presentation: 'card', animation: 'default' }}>
-    <FavoritesStack.Screen name='FavoritesRoot' component={FavoritesTabScreen} options={{ title: 'お気に入り' }} />
-  </FavoritesStack.Navigator>
-)
+const FavoritesStackScreen = () => {
+  const { colors } = useTheme()
+  return (
+    <FavoritesStack.Navigator screenOptions={{ headerShown: false, presentation: 'card', animation: 'default' }}>
+      <FavoritesStack.Screen name='FavoritesRoot' component={FavoritesTabScreen} options={{ title: 'お気に入り' }} />
+      <FavoritesStack.Screen
+        name='SeriesDetail'
+        component={SeriesDetailScreen}
+        options={() => ({
+          title: '',
+          headerShown: true,
+          presentation: 'card',
+          headerShadowVisible: false,
+          headerStyle: {
+            backgroundColor: colors.navBar,
+          },
+          headerTintColor: colors.text,
+        })}
+      />
+    </FavoritesStack.Navigator>
+  )
+}
 
 const PlaylistStackScreen = () => (
   <PlaylistStack.Navigator screenOptions={{ headerShown: false, presentation: 'card', animation: 'default' }}>

@@ -214,7 +214,7 @@ export const EpisodePlayer = ({
         </TouchableOpacity>
 
         <View style={{ flex: 1, alignItems: 'center', marginHorizontal: spacing.lg }}>
-          <Text style={[styles.bodySmall, { textAlign: 'center' }]} numberOfLines={1}>
+          <Text style={[styles.bodySmall, { fontSize: 14, textAlign: 'center' }]} numberOfLines={1}>
             {episode.parentTitle}
           </Text>
         </View>
@@ -311,8 +311,8 @@ export const EpisodePlayer = ({
                 <View style={{ height: spacing.sm }} />
                 {/* Time labels */}
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <Text style={styles.bodyTiny}>{formatTime(currentTime)}</Text>
-                  <Text style={styles.bodyTiny}>-{formatTime(mediaDuration - currentTime)}</Text>
+                  <Text style={[styles.bodyTiny, { fontSize: 12 }]}>{formatTime(currentTime)}</Text>
+                  <Text style={[styles.bodyTiny, { fontSize: 12 }]}>-{formatTime(mediaDuration - currentTime)}</Text>
                 </View>
               </View>
 
@@ -452,6 +452,14 @@ export const EpisodePlayer = ({
                   />
                 </TouchableOpacity>
               </View>
+
+              {(currentUnit?.content || episode.content) && (
+                <View style={{ paddingHorizontal: spacing.lg, maxHeight: 140 }}>
+                  <ScrollView showsVerticalScrollIndicator={true}>
+                    <Text style={[styles.bodySmall, { fontSize: 15 }]}>{currentUnit?.content || episode.content}</Text>
+                  </ScrollView>
+                </View>
+              )}
 
               {/* Secondary controls */}
               <View

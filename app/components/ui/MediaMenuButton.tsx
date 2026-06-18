@@ -7,7 +7,7 @@ import { useDownload } from '../../hooks/DownloadContext'
 import { usePlayer } from '../../hooks/PlayerContext'
 import { useTheme } from '../../hooks/ThemeContext'
 import { AddToPlaylistModal } from '../../screens/main/playlist/components/AddToPlaylistModal'
-import { isFavoriteEpisode } from '../../usecases/useGetFavorites'
+import { isFavoriteEpisode, isFavoriteSeries, useGetFavorites } from '../../usecases/useGetFavorites'
 import { toggleFavorite } from '../../usecases/useUpdateFavorite'
 
 const MENU_WIDTH = 180
@@ -54,7 +54,9 @@ export const MediaMenuButton = ({
   const [addToPlaylistOpen, setAddToPlaylistOpen] = useState(false)
   const anchorRef = useRef<View>(null)
 
-  const isFavorited = isFavoriteEpisode(seriesId, mediaType === 'series' ? 0 : mediaId)
+  useGetFavorites()
+  const isFavorited =
+    mediaType === 'series' ? isFavoriteSeries(seriesId) : isFavoriteEpisode(mediaId)
 
   const canAddToCollection = !!mediaInfo || mediaType === 'series'
   const itemForCollection =
@@ -72,6 +74,9 @@ export const MediaMenuButton = ({
         }
       : null
 
+  const canAddToQueue =
+    mediaType === 'series' ? !!onAddAllToQueue : !!itemForCollection && itemForCollection.url !== ''
+
   const menuItems = [
     {
       label: 'プレイリストに追加',
@@ -80,27 +85,31 @@ export const MediaMenuButton = ({
         if (canAddToCollection) setAddToPlaylistOpen(true)
       },
     },
-    {
-      label: '再生キューに追加',
-      disabled: !canAddToCollection,
-      onPress: () => {
-        if (itemForCollection) {
-          addToQueue({
-            trackId: itemForCollection.episodeId,
-            childId: itemForCollection.unitId,
-            title: itemForCollection.title,
-            parentTitle: itemForCollection.seriesTitle,
-            thumbnail: itemForCollection.thumbnail,
-            duration: itemForCollection.duration,
-            url: itemForCollection.url,
-            mediaType: itemForCollection.mediaType,
-          })
-        } else if (onAddAllToQueue) {
-          onAddAllToQueue()
-        }
-      },
-    },
-    ...(mediaInfo
+    ...(canAddToQueue
+      ? [
+          {
+            label: '再生キューに追加',
+            disabled: false,
+            onPress: () => {
+              if (itemForCollection) {
+                addToQueue({
+                  trackId: itemForCollection.episodeId,
+                  childId: itemForCollection.unitId,
+                  title: itemForCollection.title,
+                  parentTitle: itemForCollection.seriesTitle,
+                  thumbnail: itemForCollection.thumbnail,
+                  duration: itemForCollection.duration,
+                  url: itemForCollection.url,
+                  mediaType: itemForCollection.mediaType,
+                })
+              } else if (onAddAllToQueue) {
+                onAddAllToQueue()
+              }
+            },
+          },
+        ]
+      : []),
+    ...(mediaInfo && mediaInfo.url !== ''
       ? [
           {
             label: isDownloaded(mediaId)
@@ -135,7 +144,7 @@ export const MediaMenuButton = ({
     {
       label: isFavorited ? 'お気に入りから削除' : 'お気に入りに追加',
       disabled: false,
-      onPress: () => (mediaType === 'series' ? toggleFavorite(seriesId, 0) : toggleFavorite(0, mediaId)),
+      onPress: () => (mediaType === 'series' ? toggleFavorite(seriesId, 0) : toggleFavorite(seriesId, mediaId)),
     },
   ]
 

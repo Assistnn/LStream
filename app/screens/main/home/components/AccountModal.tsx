@@ -7,7 +7,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useAuth } from '../../../../hooks/AuthContext'
 import { useTheme } from '../../../../hooks/ThemeContext'
 import { StorageRepository } from '../../../../repositories/storage'
-import { useGetMe } from '../../../../usecases/useGetMe'
 import { SetPasscodeModal } from './SetPasscodeModal'
 
 const rnBiometrics = new ReactNativeBiometrics()
@@ -23,13 +22,10 @@ export const AccountModal = ({
 }) => {
   const { colors, spacing, borderRadius, styles } = useTheme()
   const insets = useSafeAreaInsets()
-  const { signOut } = useAuth()
-  const { data: me } = useGetMe()
+  const { signOut, tenants, activeTenant, setActiveTenant } = useAuth()
   const [biometricEnabled, setBiometricEnabled] = useState(false)
   const [passcodeEnabled, setPasscodeEnabled] = useState(false)
   const [showSetPasscode, setShowSetPasscode] = useState(false)
-
-  const activeTenant = me?.tenants.find((t) => t.is_active)
 
   useEffect(() => {
     if (!visible) return
@@ -116,7 +112,7 @@ export const AccountModal = ({
 
           <ScrollView style={{ paddingHorizontal: spacing.lg }}>
             <View style={{ gap: spacing['2xl'] }}>
-              {me && (
+              {activeTenant && (
                 <View
                   style={{
                     flexDirection: 'row',
@@ -136,20 +132,20 @@ export const AccountModal = ({
                     }}
                   >
                     <Text style={{ color: '#FFFFFF', fontSize: 24, fontWeight: '700' }}>
-                      {me.user_name.charAt(0).toUpperCase()}
+                      {activeTenant.last_name?.charAt(0) ?? ''}
                     </Text>
                   </View>
                   <View style={{ flex: 1, gap: spacing.xs }}>
-                    <Text style={styles.titleLarge}>{me.user_name}</Text>
-                    <Text style={styles.bodySmall}>{me.email}</Text>
-                    {activeTenant && (
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}>
-                        <Text style={[styles.bodyTiny, { color: colors.textTertiary }]}>━━</Text>
-                        <Text style={[styles.bodyTiny, { color: colors.textTertiary }]}>
-                          {activeTenant.name}・{activeTenant.code}
-                        </Text>
-                      </View>
-                    )}
+                    <Text style={styles.titleLarge}>
+                      {activeTenant.last_name} {activeTenant.first_name}
+                    </Text>
+                    <Text style={styles.bodySmall}>{activeTenant.email}</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}>
+                      <Text style={[styles.bodyTiny, { color: colors.textTertiary }]}>━━</Text>
+                      <Text style={[styles.bodyTiny, { color: colors.textTertiary }]}>
+                        {activeTenant.account} {activeTenant.server_id}
+                      </Text>
+                    </View>
                   </View>
                 </View>
               )}
@@ -169,74 +165,53 @@ export const AccountModal = ({
                 </View>
 
                 <View style={{ gap: spacing.sm }}>
-                  <View
-                    style={{
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      gap: spacing.md,
-                      padding: spacing.md,
-                      backgroundColor: colors.secondary,
-                      borderRadius: borderRadius.xl,
-                    }}
-                  >
-                    <View
-                      style={{
-                        width: 44,
-                        height: 44,
-                        borderRadius: 22,
-                        backgroundColor: '#6366F1',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}
-                    >
-                      <Text style={{ color: '#FFFFFF', fontSize: 16, fontWeight: '700' }}>L</Text>
-                    </View>
-                    <View style={{ flex: 1, gap: spacing.xxs }}>
-                      <Text style={styles.textDefault}>すべてのテナント</Text>
-                      <Text style={styles.bodySmall}>LStream</Text>
-                    </View>
-                  </View>
-
-                  {me?.tenants.map((tenant) => (
-                    <View
-                      key={tenant.tenant_id}
-                      style={{
-                        flexDirection: 'row',
-                        alignItems: 'center',
-                        gap: spacing.md,
-                        padding: spacing.md,
-                        backgroundColor: tenant.is_active ? colors.accentBackground : colors.secondary,
-                        borderRadius: borderRadius.xl,
-                        ...(tenant.is_active && { borderWidth: 1, borderColor: colors.primary }),
-                      }}
-                    >
-                      <View
+                  {tenants.map((tenant) => {
+                    const isActive =
+                      activeTenant?.account === tenant.account && activeTenant?.server_id === tenant.server_id
+                    return (
+                      <TouchableOpacity
+                        key={`${tenant.account}-${tenant.server_id}`}
+                        onPress={() => void setActiveTenant(tenant)}
                         style={{
-                          width: 44,
-                          height: 44,
-                          borderRadius: 22,
-                          backgroundColor: '#6366F1',
+                          flexDirection: 'row',
                           alignItems: 'center',
-                          justifyContent: 'center',
+                          gap: spacing.md,
+                          padding: spacing.md,
+                          backgroundColor: isActive ? colors.accentBackground : colors.secondary,
+                          borderRadius: borderRadius.xl,
+                          ...(isActive && { borderWidth: 1, borderColor: colors.primary }),
                         }}
                       >
-                        <Text style={{ color: '#FFFFFF', fontSize: 16, fontWeight: '700' }}>
-                          {me.user_name.charAt(0).toUpperCase()}
-                        </Text>
-                      </View>
-                      <View style={{ flex: 1, gap: spacing.xxs }}>
-                        <Text style={styles.textDefault}>{me.user_name}</Text>
-                        <Text style={styles.bodySmall}>{me.email}</Text>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}>
-                          <Text style={[styles.bodyTiny, { color: colors.textTertiary }]}>━━</Text>
-                          <Text style={[styles.bodyTiny, { color: colors.textTertiary }]}>
-                            {tenant.name}・{tenant.code}
+                        <View
+                          style={{
+                            width: 44,
+                            height: 44,
+                            borderRadius: 22,
+                            backgroundColor: '#6366F1',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}
+                        >
+                          <Text style={{ color: '#FFFFFF', fontSize: 16, fontWeight: '700' }}>
+                            {tenant.last_name?.charAt(0) ?? ''}
                           </Text>
                         </View>
-                      </View>
-                      {tenant.is_active && <Check color={colors.primary} size={20} />}
-                    </View>
-                  ))}
+                        <View style={{ flex: 1, gap: spacing.xxs }}>
+                          <Text style={styles.textDefault}>
+                            {tenant.last_name} {tenant.first_name}
+                          </Text>
+                          <Text style={styles.bodySmall}>{tenant.email}</Text>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}>
+                            <Text style={[styles.bodyTiny, { color: colors.textTertiary }]}>━━</Text>
+                            <Text style={[styles.bodyTiny, { color: colors.textTertiary }]}>
+                              {tenant.account} {tenant.server_id}
+                            </Text>
+                          </View>
+                        </View>
+                        {isActive && <Check color={colors.primary} size={20} />}
+                      </TouchableOpacity>
+                    )
+                  })}
                 </View>
               </View>
 
@@ -247,40 +222,6 @@ export const AccountModal = ({
                 </View>
 
                 <View style={{ gap: spacing.sm }}>
-                  <View
-                    style={{
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      gap: spacing.md,
-                      padding: spacing.md,
-                      backgroundColor: colors.secondary,
-                      borderRadius: borderRadius.xl,
-                    }}
-                  >
-                    <View
-                      style={{
-                        width: 40,
-                        height: 40,
-                        borderRadius: 20,
-                        backgroundColor: 'rgba(59, 130, 246, 0.15)',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}
-                    >
-                      <Fingerprint color={colors.primary} size={20} />
-                    </View>
-                    <View style={{ flex: 1, gap: spacing.xxs }}>
-                      <Text style={styles.textDefault}>Face ID / Touch ID</Text>
-                      <Text style={styles.bodySmall}>生体認証でロック解除</Text>
-                    </View>
-                    <Switch
-                      value={biometricEnabled}
-                      onValueChange={(v) => void toggleBiometric(v)}
-                      trackColor={{ false: colors.muted, true: colors.primary }}
-                      thumbColor='#FFFFFF'
-                    />
-                  </View>
-
                   <View
                     style={{
                       flexDirection: 'row',

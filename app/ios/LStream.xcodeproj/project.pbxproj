@@ -9,6 +9,8 @@
 /* Begin PBXBuildFile section */
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
 		4B426FE2C8503BA4373E859B /* libPods-LStream.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F06801CE3FA0F690CAEF1866 /* libPods-LStream.a */; };
+		52EE468B2FE36D9F009534CC /* CacheManagerModule.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52EE468A2FE36D9F009534CC /* CacheManagerModule.swift */; };
+		52EE468C2FE36D9F009534CC /* CacheManagerModule.m in Sources */ = {isa = PBXBuildFile; fileRef = 52EE46892FE36D9F009534CC /* CacheManagerModule.m */; };
 		761780ED2CA45674006654EE /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 761780EC2CA45674006654EE /* AppDelegate.swift */; };
 		81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */; };
 		AA000001AAAA000100000001 /* WebAuthSessionModule.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000001AAAA000100000002 /* WebAuthSessionModule.swift */; };
@@ -27,6 +29,8 @@
 		13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = PrivacyInfo.xcprivacy; path = LStream/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		20690FD624B3097EBB47F624 /* Pods-LStream.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-LStream.release.xcconfig"; path = "Target Support Files/Pods-LStream/Pods-LStream.release.xcconfig"; sourceTree = "<group>"; };
 		412A794BD02A893B22B19A3C /* Pods-LStream.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-LStream.debug.xcconfig"; path = "Target Support Files/Pods-LStream/Pods-LStream.debug.xcconfig"; sourceTree = "<group>"; };
+		52EE46892FE36D9F009534CC /* CacheManagerModule.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = CacheManagerModule.m; sourceTree = "<group>"; };
+		52EE468A2FE36D9F009534CC /* CacheManagerModule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CacheManagerModule.swift; sourceTree = "<group>"; };
 		63FD8F402FA4333600984586 /* LStream.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = LStream.entitlements; sourceTree = "<group>"; };
 		63FD8F412FA4335400984586 /* LStream.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; name = LStream.entitlements; path = LStream/LStream.entitlements; sourceTree = "<group>"; };
 		761780EC2CA45674006654EE /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = LStream/AppDelegate.swift; sourceTree = "<group>"; };
@@ -65,6 +69,8 @@
 				AA000002AAAA000200000004 /* VideoConverterModule.m */,
 				AA000003AAAA000300000002 /* RemoteCommandModule.swift */,
 				AA000003AAAA000300000004 /* RemoteCommandModule.m */,
+				52EE468A2FE36D9F009534CC /* CacheManagerModule.swift */,
+				52EE46892FE36D9F009534CC /* CacheManagerModule.m */,
 				13B07FB61A68108700A75B9A /* Info.plist */,
 				81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */,
 				13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */,
@@ -235,9 +241,13 @@
 			inputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-LStream/Pods-LStream-resources-${CONFIGURATION}-input-files.xcfilelist",
 			);
+			inputPaths = (
+			);
 			name = "[CP] Copy Pods Resources";
 			outputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-LStream/Pods-LStream-resources-${CONFIGURATION}-output-files.xcfilelist",
+			);
+			outputPaths = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
@@ -252,9 +262,13 @@
 			inputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-LStream/Pods-LStream-frameworks-${CONFIGURATION}-input-files.xcfilelist",
 			);
+			inputPaths = (
+			);
 			name = "[CP] Embed Pods Frameworks";
 			outputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-LStream/Pods-LStream-frameworks-${CONFIGURATION}-output-files.xcfilelist",
+			);
+			outputPaths = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
@@ -272,6 +286,8 @@
 				AA000001AAAA000100000001 /* WebAuthSessionModule.swift in Sources */,
 				AA000001AAAA000100000003 /* WebAuthSessionModule.m in Sources */,
 				AA000002AAAA000200000001 /* VideoConverterModule.swift in Sources */,
+				52EE468B2FE36D9F009534CC /* CacheManagerModule.swift in Sources */,
+				52EE468C2FE36D9F009534CC /* CacheManagerModule.m in Sources */,
 				AA000002AAAA000200000003 /* VideoConverterModule.m in Sources */,
 				AA000003AAAA000300000001 /* RemoteCommandModule.swift in Sources */,
 				AA000003AAAA000300000003 /* RemoteCommandModule.m in Sources */,
@@ -289,7 +305,7 @@
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = LStream/LStream.entitlements;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = NS4F7Q2Y5S;
+				DEVELOPMENT_TEAM = 8JCX7NFN4V;
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = LStream/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.4;
@@ -303,7 +319,7 @@
 					"-ObjC",
 					"-lc++",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.metadirection.lseed;
+				PRODUCT_BUNDLE_IDENTIFIER = jp.lseed.lstream;
 				PRODUCT_NAME = LStream;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SWIFT_OBJC_BRIDGING_HEADER = "LStream/LStream-Bridging-Header.h";
@@ -322,7 +338,7 @@
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = LStream/LStream.entitlements;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = NS4F7Q2Y5S;
+				DEVELOPMENT_TEAM = 8JCX7NFN4V;
 				INFOPLIST_FILE = LStream/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.4;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -335,7 +351,7 @@
 					"-ObjC",
 					"-lc++",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.metadirection.lseed;
+				PRODUCT_BUNDLE_IDENTIFIER = jp.lseed.lstream;
 				PRODUCT_NAME = LStream;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SWIFT_OBJC_BRIDGING_HEADER = "LStream/LStream-Bridging-Header.h";

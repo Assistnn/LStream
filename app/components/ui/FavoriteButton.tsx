@@ -2,7 +2,7 @@ import { Heart } from 'lucide-react-native'
 import type { ViewStyle } from 'react-native'
 import { TouchableOpacity } from 'react-native'
 
-import { isFavoriteEpisode } from '../../usecases/useGetFavorites'
+import { isFavoriteEpisode, isFavoriteSeries, useGetFavorites } from '../../usecases/useGetFavorites'
 import { toggleFavorite } from '../../usecases/useUpdateFavorite'
 
 export const FavoriteButton = ({
@@ -16,7 +16,8 @@ export const FavoriteButton = ({
   size?: number
   buttonStyle?: ViewStyle
 }) => {
-  const isFavorited = isFavoriteEpisode(seriesId, itemId)
+  useGetFavorites()
+  const isFavorited = itemId === 0 ? isFavoriteSeries(seriesId) : isFavoriteEpisode(itemId)
   return (
     <TouchableOpacity style={buttonStyle} onPress={() => toggleFavorite(seriesId, itemId)}>
       <Heart size={size} color='#FFFFFF' fill={isFavorited ? '#FFFFFF' : 'transparent'} />

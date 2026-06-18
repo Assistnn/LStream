@@ -18,6 +18,7 @@ import { HistoryListItem } from '../../../components/listitem/HistoryListItem'
 import { LoadingSpinner } from '../../../components/ui/LoadingSpinner'
 import { SectionHeader } from '../../../components/ui/SectionHeader'
 import { useThemedRefreshControl } from '../../../components/ui/ThemedRefreshControl'
+import { useAuth } from '../../../hooks/AuthContext'
 import { useTheme } from '../../../hooks/ThemeContext'
 import { useGetHomeData } from '../../../usecases/useGetHomeData'
 import { useSettings } from '../../../usecases/useSettings'
@@ -45,6 +46,7 @@ export const HomeTabScreen = ({
 }) => {
   const insets = useSafeAreaInsets()
   const { styles, colors, spacing, isDark } = useTheme()
+  const { activeTenant } = useAuth()
   const { data, loading, refetch } = useGetHomeData()
   const settings = useSettings()
   const headerImageUri = isDark ? settings?.header_dark : settings?.header_light
@@ -108,7 +110,7 @@ export const HomeTabScreen = ({
               }}
               onPress={() => setShowAccount(true)}
             >
-              <Text style={styles.textBold}>L</Text>
+              <Text style={styles.textBold}>{activeTenant?.last_name?.charAt(0) ?? 'L'}</Text>
             </TouchableOpacity>
           </View>
           <Text style={styles.bodyText}>
