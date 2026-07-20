@@ -52,7 +52,7 @@ dev-ios: up
 	open -a Simulator; \
 	cd app && npx react-native run-ios --udid "$$UDID"
 dev-android: up
-	cd app && JAVA_HOME=/opt/homebrew/opt/openjdk@17 pnpm run android
+	cd app && JAVA_HOME=$$(/usr/libexec/java_home -v 17) pnpm run android
 logs:
 	cd .docker/dev && docker compose logs -f
 

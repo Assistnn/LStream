@@ -1,6 +1,6 @@
 import { AlertCircle, List, Pause, Play, X } from 'lucide-react-native'
-import { useCallback, useRef } from 'react'
-import { ActivityIndicator, Image, Platform, StatusBar, Text, TouchableOpacity, View } from 'react-native'
+import { useCallback, useEffect, useRef } from 'react'
+import { ActivityIndicator, Image, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native'
 
 import { usePlayer } from '../../hooks/PlayerContext'
 import { useTheme } from '../../hooks/ThemeContext'
@@ -19,11 +19,20 @@ export const MiniPlayer = ({ onTap, onListTap }: { onTap: () => void; onListTap:
   const measureSlot = useCallback(() => {
     slotRef.current?.measureInWindow((x, y, width, height) => {
       if (width > 0 && height > 0) {
-        const offsetY = Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) : 0
-        setCompactSlot({ x, y: y + offsetY, width, height })
+        setCompactSlot({ x, y, width, height })
       }
     })
   }, [setCompactSlot])
+
+  const { width: winWidth, height: winHeight } = useWindowDimensions()
+  useEffect(() => {
+    const t1 = setTimeout(measureSlot, 100)
+    const t2 = setTimeout(measureSlot, 500)
+    return () => {
+      clearTimeout(t1)
+      clearTimeout(t2)
+    }
+  }, [winWidth, winHeight, measureSlot])
 
   if (!currentContent) return null
 

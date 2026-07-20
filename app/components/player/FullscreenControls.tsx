@@ -7,8 +7,9 @@ import Orientation from 'react-native-orientation-locker'
 import { usePlayer } from '../../hooks/PlayerContext'
 
 const formatTime = (seconds: number): string => {
-  const mins = Math.floor(seconds / 60)
-  const secs = Math.floor(seconds % 60)
+  const safe = Math.max(0, seconds)
+  const mins = Math.floor(safe / 60)
+  const secs = Math.floor(safe % 60)
   return `${mins}:${secs.toString().padStart(2, '0')}`
 }
 

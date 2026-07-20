@@ -15,9 +15,6 @@ export const HistoryListItem = ({ item, isTop }: { item: PlaybackHistoryItem; is
     navigation: { play },
   } = usePlayer()
 
-  const playedDate = new Date(item.date)
-  const dateStr = `${playedDate.getMonth() + 1}/${playedDate.getDate()}`
-
   const handlePlay = async () => {
     try {
       const seriesData = await apiRepository.getSeries(item.series_id)
@@ -80,7 +77,7 @@ export const HistoryListItem = ({ item, isTop }: { item: PlaybackHistoryItem; is
           {item.title_series}
         </Text>
         <Text style={[styles.bodyText, { marginBottom: spacing.xs }]} numberOfLines={1}>
-          {item.title_media} • {dateStr}
+          {item.title_media}
         </Text>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
           <View style={{ flex: 1, height: 4, backgroundColor: colors.muted, borderRadius: borderRadius.full }}>

@@ -7,7 +7,6 @@ import {
   Eye,
   FileText,
   Gauge,
-  HelpCircle,
   History,
   Info,
   LogOut,
@@ -351,11 +350,6 @@ export const SettingsTabScreen = () => {
     {
       title: 'サポート',
       items: [
-        {
-          icon: HelpCircle,
-          label: 'ヘルプ',
-          onPress: () => openUrl('https://www.google.com'),
-        },
         {
           icon: FileText,
           label: '利用規約',

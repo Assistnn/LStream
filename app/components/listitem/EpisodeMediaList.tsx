@@ -94,7 +94,9 @@ export const EpisodeMediaList = ({
                 {hasUnits && ep.children && (
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing['2xs'] }}>
                     <Text style={styles.bodyTiny}>{ep.children.length} Units</Text>
-                    <Text style={[styles.bodyTiny, { color: colors.text }]}>{formatTime(ep.duration)}</Text>
+                    <Text style={[styles.bodyTiny, { color: colors.text }]}>
+                      {formatTime(ep.children.reduce((sum, u) => sum + u.duration, 0))}
+                    </Text>
                   </View>
                 )}
 

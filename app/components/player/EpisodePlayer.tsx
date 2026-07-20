@@ -5,6 +5,7 @@ import {
   ChevronsLeft,
   ChevronsRight,
   Clock,
+  FileText,
   Gauge,
   List,
   Maximize,
@@ -22,7 +23,7 @@ import {
   X,
 } from 'lucide-react-native'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Image, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native'
+import { Image, Modal, Pressable, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Defs, LinearGradient, Rect, Stop, Svg } from 'react-native-svg'
 
@@ -34,8 +35,9 @@ import { EpisodeMediaList } from '../listitem/EpisodeMediaList'
 import { FavoriteButton } from '../ui/FavoriteButton'
 
 const formatTime = (seconds: number): string => {
-  const mins = Math.floor(seconds / 60)
-  const secs = Math.floor(seconds % 60)
+  const safe = Math.max(0, seconds)
+  const mins = Math.floor(safe / 60)
+  const secs = Math.floor(safe % 60)
   return `${mins}:${secs.toString().padStart(2, '0')}`
 }
 
@@ -48,7 +50,7 @@ export const EpisodePlayer = ({
   showEpisodeList?: boolean
   onClose: () => void
 }) => {
-  const { colors, styles, spacing } = useTheme()
+  const { colors, styles, spacing, borderRadius } = useTheme()
   const insets = useSafeAreaInsets()
   const {
     currentContent,
@@ -78,6 +80,7 @@ export const EpisodePlayer = ({
   const [showVolumeMenu, setShowVolumeMenu] = useState(false)
   const [showEpisodeList, setShowEpisodeList] = useState(initialShowEpisodeList)
   const [showChapterList, setShowChapterList] = useState(false)
+  const [showContentModal, setShowContentModal] = useState(false)
   const [myChapters, setMyChapters] = useState<MyChapter[]>([])
   const [editingChapterId, setEditingChapterId] = useState<string | null>(null)
   const [editingChapterName, setEditingChapterName] = useState('')
@@ -232,14 +235,20 @@ export const EpisodePlayer = ({
           {/* Full Player View */}
           <View style={{ flex: 1 }}>
             {/* Artwork or Video slot (PlayerVideo overlays this at MainScreen level) */}
-            <View style={{ paddingVertical: spacing.xl, backgroundColor: '#000' }}>
+            <View
+              style={{
+                paddingVertical: spacing.xl,
+                backgroundColor: currentContent.isVideo ? '#000' : 'transparent',
+              }}
+            >
               <View
                 ref={slotRef}
                 onLayout={measureSlot}
                 collapsable={false}
                 style={{
-                  width: '100%',
-                  aspectRatio: 16 / 9,
+                  width: currentContent.isVideo ? '100%' : '80%',
+                  alignSelf: 'center',
+                  aspectRatio: currentContent.isVideo ? 16 / 9 : 1,
                   backgroundColor: currentContent.isVideo ? '#000' : 'transparent',
                 }}
               >
@@ -452,14 +461,6 @@ export const EpisodePlayer = ({
                   />
                 </TouchableOpacity>
               </View>
-
-              {(currentUnit?.content || episode.content) && (
-                <View style={{ paddingHorizontal: spacing.lg, maxHeight: 140 }}>
-                  <ScrollView showsVerticalScrollIndicator={true}>
-                    <Text style={[styles.bodySmall, { fontSize: 15 }]}>{currentUnit?.content || episode.content}</Text>
-                  </ScrollView>
-                </View>
-              )}
 
               {/* Secondary controls */}
               <View
@@ -682,6 +683,25 @@ export const EpisodePlayer = ({
                     <Maximize size={20} color={colors.text} />
                   </TouchableOpacity>
                 </View>
+
+                {(currentUnit?.content || episode.content) && (
+                  <View style={{ position: 'relative' }}>
+                    <TouchableOpacity
+                      onPress={() => setShowContentModal(true)}
+                      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                      style={{
+                        width: 40,
+                        height: 40,
+                        borderRadius: 20,
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                      }}
+                    >
+                      <FileText size={20} color={colors.text} />
+                    </TouchableOpacity>
+                  </View>
+                )}
               </View>
             </View>
           </View>
@@ -1240,6 +1260,52 @@ export const EpisodePlayer = ({
           </View>
         </View>
       )}
+
+      <Modal
+        visible={showContentModal}
+        transparent
+        animationType='slide'
+        onRequestClose={() => setShowContentModal(false)}
+      >
+        <View style={{ flex: 1, justifyContent: 'flex-end' }}>
+          <Pressable style={{ flex: 1 }} onPress={() => setShowContentModal(false)} />
+          <View
+            style={{
+              backgroundColor: colors.card,
+              borderTopLeftRadius: borderRadius['3xl'],
+              borderTopRightRadius: borderRadius['3xl'],
+              height: '70%',
+              paddingBottom: insets.bottom,
+            }}
+          >
+            <View style={{ alignItems: 'center', paddingVertical: spacing.md }}>
+              <View
+                style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: colors.muted }}
+              />
+            </View>
+
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                paddingHorizontal: spacing.lg,
+              }}
+            >
+              <Text style={styles.textXl}>コンテンツ</Text>
+              <TouchableOpacity onPress={() => setShowContentModal(false)}>
+                <X color={colors.text} size={24} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={{ flex: 1, paddingHorizontal: spacing.lg }}>
+              <View style={{ paddingVertical: spacing.lg }}>
+                <Text style={styles.bodyText}>{currentUnit?.content || episode.content}</Text>
+              </View>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </View>
   )
 }

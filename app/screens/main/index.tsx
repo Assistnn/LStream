@@ -7,7 +7,6 @@ import {
   Animated,
   BackHandler,
   Easing,
-  Image,
   Platform,
   useWindowDimensions,
   View,
@@ -173,7 +172,7 @@ const SettingsStackScreen = () => (
 )
 
 export const MainScreen = () => {
-  const { styles, colors } = useTheme()
+  const { styles, colors, spacing } = useTheme()
   const {
     currentContent,
     state: { playbackState },
@@ -229,7 +228,7 @@ export const MainScreen = () => {
   const effectiveExpanded = expandedSlot ?? { x: 0, y: 0, width: baseWidth, height: baseHeight }
   const effectiveCompact = compactSlot ?? {
     x: 0,
-    y: screenHeight - 49 - insets.bottom - 56,
+    y: screenHeight - 61 - insets.bottom - 56,
     width: 56 * (16 / 9),
     height: 56,
   }
@@ -300,7 +299,6 @@ export const MainScreen = () => {
         zIndex: 60,
       }
 
-  const thumbnail = currentContent?.thumbnail
   const showVideoWrapper = !!currentContent
 
   return (
@@ -308,7 +306,10 @@ export const MainScreen = () => {
       <Tab.Navigator
         screenOptions={{
           headerShown: false,
-          tabBarStyle: styles.tabBar,
+          tabBarStyle: [
+            styles.tabBar,
+            { paddingBottom: spacing.sm + insets.bottom + 5, height: 56 + insets.bottom + 5 },
+          ],
           tabBarActiveTintColor: colors.tabBarActive,
           tabBarInactiveTintColor: colors.tabBarInactive,
           tabBarLabelStyle: styles.tabLabel,
@@ -374,7 +375,7 @@ export const MainScreen = () => {
         <View
           style={{
             position: 'absolute',
-            bottom: 49 + insets.bottom,
+            bottom: 61 + insets.bottom,
             left: 0,
             right: 0,
           }}
@@ -438,12 +439,7 @@ export const MainScreen = () => {
           {currentContent.isVideo ? (
             <PlayerVideo style={{ width: '100%', height: '100%' }} />
           ) : (
-            <>
-              <PlayerVideo style={{ position: 'absolute', width: 0, height: 0, opacity: 0 }} />
-              {thumbnail && (
-                <Image source={{ uri: thumbnail }} style={{ width: '100%', height: '100%' }} resizeMode='cover' />
-              )}
-            </>
+            <PlayerVideo style={{ position: 'absolute', width: 0, height: 0, opacity: 0 }} />
           )}
           {(playbackState === 'loading' || isBuffering) && (
             <View

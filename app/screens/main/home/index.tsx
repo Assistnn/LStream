@@ -73,7 +73,7 @@ export const HomeTabScreen = ({
   }, [])
 
   return (
-    <View style={[styles.screenContainer, { paddingTop: insets.top }]}>
+    <View style={[styles.screenContainer, { paddingTop: Math.max(insets.top, 24) }]}>
       <ScrollView
         style={styles.scrollContainer}
         contentContainerStyle={styles.scrollContentContainer}
