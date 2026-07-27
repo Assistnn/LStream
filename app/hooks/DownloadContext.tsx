@@ -193,6 +193,7 @@ export const DownloadProvider = ({ children }: { children: ReactNode }) => {
       mediaType: number
       url: string
     }) => {
+      if (info.url.includes('player.vimeo.com')) return
       const id = makeId(info.seriesId, info.mediaId)
       if (downloads.some((d) => d.id === id) || tasksRef.current.has(id)) return
 

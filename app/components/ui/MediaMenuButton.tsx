@@ -1,10 +1,10 @@
 import { MoreVertical } from 'lucide-react-native'
 import { useCallback, useRef, useState } from 'react'
 import type { ViewStyle } from 'react-native'
-import { Dimensions, Modal, Pressable, Text, TouchableOpacity, View } from 'react-native'
+import { Alert, Dimensions, Modal, Pressable, Text, TouchableOpacity, View } from 'react-native'
 
 import { useDownload } from '../../hooks/DownloadContext'
-import { usePlayer } from '../../hooks/PlayerContext'
+import { isVimeoUrl, usePlayer } from '../../hooks/PlayerContext'
 import { useTheme } from '../../hooks/ThemeContext'
 import { AddToPlaylistModal } from '../../screens/main/playlist/components/AddToPlaylistModal'
 import { isFavoriteEpisode, isFavoriteSeries, useGetFavorites } from '../../usecases/useGetFavorites'
@@ -119,6 +119,10 @@ export const MediaMenuButton = ({
                 : 'ダウンロード',
             disabled: isDownloaded(mediaId) || isDownloading(mediaId),
             onPress: () => {
+              if (isVimeoUrl(mediaInfo.url)) {
+                Alert.alert('未対応', 'Vimeoのため未対応')
+                return
+              }
               startDownload({
                 seriesId,
                 mediaId,

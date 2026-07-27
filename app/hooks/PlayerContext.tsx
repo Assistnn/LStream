@@ -4,10 +4,13 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { Alert, AppState, NativeModules, Platform, type ViewStyle } from 'react-native'
 import Video, { type VideoRef } from 'react-native-video'
 
+import { VimeoWebPlayer, type VimeoWebPlayerRef } from '../components/player/VimeoWebPlayer'
 import { apiRepository } from '../repositories/api'
 import type { LoopMode } from '../repositories/storage'
 import { StorageRepository } from '../repositories/storage'
 import { useDownload } from './DownloadContext'
+
+export const isVimeoUrl = (url: string) => url.includes('player.vimeo.com')
 
 type PlaybackState = 'idle' | 'loading' | 'playing' | 'paused' | 'ended' | 'error'
 
@@ -744,6 +747,25 @@ export const PlayerVideo = ({ style }: { style?: ViewStyle }) => {
     return () => sub.remove()
   }, [videoRef, pausePlayer])
   if (!currentContent || !source) return null
+
+  if (isVimeoUrl(source.uri)) {
+    return (
+      <VimeoWebPlayer
+        ref={videoRef as unknown as React.Ref<VimeoWebPlayerRef>}
+        source={{ uri: source.uri }}
+        style={[style, playbackState === 'loading' && { opacity: 0 }]}
+        paused={playbackState !== 'playing' && playbackState !== 'loading'}
+        rate={playbackRate}
+        volume={volume / 100}
+        onProgress={onProgress}
+        onLoad={onLoad}
+        onEnd={handleEnd}
+        onBuffer={onBuffer}
+        onPlaybackRateChange={onPlaybackRateChange}
+      />
+    )
+  }
+
   return (
     <Video
       ref={videoRef}
