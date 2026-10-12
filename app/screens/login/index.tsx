@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { ActivityIndicator, Alert, Animated, Easing, Text, TouchableOpacity, View } from 'react-native'
+import { ActivityIndicator, Animated, Easing, Text, TouchableOpacity, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { useTheme } from '../../hooks/ThemeContext'
@@ -136,20 +136,6 @@ export const LoginScreen = () => {
             ) : (
               <Text style={{ fontSize: 14, fontWeight: '600', color: '#FFFFFF' }}>ログイン</Text>
             )}
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={{
-              height: 44,
-              backgroundColor: colors.background,
-              borderRadius: 6,
-              borderWidth: 1,
-              borderColor: colors.border,
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-            onPress={() => Alert.alert('TODO')}
-          >
-            <Text style={{ fontSize: 14, fontWeight: '600', color: colors.textSecondary }}>アカウント作成</Text>
           </TouchableOpacity>
           {error && <Text style={[styles.bodySmall, { color: colors.destructive, textAlign: 'center' }]}>{error}</Text>}
         </View>

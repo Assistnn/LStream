@@ -94,4 +94,9 @@ export class ApiRepository implements IApiRepository {
   async getMe() {
     return apiClient.get<MeResponse>('/me')
   }
+
+  async getAutoLoginUrl(redirect?: string) {
+    const qs = redirect ? `?redirect=${encodeURIComponent(redirect)}` : ''
+    return apiClient.get<{ result: number; url?: string }>(`/str_auto_login_url${qs}`)
+  }
 }

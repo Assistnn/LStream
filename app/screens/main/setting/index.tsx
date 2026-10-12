@@ -15,7 +15,9 @@ import {
   Settings as SettingsIcon,
   Trash2,
   User,
+  UserX,
   Wifi,
+  X,
 } from 'lucide-react-native'
 import { useEffect, useState } from 'react'
 import {
@@ -24,6 +26,7 @@ import {
   Modal,
   NativeModules,
   Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   Switch,
@@ -33,6 +36,7 @@ import {
   View,
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { WebView } from 'react-native-webview'
 
 import { PageTitle } from '../../../components/ui/PageTitle'
 import { syncAllAlarms } from '../../../hooks/alarmService'
@@ -74,7 +78,7 @@ type SettingItem =
 
 export const SettingsTabScreen = () => {
   const insets = useSafeAreaInsets()
-  const { themeMode, styles, colors, spacing, setThemeMode } = useTheme()
+  const { themeMode, styles, colors, spacing, borderRadius, setThemeMode } = useTheme()
   const { signOut } = useAuth()
 
   const [showAccountModal, setShowAccountModal] = useState(false)
@@ -88,6 +92,9 @@ export const SettingsTabScreen = () => {
   const [showSpeedMenu, setShowSpeedMenu] = useState(false)
   const [showLoopMenu, setShowLoopMenu] = useState(false)
   const [showTimerMenu, setShowTimerMenu] = useState(false)
+  const [showTermsModal, setShowTermsModal] = useState(false)
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false)
+  const [showAccountDeletionModal, setShowAccountDeletionModal] = useState(false)
   const [playbackRate, setPlaybackRate] = useState(1.0)
   const [loopMode, setLoopMode] = useState<LoopMode>('off')
   const [sleepTimer, setSleepTimer] = useState<number | undefined>(undefined)
@@ -176,20 +183,6 @@ export const SettingsTabScreen = () => {
         },
       },
     ])
-  }
-
-  const openUrl = async (url: string) => {
-    try {
-      const supported = await Linking.canOpenURL(url)
-      if (supported) {
-        await Linking.openURL(url)
-      } else {
-        Alert.alert('エラー', 'このURLを開くことができません')
-      }
-    } catch (error) {
-      console.error('Failed to open URL:', error)
-      Alert.alert('エラー', 'URLを開く際にエラーが発生しました')
-    }
   }
 
   const themeOptions: Array<{ value: ThemeMode; label: string }> = [
@@ -345,6 +338,19 @@ export const SettingsTabScreen = () => {
               { text: 'ログアウト', style: 'destructive', onPress: () => void signOut() },
             ]),
         },
+        {
+          icon: UserX,
+          label: 'アカウント削除',
+          onPress: () =>
+            Alert.alert(
+              'アカウント削除',
+              'アカウントを削除すると、視聴履歴・お気に入り・登録テナント情報がすべて失われます。削除申請ページに進みますか？',
+              [
+                { text: 'キャンセル', style: 'cancel' },
+                { text: '削除申請ページを開く', style: 'destructive', onPress: () => setShowAccountDeletionModal(true) },
+              ],
+            ),
+        },
       ],
     },
     {
@@ -353,7 +359,12 @@ export const SettingsTabScreen = () => {
         {
           icon: FileText,
           label: '利用規約',
-          onPress: () => openUrl('https://yahoo.co.jp'),
+          onPress: () => setShowTermsModal(true),
+        },
+        {
+          icon: FileText,
+          label: 'プライバシーポリシー',
+          onPress: () => setShowPrivacyModal(true),
         },
         {
           icon: Info,
@@ -632,6 +643,52 @@ export const SettingsTabScreen = () => {
           }
         }}
       />
+
+      {([
+        { visible: showTermsModal, close: () => setShowTermsModal(false), title: '利用規約', uri: 'https://lseed.jp/lstream-terms/' },
+        { visible: showPrivacyModal, close: () => setShowPrivacyModal(false), title: 'プライバシーポリシー', uri: 'https://lseed.jp/lstream-privacy-policy/' },
+        { visible: showAccountDeletionModal, close: () => setShowAccountDeletionModal(false), title: 'アカウント削除', uri: 'https://d3.lseed.jp/lstream-account-deletion/' },
+      ]).map((m) => (
+        <Modal
+          key={m.title}
+          visible={m.visible}
+          transparent
+          animationType='slide'
+          onRequestClose={m.close}
+        >
+          <View style={{ flex: 1, justifyContent: 'flex-end' }}>
+            <Pressable style={{ flex: 1 }} onPress={m.close} />
+            <View
+              style={{
+                backgroundColor: colors.card,
+                borderTopLeftRadius: borderRadius['3xl'],
+                borderTopRightRadius: borderRadius['3xl'],
+                height: '90%',
+                paddingBottom: insets.bottom,
+              }}
+            >
+              <View style={{ alignItems: 'center', paddingVertical: spacing.md }}>
+                <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: colors.muted }} />
+              </View>
+              <View
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  paddingHorizontal: spacing.lg,
+                  paddingBottom: spacing.md,
+                }}
+              >
+                <Text style={styles.textXl}>{m.title}</Text>
+                <TouchableOpacity onPress={m.close}>
+                  <X color={colors.text} size={24} />
+                </TouchableOpacity>
+              </View>
+              <WebView source={{ uri: m.uri }} style={{ flex: 1, backgroundColor: colors.card }} />
+            </View>
+          </View>
+        </Modal>
+      ))}
     </View>
   )
 }

@@ -33,6 +33,7 @@ import type { LoopMode, MyChapter } from '../../repositories/storage'
 import { StorageRepository } from '../../repositories/storage'
 import { EpisodeMediaList } from '../listitem/EpisodeMediaList'
 import { FavoriteButton } from '../ui/FavoriteButton'
+import { VisualizerWebPlayer } from './visualizer/VisualizerWebPlayer'
 
 const formatTime = (seconds: number): string => {
   const safe = Math.max(0, seconds)
@@ -252,13 +253,22 @@ export const EpisodePlayer = ({
                   backgroundColor: currentContent.isVideo ? '#000' : 'transparent',
                 }}
               >
-                {!currentContent.isVideo && thumbnail && (
+                {!currentContent.isVideo && (currentUnit?.visualizer?.enabled || episode.visualizer?.enabled) ? (
+                  <VisualizerWebPlayer
+                    config={(currentUnit?.visualizer ?? episode.visualizer)!}
+                    title={currentUnit?.title || episode.title}
+                    audioUrl={currentContent.mediaUrl}
+                    currentTime={currentTime}
+                    paused={playbackState !== 'playing'}
+                    style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+                  />
+                ) : !currentContent.isVideo && thumbnail ? (
                   <Image
                     source={{ uri: thumbnail }}
                     style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
                     resizeMode='cover'
                   />
-                )}
+                ) : null}
               </View>
             </View>
             {/* Episode Info */}
@@ -816,13 +826,22 @@ export const EpisodePlayer = ({
                 backgroundColor: currentContent.isVideo ? '#000' : 'transparent',
               }}
             >
-              {!currentContent.isVideo && thumbnail && (
+              {!currentContent.isVideo && (currentUnit?.visualizer?.enabled || episode.visualizer?.enabled) ? (
+                <VisualizerWebPlayer
+                  config={(currentUnit?.visualizer ?? episode.visualizer)!}
+                  title={currentUnit?.title || episode.title}
+                  audioUrl={currentContent.mediaUrl}
+                  currentTime={currentTime}
+                  paused={playbackState !== 'playing'}
+                  style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+                />
+              ) : !currentContent.isVideo && thumbnail ? (
                 <Image
                   source={{ uri: thumbnail }}
                   style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
                   resizeMode='cover'
                 />
-              )}
+              ) : null}
             </View>
           </View>
 

@@ -9,6 +9,7 @@ import { useTheme } from '../../hooks/ThemeContext'
 import { AddToPlaylistModal } from '../../screens/main/playlist/components/AddToPlaylistModal'
 import { isFavoriteEpisode, isFavoriteSeries, useGetFavorites } from '../../usecases/useGetFavorites'
 import { toggleFavorite } from '../../usecases/useUpdateFavorite'
+import { isYoutubeUrl } from '../player/youtubeHtml'
 
 const MENU_WIDTH = 180
 
@@ -121,6 +122,10 @@ export const MediaMenuButton = ({
             onPress: () => {
               if (isVimeoUrl(mediaInfo.url)) {
                 Alert.alert('未対応', 'Vimeoのため未対応')
+                return
+              }
+              if (isYoutubeUrl(mediaInfo.url)) {
+                Alert.alert('未対応', 'YouTubeのため未対応')
                 return
               }
               startDownload({

@@ -24,7 +24,7 @@ export const useOAuthLogin = () => {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const startLogin = useCallback(async () => {
+  const startAuth = useCallback(async (mode: 'login' | 'register' = 'login') => {
     setError(null)
     setLoading(true)
     try {
@@ -44,6 +44,7 @@ export const useOAuthLogin = () => {
         state,
         code_challenge: codeChallenge,
         code_challenge_method: 'S256',
+        ...(mode === 'register' ? { screen: 'register' } : {}),
       })
 
       const callbackUrl: string = await WebAuthSessionModule.openAuthSession(
@@ -93,5 +94,10 @@ export const useOAuthLogin = () => {
     }
   }, [signIn])
 
-  return { startLogin, loading, error }
+  return {
+    startLogin: useCallback(() => startAuth('login'), [startAuth]),
+    startSignup: useCallback(() => startAuth('register'), [startAuth]),
+    loading,
+    error,
+  }
 }

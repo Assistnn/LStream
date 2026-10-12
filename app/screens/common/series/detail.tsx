@@ -61,6 +61,7 @@ export const SeriesDetailScreen = ({
             progress: data.progress,
             parentTitle: '',
             chapters: data.chapters,
+            visualizer: data.visualizer,
           } satisfies PlayableTrack,
         ]
     : []

@@ -4,6 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState } f
 import { Alert, NativeModules, Platform } from 'react-native'
 import ReactNativeBlobUtil from 'react-native-blob-util'
 
+import { isYoutubeUrl } from '../components/player/youtubeHtml'
 import { getDeviceHeaders } from '../repositories/api/core/config'
 
 const { VideoConverterModule } = NativeModules as {
@@ -193,7 +194,9 @@ export const DownloadProvider = ({ children }: { children: ReactNode }) => {
       mediaType: number
       url: string
     }) => {
-      if (info.url.includes('player.vimeo.com')) return
+      // Vimeo / YouTube の embed URL (WebView 経由) はダウンロード対象外。
+      // 有料プランの直リンク (progressive_redirect/...) はネイティブ扱いでダウンロード可能。
+      if (info.url.includes('player.vimeo.com/video/') || isYoutubeUrl(info.url)) return
       const id = makeId(info.seriesId, info.mediaId)
       if (downloads.some((d) => d.id === id) || tasksRef.current.has(id)) return
 

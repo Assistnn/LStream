@@ -531,4 +531,9 @@ export class ApiMockRepository implements IApiRepository {
       ],
     }
   }
+
+  async getAutoLoginUrl(redirect?: string) {
+    await new Promise<void>((resolve) => setTimeout(() => resolve(), 100))
+    return { result: 1, url: `https://example.lseed.jp/app-autologin?token=mock&redirect=${redirect ?? '/member/mypage'}` }
+  }
 }

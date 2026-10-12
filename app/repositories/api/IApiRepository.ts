@@ -13,6 +13,7 @@ export interface IApiRepository {
   updatePlayProgress(params: PlayProgressParams): Promise<ApiResult>
   updatePlayEnd(params: PlayEndParams): Promise<ApiResult>
   getMe(): Promise<MeResponse>
+  getAutoLoginUrl(redirect?: string): Promise<{ result: number; url?: string }>
 }
 
 export interface ApiResult {
@@ -109,6 +110,26 @@ export interface ApiChapter {
   position: number
 }
 
+export interface Visualizer {
+  enabled?: boolean
+  type?: string
+  aspectRatio?: string
+  colorScheme?: string
+  bgColor?: string
+  bgColorOpacity?: number
+  bgPhotoUrl?: string | null
+  bgPhotoOpacity?: number
+  centerPhotoUrl?: string | null
+  centerPhotoShape?: string
+  centerPhotoPosX?: number
+  centerPhotoPosY?: number
+  centerPhotoZoom?: number
+  showTitle?: boolean
+  showTime?: boolean
+  schemes?: Record<string, { label?: string; colors: string[] }>
+  bgColors?: Record<string, string | null>
+}
+
 export interface SeriesMedia {
   item_id: number
   type_media: 0 | 1 | 2
@@ -119,6 +140,7 @@ export interface SeriesMedia {
   duration: number
   progress: number
   chapters?: ApiChapter[]
+  visualizer?: Visualizer | null
   units?: Omit<SeriesMedia, 'units'>[]
   // アプリ側で設定。unit > 親episode、episode > 親シリーズのタイトルが入る
   parentTitle: string
@@ -153,6 +175,7 @@ export interface SeriesResponse extends ApiResult, SeriesSummaryDetail {
   url: string
   progress: number
   chapters?: ApiChapter[]
+  visualizer?: Visualizer | null
   episodes: SeriesMedia[]
 }
 

@@ -13,7 +13,6 @@ import {
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
-import serviceLogo from '../../../assets/logos/service-logo.png'
 import { HistoryListItem } from '../../../components/listitem/HistoryListItem'
 import { LoadingSpinner } from '../../../components/ui/LoadingSpinner'
 import { SectionHeader } from '../../../components/ui/SectionHeader'
@@ -50,7 +49,7 @@ export const HomeTabScreen = ({
   const { data, loading, refetch } = useGetHomeData()
   const settings = useSettings()
   const headerImageUri = isDark ? settings?.header_dark : settings?.header_light
-  const headerImageSource = settings ? (headerImageUri ? { uri: headerImageUri } : serviceLogo) : undefined
+  const headerImageSource = headerImageUri ? { uri: headerImageUri } : undefined
   const [logoWidth, setLogoWidth] = useState(160)
   const [showAccount, setShowAccount] = useState(false)
   const [showAddTenant, setShowAddTenant] = useState(false)
@@ -88,17 +87,23 @@ export const HomeTabScreen = ({
               justifyContent: 'space-between',
             }}
           >
-            <Image
-              source={headerImageSource}
-              style={{ width: logoWidth, height: 40 }}
-              resizeMode='contain'
-              onLoad={(e) => {
-                const { width, height } = e.nativeEvent.source
-                if (width && height) {
-                  setLogoWidth(Math.min(160, (40 * width) / height))
-                }
-              }}
-            />
+            {headerImageSource ? (
+              <Image
+                source={headerImageSource}
+                style={{ width: logoWidth, height: 40 }}
+                resizeMode='contain'
+                onLoad={(e) => {
+                  const { width, height } = e.nativeEvent.source
+                  if (width && height) {
+                    setLogoWidth(Math.min(160, (40 * width) / height))
+                  }
+                }}
+              />
+            ) : (
+              <Text style={[styles.titleLarge, { height: 40, lineHeight: 40 }]} numberOfLines={1}>
+                {activeTenant?.account ?? ''}
+              </Text>
+            )}
             <TouchableOpacity
               style={{
                 width: 40,

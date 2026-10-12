@@ -1,11 +1,13 @@
 import { Check, Fingerprint, Lock, Plus, ShieldCheck, X } from 'lucide-react-native'
 import { useCallback, useEffect, useState } from 'react'
-import { Alert, Modal, Pressable, ScrollView, Switch, Text, TouchableOpacity, View } from 'react-native'
+import { ActivityIndicator, Alert, Modal, Pressable, ScrollView, Switch, Text, TouchableOpacity, View } from 'react-native'
 import ReactNativeBiometrics from 'react-native-biometrics'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { WebView } from 'react-native-webview'
 
 import { useAuth } from '../../../../hooks/AuthContext'
 import { useTheme } from '../../../../hooks/ThemeContext'
+import { apiRepository } from '../../../../repositories/api'
 import { StorageRepository } from '../../../../repositories/storage'
 import { SetPasscodeModal } from './SetPasscodeModal'
 
@@ -26,6 +28,8 @@ export const AccountModal = ({
   const [biometricEnabled, setBiometricEnabled] = useState(false)
   const [passcodeEnabled, setPasscodeEnabled] = useState(false)
   const [showSetPasscode, setShowSetPasscode] = useState(false)
+  const [myPageUrl, setMyPageUrl] = useState<string | null>(null)
+  const [myPageLoading, setMyPageLoading] = useState(false)
 
   useEffect(() => {
     if (!visible) return
@@ -159,9 +163,35 @@ export const AccountModal = ({
                   }}
                 >
                   <Text style={styles.titleMedium}>テナント</Text>
-                  <TouchableOpacity onPress={onAddTenant}>
-                    <Plus color={colors.primary} size={20} />
-                  </TouchableOpacity>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
+                    <TouchableOpacity
+                      disabled={myPageLoading}
+                      onPress={async () => {
+                        setMyPageLoading(true)
+                        try {
+                          const res = await apiRepository.getAutoLoginUrl('/member/mypage')
+                          if (res.result === 1 && res.url) {
+                            setMyPageUrl(res.url)
+                          } else {
+                            Alert.alert('エラー', 'マイページを開けませんでした')
+                          }
+                        } catch {
+                          Alert.alert('エラー', 'マイページを開けませんでした')
+                        } finally {
+                          setMyPageLoading(false)
+                        }
+                      }}
+                    >
+                      {myPageLoading ? (
+                        <ActivityIndicator color={colors.primary} size='small' />
+                      ) : (
+                        <Text style={[styles.bodySmall, { color: colors.primary }]}>マイページを開く</Text>
+                      )}
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={onAddTenant}>
+                      <Plus color={colors.primary} size={20} />
+                    </TouchableOpacity>
+                  </View>
                 </View>
 
                 <View style={{ gap: spacing.sm }}>
@@ -295,6 +325,31 @@ export const AccountModal = ({
           setShowSetPasscode(false)
         }}
       />
+      <Modal
+        visible={myPageUrl !== null}
+        animationType='slide'
+        onRequestClose={() => setMyPageUrl(null)}
+      >
+        <View style={{ flex: 1, backgroundColor: colors.card, paddingTop: insets.top, paddingBottom: insets.bottom }}>
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              paddingHorizontal: spacing.lg,
+              paddingVertical: spacing.md,
+            }}
+          >
+            <Text style={styles.textXl}>マイページ</Text>
+            <TouchableOpacity onPress={() => setMyPageUrl(null)}>
+              <X color={colors.text} size={24} />
+            </TouchableOpacity>
+          </View>
+          {myPageUrl && (
+            <WebView source={{ uri: myPageUrl }} style={{ flex: 1, backgroundColor: colors.card }} />
+          )}
+        </View>
+      </Modal>
     </Modal>
   )
 }

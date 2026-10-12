@@ -121,26 +121,31 @@ export const AddTenantModal = ({
                       borderRadius: borderRadius.xl,
                     }}
                     onPress={async () => {
+                      console.log('[QR] step=1 openAuthSession start')
                       try {
-                        await WebAuthSessionModule.openAuthSession(
+                        const cb = await WebAuthSessionModule.openAuthSession(
                           'https://login.lseed.app/qr',
                           'login.lseed.app',
                           '/app/lstream',
                         )
+                        console.log('[QR] step=2 openAuthSession returned', cb)
                         const refreshed = await refreshTenants()
+                        console.log('[QR] step=3 refreshTenants', refreshed)
                         if (!refreshed) {
                           Alert.alert('エラー', 'テナント情報の更新に失敗しました')
                           return
                         }
                         handleClose()
+                        console.log('[QR] step=4 done')
                       } catch (e: unknown) {
+                        console.log('[QR] error', e instanceof Error ? e.message : e)
                         if (
                           e instanceof Error &&
                           (e.message?.includes('cancelled') || e.message?.includes('USER_CANCELLED'))
                         ) {
                           return
                         }
-                        Alert.alert('エラー', 'QRコード読み込みに失敗しました')
+                        Alert.alert('エラー', 'QRコード読み込みに失敗しました\n' + (e instanceof Error ? e.message : String(e)))
                       }
                     }}
                   >

@@ -4,13 +4,17 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { Alert, AppState, NativeModules, Platform, type ViewStyle } from 'react-native'
 import Video, { type VideoRef } from 'react-native-video'
 
-import { VimeoWebPlayer, type VimeoWebPlayerRef } from '../components/player/VimeoWebPlayer'
+import { EmbedWebPlayer, type EmbedWebPlayerRef } from '../components/player/EmbedWebPlayer'
+import { isYoutubeUrl } from '../components/player/youtubeHtml'
 import { apiRepository } from '../repositories/api'
+import type { Visualizer } from '../repositories/api/IApiRepository'
 import type { LoopMode } from '../repositories/storage'
 import { StorageRepository } from '../repositories/storage'
 import { useDownload } from './DownloadContext'
 
-export const isVimeoUrl = (url: string) => url.includes('player.vimeo.com')
+// player.vimeo.com/video/{id} の embed URL のみ WebView 経由の判定にする。
+// 有料プランの直リンク (player.vimeo.com/progressive_redirect/... 等) はネイティブ再生させる。
+export const isVimeoUrl = (url: string) => url.includes('player.vimeo.com/video/')
 
 type PlaybackState = 'idle' | 'loading' | 'playing' | 'paused' | 'ended' | 'error'
 
@@ -30,6 +34,7 @@ export type PlayableChild = {
   progress: number
   parentTitle: string
   chapters?: PlayableChapter[]
+  visualizer?: Visualizer | null
 }
 
 export type PlayableTrack = PlayableChild & {
@@ -748,10 +753,10 @@ export const PlayerVideo = ({ style }: { style?: ViewStyle }) => {
   }, [videoRef, pausePlayer])
   if (!currentContent || !source) return null
 
-  if (isVimeoUrl(source.uri)) {
+  if (isVimeoUrl(source.uri) || isYoutubeUrl(source.uri)) {
     return (
-      <VimeoWebPlayer
-        ref={videoRef as unknown as React.Ref<VimeoWebPlayerRef>}
+      <EmbedWebPlayer
+        ref={videoRef as unknown as React.Ref<EmbedWebPlayerRef>}
         source={{ uri: source.uri }}
         style={[style, playbackState === 'loading' && { opacity: 0 }]}
         paused={playbackState !== 'playing' && playbackState !== 'loading'}

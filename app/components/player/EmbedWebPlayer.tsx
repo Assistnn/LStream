@@ -1,12 +1,13 @@
 import type { ReactNode } from 'react'
 import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react'
-import type { StyleProp, ViewStyle } from 'react-native'
-import { WebView } from 'react-native-webview'
+import { Platform, type StyleProp, type ViewStyle } from 'react-native'
 import type { WebViewMessageEvent } from 'react-native-webview'
+import { WebView } from 'react-native-webview'
 
 import { buildVimeoHtml } from './vimeoHtml'
+import { buildYoutubeHtml, isYoutubeUrl } from './youtubeHtml'
 
-export type VimeoWebPlayerRef = {
+export type EmbedWebPlayerRef = {
   seek: (time: number) => void
   pause: () => void
   resume: () => void
@@ -30,7 +31,7 @@ type Props = {
 
 const noop = () => {}
 
-export const VimeoWebPlayer = forwardRef<VimeoWebPlayerRef, Props>(
+export const EmbedWebPlayer = forwardRef<EmbedWebPlayerRef, Props>(
   ({ source, paused, rate, volume, onProgress, onLoad, onEnd, onBuffer, onPlaybackRateChange, style }, ref) => {
     const webRef = useRef<WebView>(null)
     const loadedRef = useRef(false)
@@ -87,7 +88,15 @@ export const VimeoWebPlayer = forwardRef<VimeoWebPlayerRef, Props>(
     return (
       <WebView
         ref={webRef}
-        source={{ html: buildVimeoHtml(source.uri) }}
+        source={
+          isYoutubeUrl(source.uri)
+            ? {
+                html: buildYoutubeHtml(source.uri),
+                // YouTube の埋め込みは Referer で呼び出し元アプリを識別できないとエラー 153 で再生を拒否する。
+                baseUrl: Platform.OS === 'android' ? 'https://com.metadirection.lseed' : 'https://jp.lseed.lstream',
+              }
+            : { html: buildVimeoHtml(source.uri) }
+        }
         originWhitelist={['*']}
         onMessage={handleMessage}
         javaScriptEnabled

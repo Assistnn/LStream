@@ -20,4 +20,5 @@ export const API_METHOD_CONFIG: ApiMethodConfig = {
   updatePlayProgress: 'real',
   updatePlayEnd: 'real',
   getMe: 'mock',
+  getAutoLoginUrl: 'real',
 }
