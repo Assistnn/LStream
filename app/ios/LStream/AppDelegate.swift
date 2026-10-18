@@ -1,5 +1,6 @@
 import UIKit
 import AVFoundation
+import FirebaseCore
 import React
 import React_RCTAppDelegate
 import ReactAppDependencyProvider
@@ -14,6 +15,8 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
   ) -> Bool {
+    FirebaseApp.configure()
+
     let audioSession = AVAudioSession.sharedInstance()
     try? audioSession.setCategory(.playback, mode: .moviePlayback)
     try? audioSession.setActive(true)

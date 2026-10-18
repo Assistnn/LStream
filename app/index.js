@@ -4,6 +4,7 @@
 
 import notifee, { EventType } from '@notifee/react-native'
 import AsyncStorage from '@react-native-async-storage/async-storage'
+import { getMessaging, setBackgroundMessageHandler } from '@react-native-firebase/messaging'
 import { AppRegistry } from 'react-native'
 
 import App from './App'
@@ -20,5 +21,8 @@ notifee.onBackgroundEvent(async ({ type, detail }) => {
     )
   }
 })
+
+// 通知メッセージは OS が表示する。データのみのメッセージを受けるためにハンドラーの登録が必要
+setBackgroundMessageHandler(getMessaging(), async () => {})
 
 AppRegistry.registerComponent(appName, () => App)

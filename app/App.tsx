@@ -13,6 +13,7 @@ import { DownloadProvider } from './hooks/DownloadContext'
 import { PlayerProvider } from './hooks/PlayerContext'
 import { ThemeContext, ThemeProvider } from './hooks/ThemeContext'
 import { useAlarmHandler } from './hooks/useAlarmHandler'
+import { usePushNotification } from './hooks/usePushNotification'
 import { LoginScreen } from './screens/login'
 import { MainScreen } from './screens/main'
 import { SplashScreen } from './screens/splash'
@@ -43,6 +44,7 @@ const AlarmHandler = () => {
     void ensureChannel()
   }, [])
   useAlarmHandler()
+  usePushNotification()
   return null
 }
 
