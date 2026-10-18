@@ -18,6 +18,7 @@ import { LoadingSpinner } from '../../../components/ui/LoadingSpinner'
 import { PageTitle } from '../../../components/ui/PageTitle'
 import { useThemedRefreshControl } from '../../../components/ui/ThemedRefreshControl'
 import { useTheme } from '../../../hooks/ThemeContext'
+import { useTabBarInset } from '../../../hooks/useTabBarInset'
 import { useGetLibrary } from '../../../usecases/useGetLibrary'
 import { useSettings } from '../../../usecases/useSettings'
 import { LibraryCard } from './components/LibraryCard'
@@ -40,6 +41,7 @@ const SORT_MAP = {
 export const LibraryTabScreen = () => {
   const insets = useSafeAreaInsets()
   const { styles, colors, spacing, borderRadius, typography } = useTheme()
+  const tabBarInset = useTabBarInset()
   const settings = useSettings()
   const navigation = useNavigation<NativeStackNavigationProp<{ SeriesDetail: { seriesId: number } }>>()
 
@@ -123,7 +125,7 @@ export const LibraryTabScreen = () => {
     <View style={[styles.screenContainer, { paddingTop: insets.top }]}>
       <ScrollView
         style={styles.scrollContainer}
-        contentContainerStyle={styles.scrollContentContainer}
+        contentContainerStyle={[styles.scrollContentContainer, { paddingBottom: spacing.xl + tabBarInset }]}
         refreshControl={refreshControl}
       >
         <PageTitle icon={LibraryIcon} title='ライブラリ'>

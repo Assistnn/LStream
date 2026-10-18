@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useDownload } from '../../../hooks/DownloadContext'
 import { usePlayer } from '../../../hooks/PlayerContext'
 import { useTheme } from '../../../hooks/ThemeContext'
+import { useTabBarInset } from '../../../hooks/useTabBarInset'
 
 const SWIPE_THRESHOLD = 80
 const ACTION_WIDTH = 80
@@ -118,6 +119,7 @@ const SwipeableRow = ({
 export const DownloadScreen = ({ navigation }: { navigation: { goBack: () => void } }) => {
   const insets = useSafeAreaInsets()
   const { styles, colors, spacing, borderRadius } = useTheme()
+  const tabBarInset = useTabBarInset()
   const { downloads, deleteDownloads, toggleLock } = useDownload()
   const {
     navigation: { play },
@@ -259,7 +261,7 @@ export const DownloadScreen = ({ navigation }: { navigation: { goBack: () => voi
           </Text>
         </View>
       ) : (
-        <ScrollView>
+        <ScrollView contentContainerStyle={{ paddingBottom: tabBarInset }}>
           {downloads.map((item) => (
             <SwipeableRow
               key={item.id}

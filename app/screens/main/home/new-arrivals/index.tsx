@@ -7,10 +7,12 @@ import { LoadingSpinner } from '../../../../components/ui/LoadingSpinner'
 import { MediaMenuButton } from '../../../../components/ui/MediaMenuButton'
 import { useThemedRefreshControl } from '../../../../components/ui/ThemedRefreshControl'
 import { useTheme } from '../../../../hooks/ThemeContext'
+import { useTabBarInset } from '../../../../hooks/useTabBarInset'
 import { useGetNewArrivals } from '../../../../usecases/useGetNewArrivals'
 
 export const NewArrivalsScreen = () => {
   const { styles, colors, spacing } = useTheme()
+  const tabBarInset = useTabBarInset()
   const { data: episodes, loading, refetch } = useGetNewArrivals()
   const refreshControl = useThemedRefreshControl(episodes !== null && loading, refetch)
   return (
@@ -23,6 +25,7 @@ export const NewArrivalsScreen = () => {
       ) : (
         <FlatList
           data={episodes}
+          contentContainerStyle={{ paddingBottom: tabBarInset }}
           keyExtractor={(item) => `${item.series_id}-${item.item_id}`}
           refreshControl={refreshControl}
           ListHeaderComponent={

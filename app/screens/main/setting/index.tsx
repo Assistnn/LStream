@@ -43,6 +43,7 @@ import { syncAllAlarms } from '../../../hooks/alarmService'
 import { useAuth } from '../../../hooks/AuthContext'
 import type { ThemeMode } from '../../../hooks/ThemeContext'
 import { useTheme } from '../../../hooks/ThemeContext'
+import { useTabBarInset } from '../../../hooks/useTabBarInset'
 import packageJson from '../../../package.json'
 import { PlaylistRepository } from '../../../repositories/playlist'
 import type { LoopMode } from '../../../repositories/storage'
@@ -79,6 +80,7 @@ type SettingItem =
 export const SettingsTabScreen = () => {
   const insets = useSafeAreaInsets()
   const { themeMode, styles, colors, spacing, borderRadius, setThemeMode } = useTheme()
+  const tabBarInset = useTabBarInset()
   const { signOut } = useAuth()
 
   const [showAccountModal, setShowAccountModal] = useState(false)
@@ -377,7 +379,7 @@ export const SettingsTabScreen = () => {
 
   return (
     <View style={[styles.screenContainer, { paddingTop: insets.top }]}>
-      <ScrollView style={styles.scrollContainer} contentContainerStyle={styles.scrollContentContainer}>
+      <ScrollView style={styles.scrollContainer} contentContainerStyle={[styles.scrollContentContainer, { paddingBottom: spacing.xl + tabBarInset }]}>
         <PageTitle icon={SettingsIcon} title='Settings' />
         {settingsGroups.map((group, groupIndex) => (
           <View key={groupIndex} style={{ marginBottom: spacing['3xl'] }}>

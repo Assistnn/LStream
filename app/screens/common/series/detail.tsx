@@ -15,6 +15,7 @@ import { useDownload } from '../../../hooks/DownloadContext'
 import type { PlayableTrack } from '../../../hooks/PlayerContext'
 import { usePlayer } from '../../../hooks/PlayerContext'
 import { useTheme } from '../../../hooks/ThemeContext'
+import { useTabBarInset } from '../../../hooks/useTabBarInset'
 import { isFavoriteEpisode, useGetFavorites } from '../../../usecases/useGetFavorites'
 import { useGetSeries } from '../../../usecases/useGetSeries'
 import { seriesMediaToTrack } from '../../main/playlist/utils'
@@ -30,6 +31,7 @@ export const SeriesDetailScreen = ({
   const { seriesId, autoPlayEpisodeId } = route.params
   const insets = useSafeAreaInsets()
   const { styles, colors, spacing, borderRadius } = useTheme()
+  const tabBarInset = useTabBarInset()
   const { data, loading, refetch } = useGetSeries(seriesId)
   useGetFavorites()
   const {
@@ -104,7 +106,7 @@ export const SeriesDetailScreen = ({
       <View style={{ height: 0.5, backgroundColor: colors.border }} />
       <ScrollView
         style={styles.scrollContainer}
-        contentContainerStyle={styles.scrollContentContainer}
+        contentContainerStyle={[styles.scrollContentContainer, { paddingBottom: spacing.xl + tabBarInset }]}
         refreshControl={refreshControl}
       >
         <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.lg, paddingBottom: spacing.lg }}>

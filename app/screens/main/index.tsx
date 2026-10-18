@@ -11,13 +11,14 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { EpisodePlayer } from '../../components/player/EpisodePlayer'
 import { FullscreenControls } from '../../components/player/FullscreenControls'
 import { MiniPlayer } from '../../components/player/MiniPlayer'
+import { PillTabBar } from '../../components/ui/PillTabBar'
 import { PlayerVideo, usePlayer } from '../../hooks/PlayerContext'
 import { useTheme } from '../../hooks/ThemeContext'
+import { useTabBarInset } from '../../hooks/useTabBarInset'
 import { useInitFavorites } from '../../usecases/useGetFavorites'
 import { refetchSettings, useInitSettings } from '../../usecases/useSettings'
 import { SeriesDetailScreen } from '../common/series/detail'
@@ -172,7 +173,6 @@ const SettingsStackScreen = () => (
 )
 
 export const MainScreen = () => {
-  const { styles, colors, spacing } = useTheme()
   const {
     currentContent,
     state: { playbackState },
@@ -181,7 +181,7 @@ export const MainScreen = () => {
   } = usePlayer()
   const [showPlayerModal, setShowPlayerModal] = useState(false)
   const [showEpisodeList, setShowEpisodeList] = useState(false)
-  const insets = useSafeAreaInsets()
+  const tabBarInset = useTabBarInset()
   const { width: screenWidth, height: screenHeight } = useWindowDimensions()
   const slideAnim = useRef(new Animated.Value(screenHeight)).current
 
@@ -228,7 +228,7 @@ export const MainScreen = () => {
   const effectiveExpanded = expandedSlot ?? { x: 0, y: 0, width: baseWidth, height: baseHeight }
   const effectiveCompact = compactSlot ?? {
     x: 0,
-    y: screenHeight - 61 - insets.bottom - 56,
+    y: screenHeight - tabBarInset - 56,
     width: 56 * (16 / 9),
     height: 56,
   }
@@ -304,15 +304,13 @@ export const MainScreen = () => {
   return (
     <View style={{ flex: 1 }}>
       <Tab.Navigator
+        tabBar={(props) => (
+          <View pointerEvents='box-none' style={{ position: 'absolute', left: 0, right: 0, bottom: 0 }}>
+            <PillTabBar {...props} />
+          </View>
+        )}
         screenOptions={{
           headerShown: false,
-          tabBarStyle: [
-            styles.tabBar,
-            { paddingBottom: spacing.sm + insets.bottom + 5, height: 56 + insets.bottom + 5 },
-          ],
-          tabBarActiveTintColor: colors.tabBarActive,
-          tabBarInactiveTintColor: colors.tabBarInactive,
-          tabBarLabelStyle: styles.tabLabel,
           sceneStyle: {
             paddingBottom: currentContent ? 56 : 0,
           },
@@ -375,7 +373,7 @@ export const MainScreen = () => {
         <View
           style={{
             position: 'absolute',
-            bottom: 61 + insets.bottom,
+            bottom: tabBarInset,
             left: 0,
             right: 0,
           }}

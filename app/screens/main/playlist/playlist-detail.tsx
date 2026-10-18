@@ -20,6 +20,7 @@ import { ContextMenu, type ContextMenuItem } from '../../../components/ui/Contex
 import { EmptyState } from '../../../components/ui/EmptyState'
 import { usePlayer } from '../../../hooks/PlayerContext'
 import { useTheme } from '../../../hooks/ThemeContext'
+import { useTabBarInset } from '../../../hooks/useTabBarInset'
 import type { Playlist, PlaylistItem } from '../../../repositories/playlist'
 import { PlaylistRepository } from '../../../repositories/playlist'
 import { AddToPlaylistModal } from './components/AddToPlaylistModal'
@@ -37,6 +38,7 @@ export const PlaylistDetailScreen = ({ route }: Props) => {
   const insets = useSafeAreaInsets()
   const navigation = useNavigation<NativeStackNavigationProp<PlaylistStackParamList>>()
   const { styles, colors, spacing, borderRadius } = useTheme()
+  const tabBarInset = useTabBarInset()
   const { playlists, setPlaylists } = usePlaylists()
   const {
     currentContent,
@@ -434,7 +436,7 @@ export const PlaylistDetailScreen = ({ route }: Props) => {
       </View>
 
       {/* Items */}
-      <ScrollView scrollEnabled={draggingIndex === null} contentContainerStyle={{ paddingBottom: spacing['4xl'] }}>
+      <ScrollView scrollEnabled={draggingIndex === null} contentContainerStyle={{ paddingBottom: spacing['4xl'] + tabBarInset }}>
         {itemsCount === 0 ? (
           <EmptyState
             icon={Play}

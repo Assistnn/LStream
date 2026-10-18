@@ -23,6 +23,7 @@ import { useThemedRefreshControl } from '../../../components/ui/ThemedRefreshCon
 import { useDownload } from '../../../hooks/DownloadContext'
 import { usePlayer } from '../../../hooks/PlayerContext'
 import { useTheme } from '../../../hooks/ThemeContext'
+import { useTabBarInset } from '../../../hooks/useTabBarInset'
 import { useGetHistory } from '../../../usecases/useGetHistory'
 
 const SWIPE_THRESHOLD = 80
@@ -119,6 +120,7 @@ const SwipeableDownloadRow = ({
 export const HistoryTabScreen = () => {
   const insets = useSafeAreaInsets()
   const { styles, colors, spacing, borderRadius } = useTheme()
+  const tabBarInset = useTabBarInset()
   const [activeTab, setActiveTab] = useState<'history' | 'download'>('history')
   const { data: history, loading: historyLoading, refetch: refetchHistory } = useGetHistory()
   useFocusEffect(
@@ -185,7 +187,7 @@ export const HistoryTabScreen = () => {
     <View style={[styles.screenContainer, { paddingTop: insets.top }]}>
       <ScrollView
         style={styles.scrollContainer}
-        contentContainerStyle={styles.scrollContentContainer}
+        contentContainerStyle={[styles.scrollContentContainer, { paddingBottom: spacing.xl + tabBarInset }]}
         refreshControl={refreshControl}
       >
         <PageTitle icon={Clock} title='履歴' />

@@ -19,6 +19,7 @@ import { SectionHeader } from '../../../components/ui/SectionHeader'
 import { useThemedRefreshControl } from '../../../components/ui/ThemedRefreshControl'
 import { useAuth } from '../../../hooks/AuthContext'
 import { useTheme } from '../../../hooks/ThemeContext'
+import { useTabBarInset } from '../../../hooks/useTabBarInset'
 import { useGetHomeData } from '../../../usecases/useGetHomeData'
 import { useSettings } from '../../../usecases/useSettings'
 import { AccountModal } from './components/AccountModal'
@@ -45,6 +46,7 @@ export const HomeTabScreen = ({
 }) => {
   const insets = useSafeAreaInsets()
   const { styles, colors, spacing, isDark } = useTheme()
+  const tabBarInset = useTabBarInset()
   const { activeTenant } = useAuth()
   const { data, loading, refetch } = useGetHomeData()
   const settings = useSettings()
@@ -75,7 +77,7 @@ export const HomeTabScreen = ({
     <View style={[styles.screenContainer, { paddingTop: Math.max(insets.top, 24) }]}>
       <ScrollView
         style={styles.scrollContainer}
-        contentContainerStyle={styles.scrollContentContainer}
+        contentContainerStyle={[styles.scrollContentContainer, { paddingBottom: spacing.xl + tabBarInset }]}
         refreshControl={refreshControl}
       >
         {/* Header */}

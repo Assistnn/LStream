@@ -10,6 +10,7 @@ import { LoadingSpinner } from '../../../components/ui/LoadingSpinner'
 import { PageTitle } from '../../../components/ui/PageTitle'
 import { useThemedRefreshControl } from '../../../components/ui/ThemedRefreshControl'
 import { useTheme } from '../../../hooks/ThemeContext'
+import { useTabBarInset } from '../../../hooks/useTabBarInset'
 import { clearFavoritesCache, refetchFavorites, useGetFavorites } from '../../../usecases/useGetFavorites'
 import { FavoriteEpisodeListItem } from './components/FavoriteEpisodeListItem'
 import { FavoriteSeriesListItem } from './components/FavoriteSeriesListItem'
@@ -17,6 +18,7 @@ import { FavoriteSeriesListItem } from './components/FavoriteSeriesListItem'
 export const FavoritesTabScreen = () => {
   const insets = useSafeAreaInsets()
   const { styles, colors, spacing, borderRadius } = useTheme()
+  const tabBarInset = useTabBarInset()
   const navigation =
     useNavigation<NativeStackNavigationProp<{ SeriesDetail: { seriesId: number; autoPlayEpisodeId?: number } }>>()
   const [activeTab, setActiveTab] = useState<'series' | 'episode'>('series')
@@ -37,7 +39,7 @@ export const FavoritesTabScreen = () => {
     <View style={[styles.screenContainer, { paddingTop: insets.top }]}>
       <ScrollView
         style={styles.scrollContainer}
-        contentContainerStyle={styles.scrollContentContainer}
+        contentContainerStyle={[styles.scrollContentContainer, { paddingBottom: spacing.xl + tabBarInset }]}
         refreshControl={refreshControl}
       >
         <PageTitle icon={Heart} title='お気に入り' />

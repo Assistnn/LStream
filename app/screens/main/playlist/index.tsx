@@ -10,6 +10,7 @@ import { EmptyState } from '../../../components/ui/EmptyState'
 import { PageTitle } from '../../../components/ui/PageTitle'
 import { usePlayer } from '../../../hooks/PlayerContext'
 import { useTheme } from '../../../hooks/ThemeContext'
+import { useTabBarInset } from '../../../hooks/useTabBarInset'
 import type { Playlist } from '../../../repositories/playlist'
 import { PlaylistRepository } from '../../../repositories/playlist'
 import { CreatePlaylistModal } from './components/CreatePlaylistModal'
@@ -21,6 +22,7 @@ import { formatTotalDuration, sortPlaylists } from './utils'
 export const PlaylistTabScreen = () => {
   const insets = useSafeAreaInsets()
   const { styles, colors, spacing, borderRadius } = useTheme()
+  const tabBarInset = useTabBarInset()
   const navigation = useNavigation<NativeStackNavigationProp<PlaylistStackParamList>>()
   const { queue } = usePlayer()
   const { playlists, setPlaylists } = usePlaylists()
@@ -33,7 +35,7 @@ export const PlaylistTabScreen = () => {
 
   return (
     <View style={[styles.screenContainer, { paddingTop: insets.top }]}>
-      <ScrollView contentContainerStyle={{ paddingBottom: spacing['4xl'] }}>
+      <ScrollView contentContainerStyle={{ paddingBottom: spacing['4xl'] + tabBarInset }}>
         <PageTitle icon={ListMusic} title='プレイリスト' />
 
         {/* Queue Section */}

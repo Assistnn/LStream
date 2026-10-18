@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { EmptyState } from '../../../components/ui/EmptyState'
 import { usePlayer } from '../../../hooks/PlayerContext'
 import { useTheme } from '../../../hooks/ThemeContext'
+import { useTabBarInset } from '../../../hooks/useTabBarInset'
 import { QUEUE_ITEM_HEIGHT, QueueItemRow } from './components/QueueItemRow'
 import { formatTotalDuration, toPlayableTrack } from './utils'
 
@@ -14,6 +15,7 @@ export const QueueScreen = () => {
   const insets = useSafeAreaInsets()
   const navigation = useNavigation()
   const { styles, colors, spacing, borderRadius } = useTheme()
+  const tabBarInset = useTabBarInset()
   const {
     queue,
     autoPlayNext,
@@ -74,7 +76,7 @@ export const QueueScreen = () => {
 
   return (
     <View style={[styles.screenContainer, { paddingTop: insets.top }]}>
-      <ScrollView scrollEnabled={draggingIndex === null} contentContainerStyle={{ paddingBottom: spacing['4xl'] }}>
+      <ScrollView scrollEnabled={draggingIndex === null} contentContainerStyle={{ paddingBottom: spacing['4xl'] + tabBarInset }}>
         {/* Header */}
         <View
           style={{
