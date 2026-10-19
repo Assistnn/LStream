@@ -7,6 +7,8 @@ import ReactAppDependencyProvider
 
 @main
 class AppDelegate: UIResponder, UIApplicationDelegate {
+  // 画面は SceneDelegate が持つため常に nil。Firebase の AppDelegate 差し替え（GULAppDelegateSwizzler）が window を参照するので宣言だけ必要
+  var window: UIWindow?
   var reactNativeDelegate: ReactNativeDelegate?
   var reactNativeFactory: RCTReactNativeFactory?
   var launchOptions: [UIApplication.LaunchOptionsKey: Any]?
