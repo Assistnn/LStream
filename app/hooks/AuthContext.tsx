@@ -2,7 +2,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 import type { ReactNode } from 'react'
 import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import { NativeModules, TurboModuleRegistry } from 'react-native'
+import DeviceInfo from 'react-native-device-info'
 
+import { apiRepository } from '../repositories/api'
 import { apiClient } from '../repositories/api/core/client'
 
 const WebAuthSessionModule = (TurboModuleRegistry.get('WebAuthSessionModule') ??
@@ -123,6 +125,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
       },
       signOut: async () => {
+        // ログアウト後にこの会員宛ての通知が届かないよう、トークンを消す前に端末の結びつきを外す
+        try {
+          await apiRepository.unregisterDevice(await DeviceInfo.getUniqueId())
+        } catch {
+          // ignore
+        }
         try {
           await WebAuthSessionModule.openAuthSession(
             'https://login.lseed.app/logout',

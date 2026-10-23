@@ -13,6 +13,7 @@ import type {
   MeResponse,
   PlayEndParams,
   PlayProgressParams,
+  RegisterDeviceParams,
   SeriesResponse,
   SettingsResponse,
 } from './IApiRepository'
@@ -98,5 +99,13 @@ export class ApiRepository implements IApiRepository {
   async getAutoLoginUrl(redirect?: string) {
     const qs = redirect ? `?redirect=${encodeURIComponent(redirect)}` : ''
     return apiClient.get<{ result: number; url?: string }>(`/str_auto_login_url${qs}`)
+  }
+
+  async registerDevice(params: RegisterDeviceParams) {
+    return apiClient.post<ApiResult>('/app_device', params)
+  }
+
+  async unregisterDevice(installationId: string) {
+    return apiClient.request<ApiResult>('/app_device', { method: 'DELETE', body: { installation_id: installationId } })
   }
 }

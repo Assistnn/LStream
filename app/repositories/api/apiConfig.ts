@@ -21,4 +21,6 @@ export const API_METHOD_CONFIG: ApiMethodConfig = {
   updatePlayEnd: 'real',
   getMe: 'mock',
   getAutoLoginUrl: 'real',
+  registerDevice: 'real',
+  unregisterDevice: 'real',
 }

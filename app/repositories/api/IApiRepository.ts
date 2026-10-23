@@ -14,6 +14,8 @@ export interface IApiRepository {
   updatePlayEnd(params: PlayEndParams): Promise<ApiResult>
   getMe(): Promise<MeResponse>
   getAutoLoginUrl(redirect?: string): Promise<{ result: number; url?: string }>
+  registerDevice(params: RegisterDeviceParams): Promise<ApiResult>
+  unregisterDevice(installationId: string): Promise<ApiResult>
 }
 
 export interface ApiResult {
@@ -30,6 +32,12 @@ export type LoginParams = {
   tenant_code: string
   device_token: string
   device_uuid: string
+}
+
+export type RegisterDeviceParams = {
+  installation_id: string
+  push_token: string | null
+  push_enabled: boolean
 }
 
 export type AuthResponse = ApiResult & {
