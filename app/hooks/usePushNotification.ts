@@ -1,13 +1,16 @@
-import notifee, { AndroidImportance } from '@notifee/react-native'
+import notifee, { AndroidImportance, EventType } from '@notifee/react-native'
 import {
   AuthorizationStatus,
+  getInitialNotification,
   getMessaging,
   getToken,
   hasPermission,
   onMessage,
+  onNotificationOpenedApp,
   onTokenRefresh,
 } from '@react-native-firebase/messaging'
 import { useEffect } from 'react'
+import { Linking } from 'react-native'
 import DeviceInfo from 'react-native-device-info'
 
 import { apiRepository } from '../repositories/api'
@@ -24,6 +27,13 @@ const registerDevice = async (token: string) => {
   })
 }
 
+// LSEED のアプリ通知で設定した「タップしたときに開く URL」を開く
+const openLink = (data: { [key: string]: unknown } | undefined) => {
+  const link = typeof data?.link === 'string' ? data.link : ''
+  if (!/^https?:\/\//.test(link)) return
+  void Linking.openURL(link).catch((e: unknown) => console.warn('[FCM] open link failed', e))
+}
+
 export const usePushNotification = () => {
   const { status, activeTenant } = useAuth()
   const signedIn = status === 'signedIn' && activeTenant !== null
@@ -35,8 +45,16 @@ export const usePushNotification = () => {
       .createChannel({ id: PUSH_CHANNEL_ID, name: 'お知らせ', importance: AndroidImportance.HIGH })
       .catch((e: unknown) => console.warn('[FCM] channel failed', e))
 
+    // アプリを閉じていた・裏にあったときに通知をタップして開いた場合
+    void getInitialNotification(messaging).then((message) => openLink(message?.data))
+    const unsubscribeOpened = onNotificationOpenedApp(messaging, (message) => openLink(message.data))
+    // アプリ表示中に notifee で出した通知をタップした場合
+    const unsubscribeForeground = notifee.onForegroundEvent(({ type, detail }) => {
+      if (type === EventType.PRESS) openLink(detail.notification?.data)
+    })
+
     // アプリ表示中は OS が通知を出さないため、notifee で表示する
-    return onMessage(messaging, async (message) => {
+    const unsubscribeMessage = onMessage(messaging, async (message) => {
       if (!message.notification) return
       await notifee.displayNotification({
         title: message.notification.title,
@@ -45,6 +63,12 @@ export const usePushNotification = () => {
         android: { channelId: PUSH_CHANNEL_ID, pressAction: { id: 'default' } },
       })
     })
+
+    return () => {
+      unsubscribeOpened()
+      unsubscribeForeground()
+      unsubscribeMessage()
+    }
   }, [])
 
   // 端末は会員単位で登録する（どのテナントのサーバーから登録しても同じ端末の行が更新される）
