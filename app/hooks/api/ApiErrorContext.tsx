@@ -8,6 +8,12 @@ type ApiErrorContextType = {
   handleError: (error: unknown) => void
 }
 
+// アップデートが必要なときに開くストアのページ
+// App Store は国の指定（/us/ 等）を付けず、端末の国のストアを開かせる
+const IOS_STORE_URL = 'https://apps.apple.com/app/id6806906910'
+// Google Play はアプリ ID（applicationId）で決まる。公開後に正式な URL を確認して差し替える
+const ANDROID_STORE_URL = 'https://play.google.com/store/apps/details?id=jp.lseed.lstream'
+
 const ApiErrorContext = createContext<ApiErrorContextType | undefined>(undefined)
 
 export const useApiError = () => {
@@ -25,10 +31,7 @@ export const ApiErrorProvider = ({ children }: { children: ReactNode }) => {
         {
           text: 'アップデート',
           onPress: () => {
-            const storeUrl =
-              Platform.OS === 'ios'
-                ? 'https://apps.apple.com/app/idXXXXXXXXXX'
-                : 'https://play.google.com/store/apps/details?id=com.yourapp'
+            const storeUrl = Platform.OS === 'ios' ? IOS_STORE_URL : ANDROID_STORE_URL
             void Linking.openURL(storeUrl)
           },
         },
