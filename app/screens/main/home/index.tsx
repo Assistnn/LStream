@@ -20,6 +20,7 @@ import { useThemedRefreshControl } from '../../../components/ui/ThemedRefreshCon
 import { useAuth } from '../../../hooks/AuthContext'
 import { useTheme } from '../../../hooks/ThemeContext'
 import { useTabBarInset } from '../../../hooks/useTabBarInset'
+import { OAUTH_CONFIG } from '../../../repositories/api/core/config'
 import { useGetHomeData } from '../../../usecases/useGetHomeData'
 import { useSettings } from '../../../usecases/useSettings'
 import { AccountModal } from './components/AccountModal'
@@ -47,7 +48,7 @@ export const HomeTabScreen = ({
   const insets = useSafeAreaInsets()
   const { styles, colors, spacing, isDark } = useTheme()
   const tabBarInset = useTabBarInset()
-  const { activeTenant } = useAuth()
+  const { activeTenant, refreshTenants } = useAuth()
   const { data, loading, refetch } = useGetHomeData()
   const settings = useSettings()
   const headerImageUri = isDark ? settings?.header_dark : settings?.header_light
@@ -66,12 +67,17 @@ export const HomeTabScreen = ({
     setShowAddTenant(false)
     await new Promise<void>((resolve) => setTimeout(resolve, 500))
     try {
-      await WebAuthSessionModule.openAuthSession(`https://${tenantCode}.lseed.app`, 'login.lseed.app', '/app/lstream')
+      await WebAuthSessionModule.openAuthSession(`https://${tenantCode}.lseed.app`, OAUTH_CONFIG.host, OAUTH_CONFIG.callbackPath)
     } catch (e: unknown) {
       if (e instanceof Error && (e.message?.includes('cancelled') || e.message?.includes('USER_CANCELLED'))) return
       Alert.alert('エラー', '認証に失敗しました')
+      return
     }
-  }, [])
+    // 追加したテナントを一覧に出すため、トークンを更新して最新のテナント一覧を受け取る
+    if (!(await refreshTenants())) {
+      Alert.alert('エラー', 'テナント情報の更新に失敗しました')
+    }
+  }, [refreshTenants])
 
   return (
     <View style={[styles.screenContainer, { paddingTop: Math.max(insets.top, 24) }]}>

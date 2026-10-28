@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { useAuth } from '../../../../hooks/AuthContext'
 import { useTheme } from '../../../../hooks/ThemeContext'
+import { OAUTH_CONFIG } from '../../../../repositories/api/core/config'
 
 const WebAuthSessionModule = (TurboModuleRegistry.get('WebAuthSessionModule') ??
   NativeModules.WebAuthSessionModule) as {
@@ -124,9 +125,9 @@ export const AddTenantModal = ({
                       console.log('[QR] step=1 openAuthSession start')
                       try {
                         const cb = await WebAuthSessionModule.openAuthSession(
-                          'https://login.lseed.app/qr',
-                          'login.lseed.app',
-                          '/app/lstream',
+                          `${OAUTH_CONFIG.baseURL}/qr`,
+                          OAUTH_CONFIG.host,
+                          OAUTH_CONFIG.callbackPath,
                         )
                         console.log('[QR] step=2 openAuthSession returned', cb)
                         const refreshed = await refreshTenants()

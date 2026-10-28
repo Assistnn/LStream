@@ -1,21 +1,34 @@
-import AsyncStorage from '@react-native-async-storage/async-storage'
 import NetInfo from '@react-native-community/netinfo'
 import { Alert } from 'react-native'
 import DeviceInfo from 'react-native-device-info'
 
+import type { AuthTokens } from '../../auth/tokenStorage'
+import { tokenStorage } from '../../auth/tokenStorage'
 import { StorageRepository } from '../../storage'
-import { API_CONFIG, buildApiBaseUrl, getDeviceHeaders } from './config'
+import { API_CONFIG, buildApiBaseUrl, getDeviceHeaders, OAUTH_CONFIG } from './config'
 import type { ApiResponse } from './errors'
 import { ApiException, ApiResponseException, ApiResultCode, AppVersionException, createApiError } from './errors'
-
-const TOKEN_KEY = 'auth_token'
-const REFRESH_TOKEN_KEY = 'refresh_token'
 
 type RequestConfig = {
   method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
   headers?: Record<string, string>
   body?: unknown
   requiresAuth?: boolean
+  retriedAfterTokenError?: boolean
+}
+
+// oauth/token の応答。tenants はログインサーバーが付け足す連携済みテナントの一覧
+export type OAuthTokenResponse = {
+  access_token?: string
+  refresh_token?: string
+  tenants?: unknown[]
+}
+
+type AuthListener = {
+  // トークンを更新できたとき（最新のテナント一覧つき）
+  onTokensRefreshed: (tenants: unknown[]) => void
+  // リフレッシュトークンも無効で、再ログインが必要になったとき
+  onSessionExpired: () => void
 }
 
 class ApiClient {
@@ -24,6 +37,8 @@ class ApiClient {
   private defaultHeaders: Record<string, string>
   private ready: boolean
   private friendId: string | null
+  private refreshing: Promise<boolean> | null = null
+  private authListener: AuthListener | null = null
 
   constructor() {
     this.baseURL = API_CONFIG.baseURL
@@ -42,46 +57,102 @@ class ApiClient {
     this.friendId = friendId === null ? null : String(friendId)
   }
 
-  async getToken() {
-    try {
-      return await AsyncStorage.getItem(TOKEN_KEY)
-    } catch (error) {
-      console.error('Failed to get token:', error)
-      return null
-    }
+  setAuthListener(listener: AuthListener | null) {
+    this.authListener = listener
   }
 
-  async setToken(token: string) {
-    try {
-      await AsyncStorage.setItem(TOKEN_KEY, token)
-    } catch (error) {
-      console.error('Failed to set token:', error)
-    }
+  async getToken() {
+    return (await tokenStorage.get())?.accessToken ?? null
   }
 
   async getRefreshToken() {
-    try {
-      return await AsyncStorage.getItem(REFRESH_TOKEN_KEY)
-    } catch (error) {
-      console.error('Failed to get refresh token:', error)
-      return null
-    }
+    return (await tokenStorage.get())?.refreshToken ?? null
   }
 
-  async setRefreshToken(token: string) {
-    try {
-      await AsyncStorage.setItem(REFRESH_TOKEN_KEY, token)
-    } catch (error) {
-      console.error('Failed to set refresh token:', error)
-    }
+  async setTokens(tokens: AuthTokens) {
+    await tokenStorage.set(tokens)
   }
 
   async clearTokens() {
+    await tokenStorage.clear()
+  }
+
+  // ログインサーバーで、リフレッシュトークンから新しいトークンを受け取る。
+  // 同時に何件のリクエストが期限切れになっても、更新は1回だけ行う（Passport は更新のたびに古いトークンを失効させるため）。
+  refreshToken() {
+    this.refreshing ??= this.requestNewTokens().finally(() => {
+      this.refreshing = null
+    })
+    return this.refreshing
+  }
+
+  private async requestNewTokens() {
+    const refreshToken = await this.getRefreshToken()
+    if (!refreshToken) return false
+
+    let response: Response
     try {
-      await AsyncStorage.multiRemove([TOKEN_KEY, REFRESH_TOKEN_KEY])
+      response = await fetch(`${OAUTH_CONFIG.baseURL}/oauth/token`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded', Accept: 'application/json' },
+        body: new URLSearchParams({
+          grant_type: 'refresh_token',
+          client_id: OAUTH_CONFIG.clientId,
+          refresh_token: refreshToken,
+        }).toString(),
+      })
     } catch (error) {
-      console.error('Failed to clear tokens:', error)
+      // 通信できないだけならトークンは残し、次の機会にやり直す
+      console.warn('Failed to refresh token:', error)
+      return false
     }
+
+    const tokenResponse = (await response.json().catch(() => ({}))) as OAuthTokenResponse
+    if (!response.ok || !tokenResponse.access_token) {
+      // リフレッシュトークンが期限切れ・失効（invalid_grant 等）なら再ログインが必要（混雑による 429 は除く）
+      if (response.status >= 400 && response.status < 500 && response.status !== 429) {
+        await this.clearTokens()
+        this.authListener?.onSessionExpired()
+      }
+      return false
+    }
+
+    await this.setTokens({
+      accessToken: tokenResponse.access_token,
+      refreshToken: tokenResponse.refresh_token ?? refreshToken,
+    })
+    this.authListener?.onTokensRefreshed(tokenResponse.tenants ?? [])
+    return true
+  }
+
+  // ログアウト時に、この端末のトークンをログインサーバーで失効させる（他の端末は残る）
+  async revokeTokens() {
+    const revoke = async () => {
+      const token = await this.getToken()
+      if (!token) return true
+      const response = await fetch(`${OAUTH_CONFIG.baseURL}/api/token/revoke`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
+      })
+      return response.status !== 401
+    }
+    try {
+      // アクセストークンの期限が切れていたら、更新してから失効させる
+      if (!(await revoke()) && (await this.refreshToken())) {
+        await revoke()
+      }
+    } catch (error) {
+      console.warn('Failed to revoke token:', error)
+    }
+  }
+
+  // 期限切れ・失効（result=4）のとき、新しいトークンで1回だけやり直す
+  private async retryAfterTokenError<T>(endpoint: string, config: RequestConfig, sentToken: string | undefined) {
+    if (config.retriedAfterTokenError) return null
+    // 送ったあとに別のリクエストがトークンを更新していれば、更新せずにそのトークンでやり直す
+    const currentToken = await this.getToken()
+    const canRetry = (currentToken !== null && currentToken !== sentToken) || (await this.refreshToken())
+    return canRetry ? this.request<T>(endpoint, { ...config, retriedAfterTokenError: true }) : null
   }
 
   async request<T>(endpoint: string, config: RequestConfig = {}): Promise<T> {
@@ -124,14 +195,16 @@ class ApiClient {
       requestHeaders['x-app-id'] = this.friendId
     }
 
-    console.log('[API Request]', {
-      method,
-      endpoint,
-      url,
-      headers: requestHeaders,
-      body,
-      requiresAuth,
-    })
+    if (__DEV__) {
+      console.log('[API Request]', {
+        method,
+        endpoint,
+        url,
+        headers: { ...requestHeaders, ...(requestHeaders['x-app-token'] ? { 'x-app-token': '***' } : {}) },
+        body,
+        requiresAuth,
+      })
+    }
 
     const controller = new AbortController()
     const timeoutId = setTimeout(() => controller.abort(), this.timeout)
@@ -146,12 +219,14 @@ class ApiClient {
 
       clearTimeout(timeoutId)
 
-      console.log('[API Response:raw]', {
-        method,
-        endpoint,
-        status: response.status,
-        ok: response.ok,
-      })
+      if (__DEV__) {
+        console.log('[API Response:raw]', {
+          method,
+          endpoint,
+          status: response.status,
+          ok: response.ok,
+        })
+      }
 
       const necessaryVersion = response.headers.get('x-app-necessary-version')
       if (necessaryVersion) {
@@ -179,16 +254,22 @@ class ApiClient {
 
       if (!response.ok) {
         let errorMessage = `HTTP Error: ${response.status}`
+        // LSEED はトークンの期限切れ・失効を HTTP 400 + result=4 で返す
+        let tokenErrorData: ApiResponse<unknown> | null = null
         try {
           const errorData = await response.json()
-          console.log('[API Response:error]', {
-            method,
-            endpoint,
-            status: response.status,
-            data: errorData,
-          })
+          if (__DEV__) {
+            console.log('[API Response:error]', {
+              method,
+              endpoint,
+              status: response.status,
+              data: errorData,
+            })
+          }
 
-          if (errorData.result !== undefined) {
+          if (errorData.result === ApiResultCode.TokenError) {
+            tokenErrorData = errorData
+          } else if (errorData.result !== undefined) {
             throw new ApiResponseException(errorData.result, errorData.title, errorData.message)
           }
 
@@ -199,6 +280,12 @@ class ApiClient {
           }
         }
 
+        if (tokenErrorData) {
+          const retried = await this.retryAfterTokenError<T>(endpoint, config, requestHeaders['x-app-token'])
+          if (retried !== null) return retried
+          throw new ApiResponseException(ApiResultCode.TokenError, tokenErrorData.title, tokenErrorData.message)
+        }
+
         throw new ApiException({
           message: errorMessage,
           statusCode: response.status,
@@ -206,22 +293,26 @@ class ApiClient {
       }
 
       if (response.status === 204) {
-        console.log('[API Response:success]', {
-          method,
-          endpoint,
-          status: response.status,
-          data: null,
-        })
+        if (__DEV__) {
+          console.log('[API Response:success]', {
+            method,
+            endpoint,
+            status: response.status,
+            data: null,
+          })
+        }
         return undefined as T
       }
 
       const data: ApiResponse<T> = await response.json()
-      console.log('[API Response:success]', {
-        method,
-        endpoint,
-        status: response.status,
-        data,
-      })
+      if (__DEV__) {
+        console.log('[API Response:success]', {
+          method,
+          endpoint,
+          status: response.status,
+          data,
+        })
+      }
 
       switch (data.result) {
         case ApiResultCode.Success:
@@ -234,11 +325,9 @@ class ApiClient {
           throw new ApiResponseException(ApiResultCode.ErrorNoAlert, data.title, data.message)
 
         case ApiResultCode.TokenError: {
-          const refreshed = await this.refreshToken()
-          if (refreshed) {
-            return this.request<T>(endpoint, config)
-          }
-          throw new ApiResponseException(ApiResultCode.TokenError, undefined, 'Token error or expired')
+          const retried = await this.retryAfterTokenError<T>(endpoint, config, requestHeaders['x-app-token'])
+          if (retried !== null) return retried
+          throw new ApiResponseException(ApiResultCode.TokenError, data.title, data.message)
         }
 
         default:
@@ -266,29 +355,6 @@ class ApiClient {
       }
 
       throw new ApiException(createApiError(error))
-    }
-  }
-
-  async refreshToken() {
-    try {
-      const refreshToken = await this.getRefreshToken()
-      if (!refreshToken) {
-        return false
-      }
-
-      const response = await this.request<{ token: string; refreshToken: string }>('/auth/refresh', {
-        method: 'POST',
-        body: { refreshToken },
-        requiresAuth: false,
-      })
-
-      await this.setToken(response.token)
-      await this.setRefreshToken(response.refreshToken)
-      return true
-    } catch (error) {
-      console.error('Failed to refresh token:', error)
-      await this.clearTokens()
-      return false
     }
   }
 

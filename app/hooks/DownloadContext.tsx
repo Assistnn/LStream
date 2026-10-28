@@ -5,6 +5,7 @@ import { Alert, NativeModules, Platform } from 'react-native'
 import ReactNativeBlobUtil from 'react-native-blob-util'
 
 import { isYoutubeUrl } from '../components/player/youtubeHtml'
+import { apiClient } from '../repositories/api/core/client'
 import { getDeviceHeaders } from '../repositories/api/core/config'
 
 const { VideoConverterModule } = NativeModules as {
@@ -278,7 +279,7 @@ export const DownloadProvider = ({ children }: { children: ReactNode }) => {
       }
 
       const doDownload = async () => {
-        const token = await AsyncStorage.getItem('auth_token')
+        const token = await apiClient.getToken()
         const deviceHeaders = getDeviceHeaders()
         const headers: Record<string, string> = { ...deviceHeaders }
         if (token) headers['x-app-token'] = token

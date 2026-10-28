@@ -1,11 +1,12 @@
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import type { ReactNode } from 'react'
 import { createContext, useContext, useEffect, useMemo, useState } from 'react'
-import { NativeModules, TurboModuleRegistry } from 'react-native'
+import { Alert, NativeModules, TurboModuleRegistry } from 'react-native'
 import DeviceInfo from 'react-native-device-info'
 
 import { apiRepository } from '../repositories/api'
 import { apiClient } from '../repositories/api/core/client'
+import { OAUTH_CONFIG } from '../repositories/api/core/config'
 
 const WebAuthSessionModule = (TurboModuleRegistry.get('WebAuthSessionModule') ??
   NativeModules.WebAuthSessionModule) as {
@@ -25,14 +26,59 @@ export type OAuthTenant = {
 
 const tenantKey = (t: OAuthTenant) => `${t.account}-${t.server_id}`
 
+type AuthState = {
+  status: AuthStatus
+  tenants: OAuthTenant[]
+  activeTenantKey: string | null
+}
+
+const SIGNED_OUT: AuthState = { status: 'signedOut', tenants: [], activeTenantKey: null }
+
+// テナント一覧を受け取り、今のテナントが残っていればそのまま、無ければ先頭を選ぶ
+const withTenants = (tenants: OAuthTenant[], currentKey: string | null): AuthState => {
+  const activeTenantKey =
+    currentKey && tenants.some((t) => tenantKey(t) === currentKey)
+      ? currentKey
+      : tenants[0]
+        ? tenantKey(tenants[0])
+        : null
+  const activeTenant = tenants.find((t) => tenantKey(t) === activeTenantKey) ?? null
+  apiClient.setActiveServerId(activeTenant?.server_id ?? null)
+  apiClient.setActiveFriendId(activeTenant?.friend_id ?? null)
+  return { status: 'signedIn', tenants, activeTenantKey }
+}
+
+const saveTenants = async ({ tenants, activeTenantKey }: AuthState) => {
+  try {
+    await AsyncStorage.setItem('oauthTenants', JSON.stringify(tenants))
+    if (activeTenantKey) {
+      await AsyncStorage.setItem('activeTenantKey', activeTenantKey)
+    } else {
+      await AsyncStorage.removeItem('activeTenantKey')
+    }
+  } catch {
+    // ignore
+  }
+}
+
+const clearSession = async () => {
+  apiClient.setActiveServerId(null)
+  apiClient.setActiveFriendId(null)
+  await apiClient.clearTokens()
+  try {
+    await AsyncStorage.multiRemove(['oauthTenants', 'activeTenantKey'])
+  } catch {
+    // ignore
+  }
+}
+
 const AuthContext = createContext<
   | {
       status: AuthStatus
-      token: string | null
       tenants: OAuthTenant[]
       activeTenant: OAuthTenant | null
       setActiveTenant: (tenant: OAuthTenant) => Promise<void>
-      signIn: (token: string, tenants?: OAuthTenant[]) => Promise<void>
+      signIn: (tenants?: OAuthTenant[]) => Promise<void>
       signOut: () => Promise<void>
       refreshTenants: () => Promise<boolean>
     }
@@ -48,52 +94,54 @@ export const useAuth = () => {
 }
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [state, setState] = useState<{
-    status: AuthStatus
-    token: string | null
-    tenants: OAuthTenant[]
-    activeTenantKey: string | null
-  }>({
-    status: 'loading',
-    token: null,
-    tenants: [],
-    activeTenantKey: null,
-  })
+  const [state, setState] = useState<AuthState>({ status: 'loading', tenants: [], activeTenantKey: null })
 
   useEffect(() => {
     const restoreToken = async () => {
       try {
         const [storedToken, storedTenants, storedActiveKey] = await Promise.all([
-          AsyncStorage.getItem('authToken'),
+          apiClient.getToken(),
           AsyncStorage.getItem('oauthTenants'),
           AsyncStorage.getItem('activeTenantKey'),
         ])
-        const tenants = storedTenants ? (JSON.parse(storedTenants) as OAuthTenant[]) : []
-        const activeTenantKey =
-          storedActiveKey && tenants.some((t) => tenantKey(t) === storedActiveKey)
-            ? storedActiveKey
-            : (tenants[0] ? tenantKey(tenants[0]) : null)
-        const activeTenant = tenants.find((t) => tenantKey(t) === activeTenantKey) ?? null
-        apiClient.setActiveServerId(activeTenant?.server_id ?? null)
-        apiClient.setActiveFriendId(activeTenant?.friend_id ?? null)
-        if (storedToken) {
-          setState({ status: 'signedIn', token: storedToken, tenants, activeTenantKey })
-        } else {
-          setState({ status: 'signedOut', token: null, tenants: [], activeTenantKey: null })
+        if (!storedToken) {
+          apiClient.setActiveServerId(null)
+          apiClient.setActiveFriendId(null)
+          setState(SIGNED_OUT)
+          return
         }
+        setState(withTenants(storedTenants ? (JSON.parse(storedTenants) as OAuthTenant[]) : [], storedActiveKey))
       } catch {
         apiClient.setActiveServerId(null)
         apiClient.setActiveFriendId(null)
-        setState({ status: 'signedOut', token: null, tenants: [], activeTenantKey: null })
+        setState(SIGNED_OUT)
       }
     }
     void restoreToken()
   }, [])
 
+  useEffect(() => {
+    apiClient.setAuthListener({
+      onTokensRefreshed: (tenants) => {
+        setState((prev) => {
+          if (prev.status !== 'signedIn') return prev
+          const next = withTenants(tenants as OAuthTenant[], prev.activeTenantKey)
+          void saveTenants(next)
+          return next
+        })
+      },
+      onSessionExpired: () => {
+        void clearSession()
+        setState(SIGNED_OUT)
+        Alert.alert('ログインの有効期限が切れました', 'もう一度ログインしてください')
+      },
+    })
+    return () => apiClient.setAuthListener(null)
+  }, [])
+
   const value = useMemo(
     () => ({
       status: state.status,
-      token: state.token,
       tenants: state.tenants,
       activeTenant: state.tenants.find((t) => tenantKey(t) === state.activeTenantKey) ?? null,
       setActiveTenant: async (tenant: OAuthTenant) => {
@@ -107,22 +155,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           // ignore
         }
       },
-      signIn: async (token: string, tenants: OAuthTenant[] = []) => {
-        const activeTenantKey = tenants[0] ? tenantKey(tenants[0]) : null
-        apiClient.setActiveServerId(tenants[0]?.server_id ?? null)
-        apiClient.setActiveFriendId(tenants[0]?.friend_id ?? null)
-        setState({ status: 'signedIn', token, tenants, activeTenantKey })
-        try {
-          await AsyncStorage.setItem('authToken', token)
-          await AsyncStorage.setItem('oauthTenants', JSON.stringify(tenants))
-          if (activeTenantKey) {
-            await AsyncStorage.setItem('activeTenantKey', activeTenantKey)
-          } else {
-            await AsyncStorage.removeItem('activeTenantKey')
-          }
-        } catch {
-          // ignore
-        }
+      // トークンは useOAuthLogin が apiClient.setTokens で保存済み
+      signIn: async (tenants: OAuthTenant[] = []) => {
+        const next = withTenants(tenants, null)
+        setState(next)
+        await saveTenants(next)
       },
       signOut: async () => {
         // ログアウト後にこの会員宛ての通知が届かないよう、トークンを消す前に端末の結びつきを外す
@@ -131,85 +168,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         } catch {
           // ignore
         }
+        // この端末のアクセストークン・リフレッシュトークンをログインサーバーで失効させる
+        await apiClient.revokeTokens()
         try {
           await WebAuthSessionModule.openAuthSession(
-            'https://login.lseed.app/logout',
-            'login.lseed.app',
-            '/app/lstream',
+            `${OAUTH_CONFIG.baseURL}/logout`,
+            OAUTH_CONFIG.host,
+            OAUTH_CONFIG.callbackPath,
           )
         } catch {
           // ignore
         }
-        apiClient.setActiveServerId(null)
-        apiClient.setActiveFriendId(null)
-        setState({ status: 'signedOut', token: null, tenants: [], activeTenantKey: null })
-        try {
-          await AsyncStorage.removeItem('authToken')
-          await AsyncStorage.removeItem('oauthTenants')
-          await AsyncStorage.removeItem('activeTenantKey')
-        } catch {
-          // ignore
-        }
+        await clearSession()
+        setState(SIGNED_OUT)
       },
-      refreshTenants: async () => {
-        try {
-          const refreshToken = await apiClient.getRefreshToken()
-          if (!refreshToken) return false
-
-          const response = await fetch('https://login.lseed.app/oauth/token', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: new URLSearchParams({
-              grant_type: 'refresh_token',
-              client_id: '019e9136-9104-71f2-bca4-a7bbdb2fb91d',
-              refresh_token: refreshToken,
-            }).toString(),
-          })
-          const tokenResponse = await response.json()
-          if (!tokenResponse.access_token) return false
-
-          const newTenants = (tokenResponse.tenants ?? []) as OAuthTenant[]
-          const currentActiveKey = state.activeTenantKey
-          const newActiveTenantKey =
-            currentActiveKey && newTenants.some((t) => tenantKey(t) === currentActiveKey)
-              ? currentActiveKey
-              : newTenants[0]
-                ? tenantKey(newTenants[0])
-                : null
-          const newActiveTenant = newTenants.find((t) => tenantKey(t) === newActiveTenantKey) ?? null
-
-          apiClient.setActiveServerId(newActiveTenant?.server_id ?? null)
-          apiClient.setActiveFriendId(newActiveTenant?.friend_id ?? null)
-          await apiClient.setToken(tokenResponse.access_token)
-          if (tokenResponse.refresh_token) {
-            await apiClient.setRefreshToken(tokenResponse.refresh_token)
-          }
-
-          setState({
-            status: 'signedIn',
-            token: tokenResponse.access_token,
-            tenants: newTenants,
-            activeTenantKey: newActiveTenantKey,
-          })
-
-          try {
-            await AsyncStorage.setItem('authToken', tokenResponse.access_token)
-            await AsyncStorage.setItem('oauthTenants', JSON.stringify(newTenants))
-            if (newActiveTenantKey) {
-              await AsyncStorage.setItem('activeTenantKey', newActiveTenantKey)
-            } else {
-              await AsyncStorage.removeItem('activeTenantKey')
-            }
-          } catch {
-            // ignore
-          }
-          return true
-        } catch {
-          return false
-        }
-      },
+      // テナント追加の後に、トークンを更新して最新のテナント一覧を受け取る（一覧は onTokensRefreshed で反映）
+      refreshTenants: () => apiClient.refreshToken(),
     }),
-    [state.status, state.token, state.tenants, state.activeTenantKey],
+    [state.status, state.tenants, state.activeTenantKey],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

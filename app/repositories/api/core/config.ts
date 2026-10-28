@@ -14,6 +14,18 @@ export const getDeviceHeaders = () => ({
   'x-app-version': DeviceInfo.getVersion(),
 })
 
+const OAUTH_HOST = 'login.lseed.app'
+const OAUTH_CALLBACK_PATH = '/app/lstream'
+
+// ログインサーバー（oauth・Passport）。ログイン・トークン更新・ログアウト・テナント追加で共通に使う
+export const OAUTH_CONFIG = {
+  host: OAUTH_HOST,
+  baseURL: `https://${OAUTH_HOST}`,
+  clientId: '019e9136-9104-71f2-bca4-a7bbdb2fb91d',
+  callbackPath: OAUTH_CALLBACK_PATH,
+  redirectUri: `https://${OAUTH_HOST}${OAUTH_CALLBACK_PATH}`,
+}
+
 export const API_CONFIG = {
   baseURL: buildApiBaseUrl(),
   timeout: API_TIMEOUT,

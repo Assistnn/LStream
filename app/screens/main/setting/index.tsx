@@ -45,6 +45,7 @@ import type { ThemeMode } from '../../../hooks/ThemeContext'
 import { useTheme } from '../../../hooks/ThemeContext'
 import { useTabBarInset } from '../../../hooks/useTabBarInset'
 import packageJson from '../../../package.json'
+import { OAUTH_CONFIG } from '../../../repositories/api/core/config'
 import { PlaylistRepository } from '../../../repositories/playlist'
 import type { LoopMode } from '../../../repositories/storage'
 import { StorageRepository } from '../../../repositories/storage'
@@ -81,7 +82,7 @@ export const SettingsTabScreen = () => {
   const insets = useSafeAreaInsets()
   const { themeMode, styles, colors, spacing, borderRadius, setThemeMode } = useTheme()
   const tabBarInset = useTabBarInset()
-  const { signOut } = useAuth()
+  const { signOut, refreshTenants } = useAuth()
 
   const [showAccountModal, setShowAccountModal] = useState(false)
   const [showAddTenant, setShowAddTenant] = useState(false)
@@ -637,11 +638,16 @@ export const SettingsTabScreen = () => {
           setShowAddTenant(false)
           await new Promise<void>((resolve) => setTimeout(resolve, 500))
           try {
-            await WebAuthSessionModule.openAuthSession(`https://${code}.lseed.app`, 'login.lseed.app', '/app/lstream')
+            await WebAuthSessionModule.openAuthSession(`https://${code}.lseed.app`, OAUTH_CONFIG.host, OAUTH_CONFIG.callbackPath)
           } catch (e: unknown) {
             if (e instanceof Error && (e.message?.includes('cancelled') || e.message?.includes('USER_CANCELLED')))
               return
             Alert.alert('エラー', '認証に失敗しました')
+            return
+          }
+          // 追加したテナントを一覧に出すため、トークンを更新して最新のテナント一覧を受け取る
+          if (!(await refreshTenants())) {
+            Alert.alert('エラー', 'テナント情報の更新に失敗しました')
           }
         }}
       />

@@ -2,7 +2,10 @@ import { sha256 } from 'js-sha256'
 import { useCallback, useState } from 'react'
 import { NativeModules, TurboModuleRegistry } from 'react-native'
 
+import type { OAuthTokenResponse } from '../repositories/api/core/client'
 import { apiClient } from '../repositories/api/core/client'
+import { OAUTH_CONFIG } from '../repositories/api/core/config'
+import type { OAuthTenant } from './AuthContext'
 import { useAuth } from './AuthContext'
 
 const WebAuthSessionModule = (TurboModuleRegistry.get('WebAuthSessionModule') ??
@@ -38,8 +41,8 @@ export const useOAuthLogin = () => {
         .replace(/=+$/, '')
 
       const params = new URLSearchParams({
-        client_id: '019e9136-9104-71f2-bca4-a7bbdb2fb91d',
-        redirect_uri: 'https://login.lseed.app/app/lstream',
+        client_id: OAUTH_CONFIG.clientId,
+        redirect_uri: OAUTH_CONFIG.redirectUri,
         response_type: 'code',
         state,
         code_challenge: codeChallenge,
@@ -48,9 +51,9 @@ export const useOAuthLogin = () => {
       })
 
       const callbackUrl: string = await WebAuthSessionModule.openAuthSession(
-        `https://login.lseed.app/oauth/authorize?${params.toString()}`,
-        'login.lseed.app',
-        '/app/lstream',
+        `${OAUTH_CONFIG.baseURL}/oauth/authorize?${params.toString()}`,
+        OAUTH_CONFIG.host,
+        OAUTH_CONFIG.callbackPath,
       )
 
       const callbackParams = new URL(callbackUrl).searchParams
@@ -62,30 +65,32 @@ export const useOAuthLogin = () => {
         return
       }
 
-      const response = await fetch('https://login.lseed.app/oauth/token', {
+      const response = await fetch(`${OAUTH_CONFIG.baseURL}/oauth/token`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: new URLSearchParams({
           grant_type: 'authorization_code',
-          client_id: '019e9136-9104-71f2-bca4-a7bbdb2fb91d',
+          client_id: OAUTH_CONFIG.clientId,
           code_verifier: codeVerifier,
-          redirect_uri: 'https://login.lseed.app/app/lstream',
+          redirect_uri: OAUTH_CONFIG.redirectUri,
           code,
         }).toString(),
       })
-      const tokenResponse = await response.json()
-      console.log('[OAuth] tenants:', tokenResponse.tenants)
+      const tokenResponse = (await response.json()) as OAuthTokenResponse
+      if (__DEV__) {
+        console.log('[OAuth] tenants:', tokenResponse.tenants)
+      }
 
       if (!tokenResponse.access_token) {
         setError('トークンの取得に失敗しました')
         return
       }
 
-      await apiClient.setToken(tokenResponse.access_token)
-      if (tokenResponse.refresh_token) {
-        await apiClient.setRefreshToken(tokenResponse.refresh_token)
-      }
-      await signIn(tokenResponse.access_token, tokenResponse.tenants ?? [])
+      await apiClient.setTokens({
+        accessToken: tokenResponse.access_token,
+        refreshToken: tokenResponse.refresh_token ?? null,
+      })
+      await signIn((tokenResponse.tenants ?? []) as OAuthTenant[])
     } catch (e: unknown) {
       if (e instanceof Error && (e.message?.includes('cancelled') || e.message?.includes('USER_CANCELLED'))) return
       setError('認証に失敗しました')

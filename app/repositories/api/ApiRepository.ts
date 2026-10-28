@@ -30,7 +30,7 @@ export class ApiRepository implements IApiRepository {
   async login(credentials: LoginParams) {
     const response = await apiClient.post<AuthResponse>('/friend_login', credentials, false)
     if (response.result === 1) {
-      await apiClient.setToken(response.token)
+      await apiClient.setTokens({ accessToken: response.token, refreshToken: null })
     }
     return response
   }
