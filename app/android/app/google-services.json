@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "498024491950",
-    "project_id": "lstream-c3043",
-    "storage_bucket": "lstream-c3043.firebasestorage.app"
+    "project_number": "432215199316",
+    "project_id": "lseed-mediaapp",
+    "storage_bucket": "lseed-mediaapp.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:498024491950:android:531e41fba058d94d21f63f",
+        "mobilesdk_app_id": "1:432215199316:android:fdf6428250c3d9ae9327c1",
         "android_client_info": {
           "package_name": "jp.lseed.lstream"
         }
@@ -15,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyBN5zyrJqtg8R8a7IkOE3kirSFdvLb1NdU"
+          "current_key": "AIzaSyCKIPgS9_b-9jLOkGfI_EVQ4XicZnQyPa0"
         }
       ],
       "services": {
